@@ -60,27 +60,23 @@ const CALL_LABELS: Record<string, string> = {
       <!-- Qué está viendo y por qué.
            Sin esto el salón filtraba en silencio: "nadie está llamando" no
            distinguía entre un salón tranquilo y una pantalla recortada. -->
-      @if (store.misMesas().length > 0 || store.enTurno()) {
-        <section class="shift" [class.on]="store.enTurno()">
+      <!-- Qué está viendo y por qué.
+           Sin esto el salón filtraba en silencio: "nadie está llamando" no
+           distinguía entre un salón tranquilo y una pantalla recortada. -->
+      @if (store.misMesas().length > 0) {
+        <section class="shift" [class.on]="!store.viendoTodo()">
           <div class="shift-info">
-            @if (store.enTurno()) {
-              <span class="shift-state">En turno</span>
-              @if (store.viendoTodo()) {
-                <span class="shift-tables">Estás viendo todo el salón</span>
-              } @else if (store.misMesas().length > 0) {
-                <span class="shift-tables">
-                  Tus mesas:
-                  @for (id of store.misMesas(); track id) {
-                    <span class="shift-table">{{ tableNumber(id) }}</span>
-                  }
-                </span>
-              } @else {
-                <span class="shift-tables">Todavía no te asignaron mesas</span>
-              }
-            } @else {
-              <span class="shift-state off">Estás viendo todo el salón</span>
+            @if (store.viendoTodo()) {
+              <span class="shift-state off">Todo el salón</span>
               <span class="shift-tables">
-                Tu sector:
+                Tus mesas:
+                @for (id of store.misMesas(); track id) {
+                  <span class="shift-table">{{ tableNumber(id) }}</span>
+                }
+              </span>
+            } @else {
+              <span class="shift-state">Tus mesas</span>
+              <span class="shift-tables">
                 @for (id of store.misMesas(); track id) {
                   <span class="shift-table">{{ tableNumber(id) }}</span>
                 }
@@ -88,25 +84,13 @@ const CALL_LABELS: Record<string, string> = {
             }
           </div>
 
-          @if (store.onShift().length > 0) {
-            <p class="shift-who">
-              <span class="shift-who-label">En el salón</span>
-              @for (persona of store.onShift(); track persona.staffId) {
-                <span class="shift-person" [class.me]="persona.staffId === myId()">
-                  {{ persona.displayName }}
-                </span>
-              }
-            </p>
-          }
-
           <div class="shift-actions">
-            @if (store.enTurno()) {
-              <button type="button" class="shift-toggle" (click)="store.viendoTodo.set(!store.viendoTodo())">
-                {{ store.viendoTodo() ? 'Ver solo lo mío' : 'Ver todo el salón' }}
-              </button>
-            }
-            <button type="button" class="shift-btn" (click)="toggleShift()">
-              {{ store.enTurno() ? 'Salgo' : 'Entro al turno' }}
+            <button
+              type="button"
+              class="shift-toggle"
+              (click)="store.viendoTodo.set(!store.viendoTodo())"
+            >
+              {{ store.viendoTodo() ? 'Ver solo mis mesas' : 'Ver todo el salón' }}
             </button>
           </div>
         </section>
@@ -402,7 +386,6 @@ export class FloorComponent implements OnDestroy {
    */
   protected readonly confirming = signal<string | null>(null);
 
-  /** Quién soy, para marcarme entre los que están en el salón. */
   /**
    * Abiertos por defecto: son las dos cosas que el mozo viene a hacer.
    *
@@ -412,13 +395,8 @@ export class FloorComponent implements OnDestroy {
   protected readonly showCalls = signal(true);
   protected readonly showPickups = signal(true);
 
-  protected myId(): string {
-    return this.auth.profile()?.id ?? '';
-  }
+  /** Quién soy, para marcarme entre los que están en el salón. */
 
-  protected async toggleShift(): Promise<void> {
-    await this.store.toggleShift();
-  }
 
   protected async release(sessionId: string): Promise<void> {
     this.confirming.set(null);

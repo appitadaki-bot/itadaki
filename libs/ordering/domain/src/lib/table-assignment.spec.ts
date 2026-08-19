@@ -4,6 +4,7 @@ import {
   canSeeTable,
   orphanedTables,
   seesEveryTable,
+  tableVisibleTo,
   tablesFor,
 } from './table-assignment';
 
@@ -94,5 +95,46 @@ describe('mesas que quedan sin mozo', () => {
 
   it('sin reparto no hay nada que quede huérfano', () => {
     expect(orphanedTables([], ['ana'])).toEqual([]);
+  });
+});
+
+describe('qué mesa entra en la pantalla de cada mozo', () => {
+  const reparto = [
+    asignar('mesa-1', 'ana'),
+    asignar('mesa-2', 'ana'),
+    asignar('mesa-2', 'beto'),
+    asignar('mesa-3', 'beto'),
+  ];
+
+  it('ve las suyas', () => {
+    expect(tableVisibleTo('ana', ['ana'], reparto)).toBe(true);
+  });
+
+  it('no ve la de otro', () => {
+    // Es el motivo del reparto: veinte mesas mezcladas en la pantalla de
+    // quien atiende seis.
+    expect(tableVisibleTo('ana', ['beto'], reparto)).toBe(false);
+  });
+
+  it('los dos ven la compartida', () => {
+    expect(tableVisibleTo('ana', ['ana', 'beto'], reparto)).toBe(true);
+    expect(tableVisibleTo('beto', ['ana', 'beto'], reparto)).toBe(true);
+  });
+
+  it('una mesa sin dueño la ve cualquiera', () => {
+    // Nadie la reclamó: esconderla la dejaría sin nadie encima.
+    expect(tableVisibleTo('ana', [], reparto)).toBe(true);
+  });
+
+  it('quien no tiene sector ve todo', () => {
+    // El encargado mirando desde afuera, o el que entra a cubrir antes de que
+    // lo repartan. Dejarlo con la pantalla vacía sería peor que mostrarle de
+    // más: no podría trabajar.
+    expect(tableVisibleTo('caro', ['ana'], reparto)).toBe(true);
+    expect(tableVisibleTo('caro', ['beto'], reparto)).toBe(true);
+  });
+
+  it('sin reparto cargado, todos ven todo', () => {
+    expect(tableVisibleTo('ana', [], [])).toBe(true);
   });
 });

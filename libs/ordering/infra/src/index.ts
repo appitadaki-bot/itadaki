@@ -13,4 +13,3 @@ export {
   PostgresAssignmentStore,
   type AssignmentError,
 } from './lib/postgres-assignments';
-export { PostgresShiftStore, type ShiftError } from './lib/postgres-shifts';
