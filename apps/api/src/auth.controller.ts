@@ -27,6 +27,7 @@ import { StaffService } from './staff.service';
 import { TenantsService } from './tenants.service';
 import { ResetsService } from './resets.service';
 import { GoogleService } from './google.service';
+import { log } from './logger';
 
 @Controller('auth')
 export class AuthController {
@@ -333,7 +334,12 @@ export class AuthController {
 
       if (saved.isOk()) {
         const link = `${ADMIN_APP_URL}/?reset=${encodeURIComponent(token)}`;
-        await this.resets.mailer.send({
+        // Un fallo del proveedor no puede escaparse: la respuesta es la misma
+        // exista o no la dirección, y un 500 sólo cuando el mail existe
+        // delataba exactamente lo que ese diseño esconde. Se registra para
+        // poder arreglarlo, pero quien pidió el link ve la misma pantalla.
+        try {
+          await this.resets.mailer.send({
           to: found.value.email,
           subject: 'Cambiá tu contraseña de ITADAKI',
           body: [
@@ -344,8 +350,13 @@ export class AuthController {
             '',
             `El link vence en ${RESET_TOKEN_MINUTES} minutos y se puede usar una sola vez.`,
             'Si no fuiste vos, ignorá este mensaje: tu contraseña sigue igual.',
-          ].join('\n'),
-        });
+            ].join('\n'),
+          });
+        } catch (error) {
+          log.error('no se pudo enviar el link de recuperación', {
+            detail: String(error),
+          });
+        }
       }
     }
 

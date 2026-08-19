@@ -28,10 +28,11 @@ export class PostgresAssignmentStore {
   }
 
   /**
-   * Pone o cambia el mozo de una mesa.
+   * Suma un mozo a una mesa, sin sacar a los que ya estaban.
    *
-   * Reasignar no es un caso raro: alguien se va antes, entra otro a cubrir, y
-   * el encargado corrige el reparto en el momento.
+   * Antes reemplazaba, y eso obligaba a rehacer el reparto cada vez que dos
+   * personas compartían un sector. Asignar dos veces al mismo no duplica: la
+   * clave incluye al mozo.
    */
   async assign(
     tenantId: string,
@@ -43,8 +44,8 @@ export class PostgresAssignmentStore {
         await client.query(
           `INSERT INTO table_assignments (tenant_id, table_id, staff_id)
            VALUES ($1, $2, $3)
-           ON CONFLICT (tenant_id, table_id) DO UPDATE
-             SET staff_id = EXCLUDED.staff_id, assigned_at = now()`,
+           ON CONFLICT (tenant_id, table_id, staff_id) DO UPDATE
+             SET assigned_at = now()`,
           [tenantId, tableId, staffId],
         );
       });
@@ -54,11 +55,27 @@ export class PostgresAssignmentStore {
     }
   }
 
-  /** Deja la mesa sin dueño: la vuelve a ver todo el salón. */
-  async clear(tenantId: string, tableId: string): Promise<Result<void, AssignmentError>> {
+  /**
+   * Saca a un mozo de una mesa, o a todos si no se dice cuál.
+   *
+   * Sin mozo es "que la vea todo el salón"; con mozo es sacarlo a él y dejar
+   * a los demás, que es lo que hace falta cuando una mesa es compartida.
+   */
+  async clear(
+    tenantId: string,
+    tableId: string,
+    staffId?: string,
+  ): Promise<Result<void, AssignmentError>> {
     try {
       await this.db.withTenant(tenantId, async (client) => {
-        await client.query('DELETE FROM table_assignments WHERE table_id = $1', [tableId]);
+        if (staffId === undefined) {
+          await client.query('DELETE FROM table_assignments WHERE table_id = $1', [tableId]);
+          return;
+        }
+        await client.query(
+          'DELETE FROM table_assignments WHERE table_id = $1 AND staff_id = $2',
+          [tableId, staffId],
+        );
       });
       return ok(undefined);
     } catch (error) {

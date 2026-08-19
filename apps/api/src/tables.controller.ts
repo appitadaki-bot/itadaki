@@ -144,11 +144,21 @@ export class TablesController {
     return { tableId, staffId: parsed.data.staffId };
   }
 
-  /** Saca el dueño de una mesa: vuelve a verla todo el salón. */
+  /**
+   * Saca a un mozo de una mesa, o a todos si no se dice cuál.
+   *
+   * Con mozo saca sólo a ese y deja a los demás, que es lo que hace falta en
+   * una mesa compartida; sin mozo la deja para todo el salón.
+   */
   @RequirePermission('staff:manage')
   @Delete(':id/assign')
-  async unassign(@Param('id') tableId: string, @TenantId() tenantId: string) {
-    const done = await this.assignments.clear(tenantId, tableId);
+  async unassign(@Param('id') tableId: string, @Body() body: unknown, @TenantId() tenantId: string) {
+    const parsed = z.object({ staffId: z.string().min(1).optional() }).safeParse(body ?? {});
+    if (!parsed.success) {
+      throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
+    }
+
+    const done = await this.assignments.clear(tenantId, tableId, parsed.data.staffId);
     if (done.isErr()) {
       throw new HttpException(done.error, HttpStatus.BAD_GATEWAY);
     }
