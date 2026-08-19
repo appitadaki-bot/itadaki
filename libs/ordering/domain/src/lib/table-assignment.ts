@@ -87,3 +87,30 @@ export function orphanedTables(
   const activos = new Set(activeStaffIds);
   return assignments.filter((a) => !activos.has(a.staffId)).map((a) => a.tableId);
 }
+
+/**
+ * Si esta mesa entra en la pantalla de este mozo.
+ *
+ * Se esconde sólo la mesa que es de otro. Con el sector cargado, el mozo ve
+ * el suyo y nada más; sin sector, ve el salón entero — que es lo correcto en
+ * un local que no reparte, y también para el encargado mirando desde afuera.
+ *
+ * Antes esto dependía además de un turno que cada uno abría y cerraba a mano.
+ * Existía para el sector que hoy no cubre nadie: sus mesas quedaban asignadas
+ * a un ausente y nadie las veía. Con una mesa a cargo de varios ese caso lo
+ * resuelve el reparto —si uno falta, el otro la tiene igual— así que la
+ * ceremonia diaria dejó de pagar lo que costaba.
+ */
+export function tableVisibleTo(
+  staffId: string,
+  tableOwnerIds: readonly string[],
+  assignments: readonly TableAssignment[],
+): boolean {
+  if (tableOwnerIds.length === 0) return true;
+  if (tableOwnerIds.includes(staffId)) return true;
+
+  // Quien no tiene sector ve todo: es el encargado, o el que entra a cubrir
+  // antes de que lo repartan. Dejarlo con la pantalla vacía sería peor que
+  // mostrarle de más — no podría trabajar.
+  return !assignments.some((a) => a.staffId === staffId);
+}
