@@ -179,8 +179,12 @@ export class FloorStore {
   readonly esMia = (tableId: string): boolean => {
     if (this.viendoTodo()) return true;
 
-    const dueno = this.assignments().find((a) => a.tableId === tableId)?.staffId ?? null;
-    return !hiddenFrom(this.auth.profile()?.id ?? '', dueno, this.shifts(), new Date());
+    // Todos sus dueños, no el primero: una mesa compartida se le escondería a
+    // los demás si mirara sólo a uno.
+    const duenos = this.assignments()
+      .filter((a) => a.tableId === tableId)
+      .map((a) => a.staffId);
+    return !hiddenFrom(this.auth.profile()?.id ?? '', duenos, this.shifts(), new Date());
   };
 
   /** Entra al turno, o sale. Cada uno el suyo: nadie pone a otro en turno. */

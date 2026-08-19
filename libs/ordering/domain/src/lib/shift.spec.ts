@@ -63,30 +63,57 @@ describe('qué mesa se le esconde a quién', () => {
   it('esconde la mesa de un compañero en turno', () => {
     // Es el motivo de todo esto: veinte mesas mezcladas en la pantalla de
     // quien atiende seis.
-    expect(hiddenFrom('ana', 'beto', turnos, AHORA)).toBe(true);
+    expect(hiddenFrom('ana', ['beto'], turnos, AHORA)).toBe(true);
   });
 
   it('nunca esconde las propias', () => {
-    expect(hiddenFrom('ana', 'ana', turnos, AHORA)).toBe(false);
+    expect(hiddenFrom('ana', ['ana'], turnos, AHORA)).toBe(false);
   });
 
   it('no esconde una mesa sin dueño', () => {
     // Nadie la reclamó: esconderla la dejaría sin nadie encima.
-    expect(hiddenFrom('ana', null, turnos, AHORA)).toBe(false);
+    expect(hiddenFrom('ana', [], turnos, AHORA)).toBe(false);
   });
 
   it('no esconde la mesa de alguien que no entró en turno', () => {
     // Este es el caso que hace innecesario rehacer el reparto: el sector de
     // quien hoy no vino queda a la vista de todos, sin que nadie haga nada.
-    expect(hiddenFrom('ana', 'caro', [enTurno('ana')], AHORA)).toBe(false);
+    expect(hiddenFrom('ana', ['caro'], [enTurno('ana')], AHORA)).toBe(false);
   });
 
   it('no esconde la mesa del que se fue a mitad de turno', () => {
     const conIdo = [enTurno('ana'), enTurno('beto', 60 * 5)];
-    expect(hiddenFrom('ana', 'beto', conIdo, AHORA)).toBe(false);
+    expect(hiddenFrom('ana', ['beto'], conIdo, AHORA)).toBe(false);
   });
 
   it('no esconde nada al que no está en turno', () => {
-    expect(hiddenFrom('caro', 'beto', turnos, AHORA)).toBe(false);
+    expect(hiddenFrom('caro', ['beto'], turnos, AHORA)).toBe(false);
+  });
+});
+
+describe('una mesa con varios mozos', () => {
+  const turnos = [enTurno('ana'), enTurno('beto')];
+
+  it('la ven los dos', () => {
+    // Dos mozos comparten el sector del fondo: sin esto había que rehacer el
+    // reparto cada vez que uno cubría al otro.
+    expect(hiddenFrom('ana', ['ana', 'beto'], turnos, AHORA)).toBe(false);
+    expect(hiddenFrom('beto', ['ana', 'beto'], turnos, AHORA)).toBe(false);
+  });
+
+  it('se le esconde a un tercero', () => {
+    const conCaro = [...turnos, enTurno('caro')];
+    expect(hiddenFrom('caro', ['ana', 'beto'], conCaro, AHORA)).toBe(true);
+  });
+
+  it('basta con que uno de los dueños esté en turno para esconderla', () => {
+    // Si beto no vino, ana igual la está atendiendo: mostrársela a todos
+    // llenaría la pantalla del resto sin motivo.
+    expect(hiddenFrom('caro', ['ana', 'beto'], [enTurno('ana'), enTurno('caro')], AHORA)).toBe(true);
+  });
+
+  it('si ningún dueño está en turno, la ve todo el mundo', () => {
+    // Nadie la está atendiendo: esconderla la dejaría sin nadie encima.
+    expect(hiddenFrom('caro', ['ana', 'beto'], [enTurno('caro')], AHORA)).toBe(false);
   });
 });

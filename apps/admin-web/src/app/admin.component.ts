@@ -419,9 +419,6 @@ const ROLE_NAMES: Record<string, string> = {
                 </div>
 
                 <div class="table-actions">
-                  <button type="button" class="table-edit-btn" (click)="editingTable.set(table.id)">
-                    Editar
-                  </button>
                   <button type="button" class="table-copy" (click)="copyLink(table)">
                     {{ copied() === table.id ? '¡Copiado!' : 'Copiar link' }}
                   </button>
@@ -432,6 +429,9 @@ const ROLE_NAMES: Record<string, string> = {
                     title="Invalida los QR ya impresos de esta mesa"
                   >
                     Renovar QR
+                  </button>
+                  <button type="button" class="table-edit-btn" (click)="editingTable.set(table.id)">
+                    Editar
                   </button>
                   <button
                     type="button"
@@ -508,7 +508,7 @@ const ROLE_NAMES: Record<string, string> = {
                     <button
                       type="button"
                       class="sector-chip"
-                      [class.on]="assignedTo(table.id) === mozo.id"
+                      [class.on]="isAssigned(table.id, mozo.id)"
                       (click)="toggleTable(table.id, mozo.id)"
                     >
                       {{ table.label }}
@@ -989,9 +989,9 @@ export class AdminComponent {
     this.staff().filter((member) => member.active && member.role === 'WAITER'),
   );
 
-  /** El mozo de una mesa, o cadena vacía si no tiene. */
-  protected assignedTo(tableId: string): string {
-    return this.assignments().find((a) => a.tableId === tableId)?.staffId ?? '';
+  /** Si esta mesa está en el sector de este mozo. Puede estar en varios. */
+  protected isAssigned(tableId: string, staffId: string): boolean {
+    return this.assignments().some((a) => a.tableId === tableId && a.staffId === staffId);
   }
 
   /** La mesa que se está editando en la lista, o null. */
@@ -1461,18 +1461,23 @@ export class AdminComponent {
   }
 
   /**
-   * Cambia el mozo de una mesa, o se la saca.
+   * Suma o saca a un mozo de una mesa.
    *
-   * Sin mozo elegido borra la asignación en vez de guardar una vacía: una
-   * mesa sin dueño la ve todo el salón, que es el estado por defecto.
+   * Suma en vez de reemplazar: una mesa puede estar a cargo de varios, y
+   * antes poner a uno sacaba al otro — lo que obligaba a rehacer el reparto
+   * cada vez que dos compartían un sector.
    */
-  protected async assignTable(tableId: string, staffId: string): Promise<void> {
+  protected async assignTable(tableId: string, staffId: string, sacar: boolean): Promise<void> {
     this.staffError.set(null);
 
     const response = await this.auth.apiFetch(
       `${API}/tables/${tableId}/assign`,
-      staffId === ''
-        ? { method: 'DELETE', headers: this.auth.headers() }
+      sacar
+        ? {
+            method: 'DELETE',
+            headers: { ...this.auth.headers(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ staffId }),
+          }
         : {
             method: 'POST',
             headers: { ...this.auth.headers(), 'Content-Type': 'application/json' },
@@ -1485,10 +1490,11 @@ export class AdminComponent {
       return;
     }
 
-    this.assignments.update((current) => {
-      const sin = current.filter((a) => a.tableId !== tableId);
-      return staffId === '' ? sin : [...sin, { tableId, staffId }];
-    });
+    this.assignments.update((current) =>
+      sacar
+        ? current.filter((a) => !(a.tableId === tableId && a.staffId === staffId))
+        : [...current, { tableId, staffId }],
+    );
   }
 
   /** Las mesas de un mozo, para contarlas al lado de su nombre. */
@@ -1514,8 +1520,7 @@ export class AdminComponent {
    * trámite de dos pasos.
    */
   protected toggleTable(tableId: string, staffId: string): void {
-    const actual = this.assignedTo(tableId);
-    void this.assignTable(tableId, actual === staffId ? '' : staffId);
+    void this.assignTable(tableId, staffId, this.isAssigned(tableId, staffId));
   }
 
   protected async inviteStaff(event: Event): Promise<void> {

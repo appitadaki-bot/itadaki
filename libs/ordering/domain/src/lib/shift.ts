@@ -54,19 +54,24 @@ export function filtersBySector(
 /**
  * Si esta mesa se le esconde a este mozo.
  *
- * Se esconde solo si es de un compañero **que está en turno**. La mesa de
- * alguien que todavía no entró —o que ya se fue— la ve todo el mundo: nadie
- * la está atendiendo, así que esconderla la dejaría sin nadie encima.
+ * Recibe todos sus dueños, no uno: una mesa puede estar a cargo de varios, y
+ * mirar sólo al primero se la escondería a los demás.
+ *
+ * Se esconde sólo si **algún** dueño está en turno y este mozo no es uno de
+ * ellos. La mesa de alguien que todavía no entró —o que ya se fue— la ve todo
+ * el mundo: nadie la está atendiendo, así que esconderla la dejaría sin nadie
+ * encima.
  */
 export function hiddenFrom(
   staffId: string,
-  tableOwnerId: string | null,
+  tableOwnerIds: readonly string[],
   shifts: readonly Shift[],
   now: Date,
 ): boolean {
-  if (tableOwnerId === null) return false;
-  if (tableOwnerId === staffId) return false;
+  if (tableOwnerIds.length === 0) return false;
+  if (tableOwnerIds.includes(staffId)) return false;
   if (!filtersBySector(staffId, shifts, now)) return false;
 
-  return activeShifts(shifts, now).some((shift) => shift.staffId === tableOwnerId);
+  const enTurno = new Set(activeShifts(shifts, now).map((shift) => shift.staffId));
+  return tableOwnerIds.some((owner) => enTurno.has(owner));
 }
