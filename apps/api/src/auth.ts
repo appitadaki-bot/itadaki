@@ -25,6 +25,7 @@ import {
 } from '@itadaki/identity/infra';
 import { database } from './database';
 import { type Request } from 'express';
+import { urlFromEnv } from './config';
 
 const DEV_SECRET = 'desarrollo-inseguro-cambiar-en-produccion';
 
@@ -58,7 +59,7 @@ export const USING_DEV_SECRET = AUTH_SECRET === DEV_SECRET;
 export const SESSION_HOURS = 12;
 
 /** Where a reset link points; the admin panel owns that screen. */
-export const ADMIN_APP_URL = process.env['ADMIN_APP_URL'] ?? 'http://localhost:4400';
+export const ADMIN_APP_URL = urlFromEnv('ADMIN_APP_URL', 'http://localhost:4400');
 
 /** Tenant assumed for an anonymous diner with no table token yet. */
 export const DEFAULT_TENANT = process.env['DEFAULT_TENANT'] ?? 'itadaki';

@@ -14,8 +14,9 @@ import { PostgresAssignmentStore } from '@itadaki/ordering/infra';
 import { z } from 'zod';
 import { RequirePermission, TenantId } from './auth';
 import { database } from './database';
+import { urlFromEnv } from './config';
 
-const DINER_APP_URL = process.env['DINER_APP_URL'] ?? 'http://localhost:4200';
+const DINER_APP_URL = urlFromEnv('DINER_APP_URL', 'http://localhost:4200');
 
 @Controller('tables')
 export class TablesController {

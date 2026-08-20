@@ -40,9 +40,10 @@ import { CallsService } from './calls.service';
 import { RealtimeGateway } from './realtime.gateway';
 import { SessionsService } from './sessions.service';
 import { toMoneyDto, toOrderDto } from './contracts';
+import { urlFromEnv } from './config';
 
 /** A dónde apunta el QR de una invitación; el mismo destino que el impreso. */
-const DINER_APP_URL = process.env['DINER_APP_URL'] ?? 'http://localhost:4200';
+const DINER_APP_URL = urlFromEnv('DINER_APP_URL', 'http://localhost:4200');
 
 /**
  * Si sentarse a una mesa exige el código que da el mozo.
