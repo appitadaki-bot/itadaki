@@ -1,4 +1,4 @@
-import { urlFromEnv } from './config';
+import { storageIsEphemeral, urlFromEnv } from './config';
 
 describe('urlFromEnv', () => {
   afterEach(() => {
@@ -35,5 +35,21 @@ describe('urlFromEnv', () => {
   it('trata el valor en blanco como ausente', () => {
     set('   ');
     expect(urlFromEnv('ITADAKI_TEST_URL', 'http://localhost:3000')).toBe('http://localhost:3000');
+  });
+});
+
+describe('storageIsEphemeral', () => {
+  it('en producción sin bucket, guardar una foto es tirarla', () => {
+    expect(storageIsEphemeral(false, 'production')).toBe(true);
+  });
+
+  it('con bucket, se guarda donde corresponde', () => {
+    expect(storageIsEphemeral(true, 'production')).toBe(false);
+  });
+
+  /** Quien clona el repo no monta un bucket para ver si la app arranca. */
+  it('en desarrollo el disco alcanza', () => {
+    expect(storageIsEphemeral(false, 'development')).toBe(false);
+    expect(storageIsEphemeral(false, undefined)).toBe(false);
   });
 });
