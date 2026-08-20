@@ -10,6 +10,33 @@
 
   const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* ── El título, letra por letra ── */
+
+  /*
+   * El texto vive completo en el HTML y acá sólo se envuelve cada letra.
+   * Escribirlo desde el script lo dejaría invisible para un buscador y para
+   * un lector de pantalla si el JavaScript no corre.
+   */
+  const titulo = document.querySelector('[data-letras]');
+
+  if (titulo !== null && !quieto) {
+    const texto = titulo.textContent ?? '';
+
+    // El texto original queda como etiqueta accesible: un lector de pantalla
+    // leería cuarenta spans sueltos, letra por letra, y eso es ilegible.
+    titulo.setAttribute('aria-label', texto.trim());
+    titulo.textContent = '';
+
+    for (const [i, caracter] of [...texto].entries()) {
+      const span = document.createElement('span');
+      span.className = caracter === ' ' ? 'letra espacio' : 'letra';
+      span.textContent = caracter;
+      span.setAttribute('aria-hidden', 'true');
+      span.style.animationDelay = `${220 + i * 28}ms`;
+      titulo.append(span);
+    }
+  }
+
   /* ── La demo del pedido, en loop ── */
   const enviar = document.getElementById('botonEnviar');
   const punto = document.getElementById('punto');

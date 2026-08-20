@@ -19,7 +19,7 @@
 <a class="saltar" href="#alta">Ir al formulario</a>
 
 <header class="barra">
-  <span class="marca">Itadaki</span>
+  <span class="marca chica" aria-hidden="true">Itadaki</span>
   <a class="btn btn-acento chico" href="#alta">Probar 30 días gratis</a>
 </header>
 
@@ -27,27 +27,26 @@
 
 <!-- ═══ HERO ═══ -->
 <section class="hero">
-  <div class="ancho hero-grid">
-    <div class="hero-texto">
-      <h1 class="hero-titulo">Pedidos por QR,<br />sin vueltas.</h1>
-      <p class="hero-lede">
-        Tu cliente pide desde su propio celular, la cocina lo ve al toque, y a
-        tus mozos no les cambia cómo llevan el salón. Probalo 30 días gratis,
-        sin tarjeta.
-      </p>
-      <div class="acciones">
-        <a class="btn btn-acento" href="#alta">Probar 30 días gratis</a>
-        <a class="btn btn-borde" href="#piezas">Ver cómo funciona</a>
-      </div>
+  <div class="ancho hero-centro">
+    <!-- La marca es lo primero y lo más grande: en una esquina competía con
+         el botón y no la miraba nadie. -->
+    <h1 class="marca-hero">Itadaki</h1>
+
+    <!-- Las letras entran de a una. El texto vive completo en el HTML —el
+         script sólo lo envuelve— así que un buscador y un lector de pantalla
+         lo leen entero aunque el JavaScript no corra. -->
+    <p class="hero-titulo" data-letras>Pedidos por QR, sin vueltas.</p>
+
+    <p class="hero-lede">
+      Tu cliente pide desde su celular. La cocina lo ve al toque.
+    </p>
+
+    <div class="acciones centradas">
+      <a class="btn btn-acento" href="#alta">Probar 30 días gratis</a>
+      <a class="btn btn-borde" href="#piezas">Ver cómo funciona</a>
     </div>
 
-    <!-- La comanda que se está armando, flotando arriba a la derecha. -->
-    <aside class="flotante" aria-hidden="true">
-      <p class="micro">Mesa 4</p>
-      <p class="flotante-linea">1 Milanesa napolitana</p>
-      <p class="flotante-linea">1 Provoleta</p>
-      <p class="micro fuerte" id="estadoFlotante">Armando el pedido</p>
-    </aside>
+    <p class="hero-pie">30 días gratis · sin tarjeta · te armamos la carta</p>
   </div>
 
   <!-- El producto entero en cinco segundos: el pedido sale del teléfono y
@@ -82,20 +81,37 @@
 <section class="seccion">
   <div class="ancho">
     <p class="numero">01</p>
-    <h2 class="titulo">Tres pantallas, no una app.</h2>
+    <h2 class="titulo centrado">Tres pantallas, no una app.</h2>
 
     <div class="tarjetas tres">
-      <article class="tarjeta">
+      <article class="tarjeta pantalla-demo">
+        <!-- La pantalla dibujada, no descrita: se entiende antes de leer. -->
+        <div class="mini mini-carta" aria-hidden="true">
+          <div class="mini-fila"><span class="mini-foto"></span><span class="mini-txt"></span><b>$8.400</b></div>
+          <div class="mini-fila"><span class="mini-foto"></span><span class="mini-txt corto"></span><b>$5.200</b></div>
+          <div class="mini-cta">Enviar a la cocina</div>
+        </div>
         <h3>Comensal</h3>
-        <p>Escanea el QR, ve la carta con fotos y pide desde su propio teléfono. Sin descargar nada.</p>
+        <p>Escanea, elige y pide. Sin descargar nada.</p>
       </article>
-      <article class="tarjeta">
+
+      <article class="tarjeta pantalla-demo">
+        <div class="mini mini-cocina" aria-hidden="true">
+          <div class="mini-ticket urgente"><b>Mesa 4</b><span>12:40</span></div>
+          <div class="mini-ticket"><b>Mesa 7</b><span>4:10</span></div>
+          <div class="mini-ticket"><b>Mesa 2</b><span>0:35</span></div>
+        </div>
         <h3>Cocina</h3>
-        <p>Ve las comandas por antigüedad, no por mesa. Sabe qué se atrasa antes de que el cliente lo note.</p>
+        <p>Por antigüedad, no por mesa. Ve qué se atrasa.</p>
       </article>
-      <article class="tarjeta">
+
+      <article class="tarjeta pantalla-demo">
+        <div class="mini mini-salon" aria-hidden="true">
+          <div class="mini-mesa llama"><b>Mesa 3</b><span>pide la cuenta</span></div>
+          <div class="mini-mesa"><b>Mesa 9</b><span>2 platos listos</span></div>
+        </div>
         <h3>Mozo</h3>
-        <p>Ve el salón agrupado por mesa. Sabe a cuál ir primero y cuándo piden la cuenta.</p>
+        <p>Agrupado por mesa. Sabe a cuál ir primero.</p>
       </article>
     </div>
   </div>
@@ -146,21 +162,37 @@
 <section class="seccion" id="piezas">
   <div class="ancho">
     <p class="numero">03</p>
-    <h2 class="titulo">Lo que hace, pieza por pieza.</h2>
+    <h2 class="titulo centrado">Cosas que pasan todas las noches.</h2>
 
-    <!-- La carta en la mesa + el timbre tocable -->
+    <!-- Seis mesas, seis frases. El detalle largo aburre a quien está
+         decidiendo si probarlo; lo que vende es reconocer el problema. -->
+    <div class="tarjetas tres">
+      <article class="tarjeta">
+        <p class="cifra">6 → 1</p>
+        <h3>Seis pidiendo, una comanda</h3>
+        <p>Cada uno desde su teléfono. A la cocina llega junto.</p>
+      </article>
+
+      <article class="tarjeta">
+        <p class="cifra">24 → 8</p>
+        <h3>Ocho viajes, no veinticuatro</h3>
+        <p>El mozo ve el salón por mesa, no pedidos sueltos.</p>
+      </article>
+
+      <article class="tarjeta">
+        <p class="cifra">0</p>
+        <h3>Discusiones por la cuenta</h3>
+        <p>Cada uno ve su parte y el total, en vivo.</p>
+      </article>
+    </div>
+
+    <!-- El timbre, tocable. Muestra la regla sin explicarla. -->
     <div class="pieza">
       <div class="pieza-texto">
-        <h3>La carta en la mesa</h3>
-        <p>
-          Varios piden desde su propio teléfono en la misma mesa. Al enviar, sale
-          una sola comanda con todo junto. Cada uno ve su parte y el total, así
-          la cuenta dividida deja de ser una discusión. Si se cae el wifi, el
-          pedido se guarda y sale cuando vuelve.
-        </p>
+        <h3>El timbre en la mesa</h3>
+        <p>Llamar al mozo sin levantar la mano. Un llamado a la vez, para que al salón le llegue algo claro.</p>
       </div>
       <div class="pieza-demo">
-        <p class="nota sin-margen">Probá el timbre: tocá un botón real. Un llamado a la vez.</p>
         <div class="timbre" id="timbre">
           <button type="button" class="timbre-btn" data-motivo="mozo">
             <span aria-hidden="true">🔔</span> Llamar al mozo
@@ -168,24 +200,20 @@
           <button type="button" class="timbre-btn" data-motivo="cuenta">Pedir la cuenta</button>
           <button type="button" class="timbre-btn" data-motivo="duda">Tengo una duda</button>
         </div>
-        <p class="nota" id="timbreNota">Tocá un botón para ver la regla: un llamado a la vez.</p>
+        <p class="nota" id="timbreNota">Tocá uno: es el mismo botón que ve tu cliente.</p>
       </div>
     </div>
 
-    <!-- La cocina + el antes/después arrastrable -->
+    <!-- Antes y después, arrastrable. El beneficio se ve. -->
     <div class="pieza invertida">
       <div class="pieza-texto">
-        <h3>La pantalla de cocina</h3>
-        <p>
-          Se reorganiza sola para que la cocina vea todo de un golpe, tenga 6
-          mesas o 20. Diferencia "listo para servir" de "llegó a la mesa" —
-          confundirlos hacía perder de vista un plato que seguía en la barra.
-        </p>
+        <h3>La cocina, con 20 mesas</h3>
+        <p>Se reorganiza sola para que entre todo de un golpe. Arrastrá para comparar.</p>
       </div>
       <div class="pieza-demo">
         <div class="comparar" id="comparar">
           <div class="comparar-cara antes">
-            <p class="micro acento">Antes: 20 mesas en columnas</p>
+            <p class="micro acento">Antes: hay que scrollear</p>
             <div class="barras densas">
               <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
               <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
@@ -201,30 +229,11 @@
       </div>
     </div>
 
-    <!-- El mozo -->
+    <!-- Los números, moviéndose. Es lo que el dueño quiere ver. -->
     <div class="pieza sola">
-      <div class="pieza-texto ancho-texto">
-        <h3>La app del mozo</h3>
-        <p>
-          Agrupa por mesa en vez de listar pedidos sueltos: 24 filas se vuelven 8
-          viajes al salón. Las mesas que esperan hace más tiempo aparecen
-          primero. Avisa cuando la mesa dijo que paga en caja, y tiene un botón
-          de liberar mesa.
-        </p>
-      </div>
-    </div>
-
-    <!-- El panel + los números que se mueven -->
-    <div class="pieza sola">
-      <div class="pieza-texto ancho-texto">
-        <h3>El panel del dueño</h3>
-        <p>
-          Fotos con recorte automático. Opciones por plato: punto de cocción,
-          acompañamientos, vegano / sin gluten / sin TACC. Marcás sin stock en el
-          momento — se acabó el bife un viernes a las nueve y desaparece sin
-          borrar el plato.
-        </p>
-        <p class="nota">Así se ven tus números, un servicio real (se actualiza solo):</p>
+      <div class="pieza-texto ancho-texto centrado-txt">
+        <h3>Tus números, sin sacar una cuenta</h3>
+        <p class="nota">Un servicio real, actualizándose:</p>
 
         <div class="numeros" id="numeros">
           <div class="dato"><b id="ventas">$487.200</b><span class="micro">Ventas de hoy</span></div>
@@ -271,7 +280,7 @@
 <section class="seccion sunken">
   <div class="ancho">
     <p class="numero">04</p>
-    <h2 class="titulo">30 días gratis. Sin tarjeta.</h2>
+    <h2 class="titulo centrado">30 días gratis. Sin tarjeta.</h2>
 
     <ol class="dias">
       <li class="dia">
@@ -304,7 +313,7 @@
 <section class="seccion" id="alta">
   <div class="ancho angosto">
     <p class="numero">05</p>
-    <h2 class="titulo">Dejanos tus datos y te escribimos.</h2>
+    <h2 class="titulo centrado">Dejanos tus datos y te escribimos.</h2>
     <p class="lede">
       Te contactamos por WhatsApp <strong>dentro de las 24 horas hábiles</strong>,
       con la carta ya cargada.
@@ -361,7 +370,7 @@
 <section class="seccion sunken">
   <div class="ancho angosto">
     <p class="numero">06</p>
-    <h2 class="titulo">Preguntas antes de anotarte</h2>
+    <h2 class="titulo centrado">Preguntas antes de anotarte</h2>
 
     <details class="pregunta">
       <summary>¿Qué pasa si no pago después de los 30 días?</summary>
