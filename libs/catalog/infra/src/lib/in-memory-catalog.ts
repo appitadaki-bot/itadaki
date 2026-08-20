@@ -60,6 +60,16 @@ export class InMemoryProductStore implements ProductReader, ProductWriter {
     return this.save(updated);
   }
 
+  async remove(tenantId: string, productId: string): Promise<Result<void, RepositoryError>> {
+    const found = await this.findById(tenantId, productId);
+    if (found.isErr()) return err(found.error);
+
+    this.products = this.products.filter(
+      (product) => !(product.tenantId === tenantId && product.id === productId),
+    );
+    return ok(undefined);
+  }
+
 }
 
 export class InMemoryCategoryStore implements CategoryReader, CategoryWriter {
