@@ -85,6 +85,16 @@ services:
       - key: S3_SECRET_ACCESS_KEY
         sync: false
 
+      # Observabilidad, las tres opcionales: sin ellas la API arranca y anda
+      # igual, sólo que un error no controlado se ve nada más que en el log
+      # de Render (retención corta, sin buscador ni alertas).
+      - key: SENTRY_DSN
+        sync: false
+      - key: AXIOM_TOKEN
+        sync: false
+      - key: AXIOM_DATASET
+        sync: false
+
 databases:
   - name: itadaki-db
     plan: free

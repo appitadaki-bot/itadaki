@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { type Response } from 'express';
 import { incidentId, log } from './logger';
+import { captureError } from './sentry';
 
 /**
  * Turns anything unhandled into a plain 500.
@@ -36,15 +37,19 @@ export class ErrorFilter implements ExceptionFilter {
     // their phone can name the exact line that caused it.
     const incident = incidentId();
 
+    // The path only; a query string can carry a table token.
+    const path = request.url?.split('?')[0];
+
     log.error('unhandled error', {
       incident,
       method: request.method,
-      // The path only; a query string can carry a table token.
-      path: request.url?.split('?')[0],
+      path,
       tenantId: request.auth?.tenantId,
       detail: exception instanceof Error ? exception.message : String(exception),
       stack: exception instanceof Error ? exception.stack : undefined,
     });
+
+    captureError(exception, { incident, method: request.method, path, tenantId: request.auth?.tenantId });
 
     response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ kind: 'INTERNAL_ERROR', incident });
   }

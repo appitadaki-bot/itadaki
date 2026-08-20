@@ -34,3 +34,16 @@ export function urlFromEnv(name: string, fallback: string): string {
 export function storageIsEphemeral(hasBucket: boolean, nodeEnv: string | undefined): boolean {
   return !hasBucket && nodeEnv === 'production';
 }
+
+/**
+ * Un valor opcional (token, DSN, nombre de dataset) que viene del entorno.
+ *
+ * Mismo recorte que `urlFromEnv` y por el mismo motivo — un panel web pegado
+ * a mano deja espacios o un salto de línea al final. Acá, en vez de un
+ * `fallback` fijo, un valor vacío se trata como "no configurado": estas son
+ * todas integraciones opcionales que la API debe poder arrancar sin tener.
+ */
+export function trimmedEnv(name: string): string | undefined {
+  const raw = (process.env[name] ?? '').trim();
+  return raw === '' ? undefined : raw;
+}

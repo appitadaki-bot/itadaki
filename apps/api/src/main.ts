@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import './sentry';
 import { type ServerResponse } from 'node:http';
 import { type NestExpressApplication } from '@nestjs/platform-express';
 import { NestFactory } from '@nestjs/core';
