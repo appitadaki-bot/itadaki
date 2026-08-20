@@ -11,6 +11,7 @@ import {
 import { join } from 'node:path';
 import { database } from './database';
 import { log } from './logger';
+import { urlFromEnv } from './config';
 
 const STORAGE_ROOT = process.env['IMAGE_ROOT'] ?? join(process.cwd(), '.image-store');
 /**
@@ -21,7 +22,7 @@ const STORAGE_ROOT = process.env['IMAGE_ROOT'] ?? join(process.cwd(), '.image-st
  * against the API. Changing it does not rewrite the URLs already saved — set
  * it before the first upload of a deploy.
  */
-const PUBLIC_BASE = process.env['IMAGE_BASE_URL'] ?? 'http://localhost:3000/api/images';
+const PUBLIC_BASE = urlFromEnv('IMAGE_BASE_URL', 'http://localhost:3000/api/images');
 
 /**
  * Where image bytes go.
