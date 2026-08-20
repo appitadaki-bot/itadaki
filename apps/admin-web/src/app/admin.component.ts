@@ -296,11 +296,23 @@ const ROLE_NAMES: Record<string, string> = {
       @if (activeTab() === 'fotos') {
       <section class="panel">
         <h2 class="panel-title">Encuadrá y ajustá el foco</h2>
-        @if (selected() === null) {
+        <!-- Pregunta por el plato y no por su id: el id sobrevive a que el
+             plato se borre o a que se importe una carta nueva, y entonces la
+             pantalla quedaba editando la foto de algo que ya no existe, con
+             el nombre en blanco. -->
+        @if (editing() === null) {
           <!-- El plato se elige acá mismo y no en otra solapa. Mandar a la
                carta abría la ficha del plato, no su foto: había que cerrarla,
                volver, y se caía en un ida y vuelta del que no se salía. -->
-          <p class="muted">Elegí a qué plato le vas a poner la foto.</p>
+          @if (faltanFoto() > 0) {
+            <p class="muted">
+              Elegí a qué plato le vas a poner la foto.
+              <strong>{{ faltanFoto() }}</strong>
+              {{ faltanFoto() === 1 ? 'todavía no tiene' : 'todavía no tienen' }}.
+            </p>
+          } @else {
+            <p class="muted">Todos tus platos ya tienen foto. Elegí uno para cambiarla.</p>
+          }
 
           @if (products().length === 0) {
             <p class="muted">Todavía no cargaste ningún plato.</p>
@@ -309,7 +321,7 @@ const ROLE_NAMES: Record<string, string> = {
             </button>
           } @else {
             <div class="elegir-plato">
-              @for (product of products(); track product.id) {
+              @for (product of sinFotoPrimero(); track product.id) {
                 <button type="button" class="elegir-chip" (click)="selected.set(product.id)">
                   @if (thumb(product); as url) {
                     <img class="elegir-thumb" [src]="url" alt="" width="40" height="40" />
@@ -1789,6 +1801,24 @@ export class AdminComponent {
 
     if (response.ok) await this.load();
   }
+
+  /**
+   * Los que no tienen foto, primero.
+   *
+   * Es la lista de lo que falta hacer: con veinte platos cargados, los que ya
+   * tienen foto son ruido, y buscar el que falta entre ellos es el trabajo
+   * que esta pantalla viene a ahorrar.
+   */
+  protected readonly sinFotoPrimero = computed(() => {
+    const sinFoto = this.products().filter((product) => this.thumb(product) === null);
+    const conFoto = this.products().filter((product) => this.thumb(product) !== null);
+    return [...sinFoto, ...conFoto];
+  });
+
+  /** Cuántos platos siguen sin foto, para decirlo antes de la lista. */
+  protected readonly faltanFoto = computed(
+    () => this.products().filter((product) => this.thumb(product) === null).length,
+  );
 
   protected selectedName(): string {
     return this.products().find((product) => product.id === this.selected())?.name ?? '';
