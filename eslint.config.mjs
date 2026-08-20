@@ -16,6 +16,13 @@ export default tseslint.config(
     ],
   },
   {
+    // Los scripts de mantenimiento corren en Node, no en el navegador.
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: { process: 'readonly', console: 'readonly' },
+    },
+  },
+  {
     // La landing es HTML plano con un script suelto: corre en el navegador,
     // no en Node ni dentro de Angular, así que sus globales se declaran acá.
     files: ['apps/landing/**/*.js'],
