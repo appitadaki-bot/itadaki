@@ -283,12 +283,30 @@ const ROLE_NAMES: Record<string, string> = {
       <section class="panel">
         <h2 class="panel-title">Encuadrá y ajustá el foco</h2>
         @if (selected() === null) {
-          <!-- Sin plato elegido esta solapa no tiene nada que hacer, así que
-               manda de vuelta a donde se elige en vez de dejar un cartel. -->
-          <p class="muted">Elegí un plato de tu carta para subirle una foto.</p>
-          <button type="button" class="secondary" (click)="activeTab.set('carta')">
-            Ver mi carta →
-          </button>
+          <!-- El plato se elige acá mismo y no en otra solapa. Mandar a la
+               carta abría la ficha del plato, no su foto: había que cerrarla,
+               volver, y se caía en un ida y vuelta del que no se salía. -->
+          <p class="muted">Elegí a qué plato le vas a poner la foto.</p>
+
+          @if (products().length === 0) {
+            <p class="muted">Todavía no cargaste ningún plato.</p>
+            <button type="button" class="secondary" (click)="activeTab.set('carta')">
+              Ir a cargar mi carta →
+            </button>
+          } @else {
+            <div class="elegir-plato">
+              @for (product of products(); track product.id) {
+                <button type="button" class="elegir-chip" (click)="selected.set(product.id)">
+                  @if (thumb(product); as url) {
+                    <img class="elegir-thumb" [src]="url" alt="" width="40" height="40" />
+                  } @else {
+                    <span class="elegir-thumb vacia" aria-hidden="true">+</span>
+                  }
+                  <span class="elegir-nombre">{{ product.name }}</span>
+                </button>
+              }
+            </div>
+          }
         } @else {
           <div class="editing-bar">
             <p class="editing-for">
@@ -801,7 +819,7 @@ const ROLE_NAMES: Record<string, string> = {
 
           <div class="sheet-actions">
           <button type="submit" class="create">Guardar cambios</button>
-          <button type="button" class="secondary" (click)="activeTab.set('fotos')">
+          <button type="button" class="secondary" (click)="trabajarLaFoto()">
           Trabajar la foto →
           </button>
           </div>
@@ -1302,6 +1320,22 @@ export class AdminComponent {
   protected closeSheet(): void {
     this.selected.set(null);
     this.closeModal();
+  }
+
+  /**
+   * Del plato a su foto, sin perder el plato en el camino.
+   *
+   * Cambiar de solapa dejaba el modal abierto encima, y cerrarlo llamaba a
+   * `closeSheet`, que borra la selección. La solapa de fotos se quedaba sin
+   * plato, decía "elegí un plato de tu carta" y mandaba de vuelta — un ida y
+   * vuelta del que no se salía.
+   *
+   * El modal se cierra acá y la selección se conserva a propósito: es el plato
+   * cuya foto se va a trabajar.
+   */
+  protected trabajarLaFoto(): void {
+    this.closeModal();
+    this.activeTab.set('fotos');
   }
 
   /**
