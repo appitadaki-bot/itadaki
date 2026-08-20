@@ -62,6 +62,33 @@ export class S3BlobStorage implements BlobStorage {
    * Null rather than a throw: running on one machine with no bucket is a valid
    * setup, and the composition root decides what that means.
    */
+  /**
+   * La región que corresponde a este endpoint.
+   *
+   * Entra en la firma de cada pedido, así que tiene que ser exactamente la
+   * que espera el proveedor: firmar con otra hace fallar toda subida con
+   * `SignatureDoesNotMatch`, y el mensaje no dice que el problema es la
+   * región.
+   *
+   * Backblaze la lleva en el propio endpoint —`s3.us-west-004.backblazeb2.com`
+   * es `us-west-004`— así que se deduce de ahí en vez de pedir que alguien la
+   * copie a mano en otra variable y la escriba distinta. Cloudflare R2 acepta
+   * `auto`, que queda como valor por defecto para todo lo demás.
+   */
+  static regionFor(endpoint: string): string {
+    const declarada = process.env['S3_REGION'] ?? '';
+    if (declarada !== '') return declarada;
+
+    const backblaze = /s3\.([a-z]+-[a-z]+-\d+)\.backblazeb2\.com/i.exec(endpoint);
+    if (backblaze !== null) return backblaze[1] as string;
+
+    // AWS propiamente dicho: s3.us-east-1.amazonaws.com
+    const aws = /s3[.-]([a-z]{2}-[a-z]+-\d)\.amazonaws\.com/i.exec(endpoint);
+    if (aws !== null) return aws[1] as string;
+
+    return 'auto';
+  }
+
   static fromEnvironment(): S3BlobStorage | null {
     const endpoint = process.env['S3_ENDPOINT'] ?? '';
     const bucket = process.env['S3_BUCKET'] ?? '';
@@ -75,7 +102,7 @@ export class S3BlobStorage implements BlobStorage {
     return new S3BlobStorage({
       endpoint: endpoint.replace(/\/+$/, ''),
       bucket,
-      region: process.env['S3_REGION'] ?? 'auto',
+      region: S3BlobStorage.regionFor(endpoint),
       accessKeyId,
       secretAccessKey,
     });
