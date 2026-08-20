@@ -19,6 +19,7 @@
     "start:admin": "ng serve admin-web --port 4400",
     "db:up": "docker compose up -d --wait",
     "db:seed": "npm run build:api && node dist/api/apps/api/src/seed.js",
+    "db:migrate": "npm run build:api && node dist/api/apps/api/src/migrate-cli.js",
     "db:down": "docker compose down",
     "db:staff": "npm run build:api && node dist/api/apps/api/src/create-staff.js",
     "db:trial": "npm run build:api && node dist/api/apps/api/src/manage-trial.js",

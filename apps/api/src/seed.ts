@@ -1,8 +1,7 @@
 import 'reflect-metadata';
 import { CATEGORIES, MODIFIER_GROUPS, PRODUCTS, TENANT_ID } from '@itadaki/catalog/infra';
-import { readFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
 import { Client } from 'pg';
+import { applyMigrations } from './migrate';
 
 /**
  * Applies the schema and loads the sample menu.
@@ -16,14 +15,7 @@ async function main(): Promise<void> {
   const client = new Client({ connectionString: ADMIN_URL });
   await client.connect();
 
-  // Read from source rather than the build output: tsc does not copy .sql,
-  // and the migration is data the repo owns, not a build artefact.
-  // Every file runs, in name order — a new migration must not need this edited.
-  const dir = join(process.cwd(), 'libs/shared/persistence/src/lib/migrations');
-  const files = (await readdir(dir)).filter((name) => name.endsWith('.sql')).sort();
-
-  for (const file of files) {
-    await client.query(await readFile(join(dir, file), 'utf-8'));
+  for (const file of await applyMigrations(client)) {
     console.log(`  ${file}`);
   }
   console.log('schema applied');
