@@ -149,6 +149,48 @@ export class PostgresProductStore implements ProductReader, ProductWriter {
     }
   }
 
+  /**
+   * Saca un plato de la carta.
+   *
+   * Se niega si está en un pedido que todavía no se cobró: la comanda quedaría
+   * apuntando a algo que no existe y la cuenta sin cómo calcularse. Lo que ya
+   * se cobró no lo frena — esos pedidos guardan su propia copia del nombre y
+   * el precio, justamente para que la historia no cambie cuando cambia la
+   * carta.
+   *
+   * Para el plato que se dejó de vender está "sin stock", que lo saca de la
+   * vista del comensal sin perder su foto ni sus opciones.
+   */
+  async remove(tenantId: string, productId: string): Promise<Result<void, RepositoryError>> {
+    try {
+      return await this.db.withTenant(tenantId, async (client) => {
+        const enUso = await client.query<{ total: string }>(
+          `SELECT count(*)::text AS total
+             FROM orders o
+             JOIN table_sessions s ON s.id = o.session_id
+            WHERE s.status = 'OPEN'
+              AND o.status <> 'CANCELLED'
+              AND o.items::text LIKE $1`,
+          [`%"productId":"${productId}"%`],
+        );
+
+        if (Number(enUso.rows[0]?.total ?? '0') > 0) {
+          return err({
+            kind: 'CONFLICT',
+            detail: 'el plato está en un pedido sin cobrar',
+          }) as Result<void, RepositoryError>;
+        }
+
+        const borrados = await client.query('DELETE FROM products WHERE id = $1', [productId]);
+        return borrados.rowCount === 0
+          ? (err({ kind: 'NOT_FOUND', id: productId }) as Result<void, RepositoryError>)
+          : (ok(undefined) as Result<void, RepositoryError>);
+      });
+    } catch (error) {
+      return err({ kind: 'CONFLICT', detail: String(error) });
+    }
+  }
+
   async setAvailability(
     tenantId: string,
     productId: string,

@@ -18,6 +18,8 @@ export interface ProductWriter {
     productId: string,
     available: boolean,
   ): Promise<Result<Product, RepositoryError>>;
+  /** Saca el plato de la carta. Se niega si está en un pedido sin cobrar. */
+  remove(tenantId: string, productId: string): Promise<Result<void, RepositoryError>>;
 }
 
 export interface CategoryReader {

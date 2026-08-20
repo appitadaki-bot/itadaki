@@ -1834,3 +1834,26 @@
 }
 
 .elegir-nombre { white-space: nowrap; }
+
+/* Sacar un plato es raro al lado de corregirle el precio: se apaga hasta que
+   alguien lo busca, para que no compita con lo de todos los días. */
+.borrar {
+  padding: 0.6rem 1rem;
+  border: 1px solid transparent;
+  border-radius: var(--itadaki-radius-pill);
+  background: transparent;
+  color: var(--itadaki-ink-subtle);
+  font-family: inherit;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.borrar:hover {
+  border-color: var(--itadaki-status-late);
+  color: var(--itadaki-status-late);
+}
+
+/* La foto necesita más ancho que un formulario: la imagen y sus controles. */
+.modal.ancho { max-width: 720px; }

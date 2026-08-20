@@ -213,6 +213,24 @@ export class MenuController {
     return { ok: true };
   }
 
+  /**
+   * Saca un plato de la carta.
+   *
+   * Se niega si está en un pedido que todavía no se cobró: la comanda quedaría
+   * apuntando a algo que no existe. Para el plato que se dejó de vender está
+   * "sin stock", que lo saca de la vista sin perder su foto ni sus opciones.
+   */
+  @RequirePermission('menu:write')
+  @Delete('products/:id')
+  async deleteProduct(@Param('id') productId: string, @TenantId() tenantId: string) {
+    const result = await this.catalog.products.remove(tenantId, productId);
+    if (result.isErr()) {
+      const status = result.error.kind === 'NOT_FOUND' ? HttpStatus.NOT_FOUND : HttpStatus.CONFLICT;
+      throw new HttpException(result.error, status);
+    }
+    return { id: productId, removed: true };
+  }
+
   /** Moves a dish to another category, or edits its name, price or station. */
   @RequirePermission('menu:write')
   @Patch('products/:id')

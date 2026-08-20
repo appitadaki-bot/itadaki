@@ -24,11 +24,10 @@ import { type TableAssignment, orphanedTables } from '@itadaki/ordering/domain';
  * el editor de fotos, el equipo, las mesas. Había que scrollear todo para
  * llegar a cualquier cosa, y nada indicaba dónde ir para cada tarea.
  */
-type AdminTab = 'carta' | 'fotos' | 'local' | 'ventas' | 'resenas';
+type AdminTab = 'carta' | 'local' | 'ventas' | 'resenas';
 
 const TABS: ReadonlyArray<{ id: AdminTab; label: string; hint: string }> = [
   { id: 'carta', label: 'Tu carta', hint: 'platos y categorías' },
-  { id: 'fotos', label: 'Fotos', hint: 'encuadrar y publicar' },
   { id: 'local', label: 'Tu local', hint: 'mesas y equipo' },
   // Las ventas salen de "Tu local": mirar los números es otra tarea, en otro
   // momento del día, y estaban al pie de una pantalla de configuración.
@@ -289,104 +288,6 @@ const ROLE_NAMES: Record<string, string> = {
             <p class="status error">{{ error }}</p>
           }
         </details>
-      </section>
-      }
-
-      <!-- Fotos: en su propia solapa, para que el editor no empuje la carta. -->
-      @if (activeTab() === 'fotos') {
-      <section class="panel">
-        <h2 class="panel-title">Encuadrá y ajustá el foco</h2>
-        <!-- Pregunta por el plato y no por su id: el id sobrevive a que el
-             plato se borre o a que se importe una carta nueva, y entonces la
-             pantalla quedaba editando la foto de algo que ya no existe, con
-             el nombre en blanco. -->
-        @if (editing() === null) {
-          <!-- El plato se elige acá mismo y no en otra solapa. Mandar a la
-               carta abría la ficha del plato, no su foto: había que cerrarla,
-               volver, y se caía en un ida y vuelta del que no se salía. -->
-          @if (faltanFoto() > 0) {
-            <p class="muted">
-              Elegí a qué plato le vas a poner la foto.
-              <strong>{{ faltanFoto() }}</strong>
-              {{ faltanFoto() === 1 ? 'todavía no tiene' : 'todavía no tienen' }}.
-            </p>
-          } @else {
-            <p class="muted">Todos tus platos ya tienen foto. Elegí uno para cambiarla.</p>
-          }
-
-          @if (products().length === 0) {
-            <p class="muted">Todavía no cargaste ningún plato.</p>
-            <button type="button" class="secondary" (click)="activeTab.set('carta')">
-              Ir a cargar mi carta →
-            </button>
-          } @else {
-            <div class="elegir-plato">
-              @for (product of sinFotoPrimero(); track product.id) {
-                <button type="button" class="elegir-chip" (click)="selected.set(product.id)">
-                  @if (thumb(product); as url) {
-                    <img class="elegir-thumb" [src]="url" alt="" width="40" height="40" />
-                  } @else {
-                    <span class="elegir-thumb vacia" aria-hidden="true">+</span>
-                  }
-                  <span class="elegir-nombre">{{ product.name }}</span>
-                </button>
-              }
-            </div>
-          }
-        } @else {
-          <div class="editing-bar">
-            <p class="editing-for">
-              editando <strong>{{ selectedName() }}</strong>
-            </p>
-            <label class="cat-picker">
-              <span>categoría</span>
-              <select [value]="selectedCategory()" (change)="moveProduct($event)">
-                @for (category of categories(); track category.id) {
-                  <option [value]="category.id">{{ category.name }}</option>
-                }
-              </select>
-            </label>
-
-            <!-- Prices change constantly; editing one should not mean deleting
-                 the dish and creating it again. -->
-            <label class="price-picker">
-              <span>precio</span>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                [value]="selectedPricePesos()"
-                (change)="changePrice($event)"
-              />
-              @if (priceSaved()) {
-                <span class="price-saved" role="status">guardado</span>
-              }
-            </label>
-          </div>
-          <itd-image-editor
-            [subjectId]="selected()!"
-            [existingUrl]="currentPhoto()"
-            (applied)="upload($event)"
-          />
-        }
-      </section>
-      <section class="panel">
-        <h2 class="panel-title">Así se va a ver</h2>
-        @if (status(); as state) {
-          <p class="status" [class.error]="state.startsWith('error')">{{ state }}</p>
-        }
-        @if (result(); as set) {
-          <img class="preview" [src]="best(set)" alt="" width="300" height="300" />
-          <p class="muted">{{ set.variants.length }} variantes · AVIF, WebP y JPEG en 4 tamaños</p>
-          <details class="details">
-            <summary>ver URLs generadas</summary>
-            <ul>
-              @for (variant of set.variants; track variant.url) {
-                <li>{{ variant.width }}px · {{ variant.format }}</li>
-              }
-            </ul>
-          </details>
-        }
       </section>
       }
 
@@ -771,6 +672,50 @@ const ROLE_NAMES: Record<string, string> = {
       </div>
     }
 
+    <!-- La foto en su propio modal, sobre la carta. Tenerla en una solapa
+         aparte obligaba a ir y volver para algo que se hace plato por plato,
+         mirando la lista. -->
+    @if (modal() === 'foto' && editing(); as dish) {
+      <div class="modal ancho" role="dialog" aria-modal="true" aria-label="La foto del plato">
+        <header class="modal-head">
+          <div>
+            <p class="modal-eyebrow">la foto de</p>
+            <h2 class="modal-title">{{ dish.name }}</h2>
+          </div>
+          <button type="button" class="modal-close" (click)="cerrarFoto()" aria-label="Cerrar">
+            ✕
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <itd-image-editor
+            [subjectId]="dish.id"
+            [existingUrl]="currentPhoto()"
+            (applied)="upload($event)"
+          />
+
+          @if (status(); as state) {
+            <p class="status" [class.error]="state.startsWith('error')">{{ state }}</p>
+          }
+
+          @if (result(); as set) {
+            <img class="preview" [src]="best(set)" alt="" width="300" height="300" />
+            <p class="muted">
+              {{ set.variants.length }} variantes · AVIF, WebP y JPEG en 4 tamaños
+            </p>
+          }
+
+          <!-- Saltar al siguiente sin cerrar: cargar las fotos de una carta es
+               una tanda, no una visita por plato. -->
+          @if (siguienteSinFoto(); as siguiente) {
+            <button type="button" class="secondary" (click)="irALaFoto(siguiente.id)">
+              Seguir con {{ siguiente.name }} →
+            </button>
+          }
+        </div>
+      </div>
+    }
+
     @if (modal() === 'editar' && editing(); as dish) {
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editar-title">
         <header class="modal-head">
@@ -845,6 +790,11 @@ const ROLE_NAMES: Record<string, string> = {
 
           <div class="sheet-actions">
           <button type="submit" class="create">Guardar cambios</button>
+          <!-- Apagado hasta que se lo busca: sacar un plato es raro al lado de
+               corregirle el precio, que es lo de todos los días. -->
+          <button type="button" class="borrar" (click)="borrarPlato(dish)">
+          Borrar plato
+          </button>
           </div>
           </form>
         </div>
@@ -1162,7 +1112,9 @@ export class AdminComponent {
    * En la misma página, el formulario de alta pegado a la lista hacía dudar
    * si un plato se estaba creando o editando.
    */
-  protected readonly modal = signal<'nuevo' | 'editar' | 'opciones' | 'importar' | null>(null);
+  protected readonly modal = signal<'nuevo' | 'editar' | 'opciones' | 'importar' | 'foto' | null>(
+    null,
+  );
 
   /** El texto pegado y lo que se entendió de él. */
   protected readonly importText = signal('');
@@ -1353,10 +1305,69 @@ export class AdminComponent {
    * llevar: había que adivinar que se cerraba tocando afuera. Tocar la foto
    * en la fila no abre nada que después haya que cerrar.
    */
+  /**
+   * Saca un plato de la carta.
+   *
+   * Pregunta antes porque no se deshace, y dice qué se lleva puesto: la foto y
+   * las opciones del plato. Para el que se dejó de vender está "sin stock",
+   * que lo esconde del comensal sin perder nada.
+   */
+  protected async borrarPlato(dish: MenuProduct): Promise<void> {
+    this.editError.set(null);
+
+    const ok = globalThis.confirm(
+      `Borrar ${dish.name}?\n\n` +
+        'Se va con su foto y sus opciones. Si sólo se te acabó, marcalo sin stock ' +
+        'y desaparece de la carta sin perder nada.',
+    );
+    if (!ok) return;
+
+    const response = await this.auth.apiFetch(`${API}/menu/products/${dish.id}`, {
+      method: 'DELETE',
+      headers: this.auth.headers(),
+    });
+
+    if (!response.ok) {
+      const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
+      this.editError.set(
+        detail?.kind === 'CONFLICT'
+          ? `${dish.name} está en un pedido sin cobrar. Cerrá esa mesa antes de borrarlo.`
+          : 'No se pudo borrar el plato. Probá de nuevo.',
+      );
+      return;
+    }
+
+    this.selected.set(null);
+    this.closeModal();
+    await this.load();
+  }
+
+  /** Cerrar la foto suelta el plato: se terminó de trabajar con él. */
+  protected cerrarFoto(): void {
+    this.selected.set(null);
+    this.status.set(null);
+    this.closeModal();
+  }
+
+  /**
+   * El próximo plato sin foto, para encadenar sin cerrar.
+   *
+   * Cargar las fotos de una carta es una tanda: hacerlo plato por plato,
+   * abriendo y cerrando, es el trabajo que esta pantalla viene a ahorrar.
+   */
+  protected readonly siguienteSinFoto = computed(() => {
+    const actual = this.selected();
+    return (
+      this.products().find(
+        (product) => product.id !== actual && this.thumb(product) === null,
+      ) ?? null
+    );
+  });
+
   protected irALaFoto(id: string): void {
     this.selected.set(id);
     this.status.set(null);
-    this.activeTab.set('fotos');
+    this.modal.set('foto');
   }
 
   /**
