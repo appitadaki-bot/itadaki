@@ -126,6 +126,71 @@ async function renderMaster(original: Buffer, params: ImageEditParams, size: num
   return pipeline.png().toBuffer();
 }
 
+/**
+ * Cuánto conserva el original que se guarda.
+ *
+ * El original existe para reeditar el encuadre sin degradar la foto, no para
+ * servirse: nadie descarga nunca este archivo. Guardar los doce megapíxeles
+ * que sale de un teléfono era el 90% del bucket para nada — la variante más
+ * grande mide 1200, y un recorte a la mitad de 2560 todavía da 1280.
+ *
+ * El número es la perilla de esto: si algún día se recortan encuadres más
+ * cerrados, sube. Bajarlo ahorra más y deja menos margen de reencuadre.
+ */
+export const STORED_ORIGINAL_MAX_SIDE = 2560;
+
+/**
+ * Cuándo vale la pena reencodear una foto que ya entra en la medida.
+ *
+ * Un PNG de mil por mil puede pesar cinco megas: la medida sola no alcanza
+ * para saber si conviene tocarla.
+ */
+export const STORED_ORIGINAL_MAX_BYTES = 1_500_000;
+
+/**
+ * Deja el original en algo que se pueda guardar sin remordimiento.
+ *
+ * Baja de tamaño, hornea la orientación EXIF y suelta el resto de los
+ * metadatos — que incluyen dónde se sacó la foto. Antes eso se hacía sólo
+ * para las variantes y el original quedaba con el GPS adentro.
+ *
+ * Una foto que ya entra en la medida y pesa poco se guarda tal cual: volver a
+ * comprimir lo que ya está bien sólo pierde calidad.
+ *
+ * Si algo falla devuelve la foto como vino. Guardarla más grande de lo ideal
+ * es un problema de espacio; perder la subida es un problema del restaurante.
+ */
+export async function shrinkOriginal(original: Buffer): Promise<Buffer> {
+  try {
+    const metadata = await sharp(original).metadata();
+    const side = Math.max(metadata.width ?? 0, metadata.height ?? 0);
+    if (side === 0) return original;
+
+    const cabe = side <= STORED_ORIGINAL_MAX_SIDE;
+    if (cabe && original.length <= STORED_ORIGINAL_MAX_BYTES) return original;
+
+    // `withoutEnlargement` para no inventar píxeles en una foto ya chica que
+    // entró acá sólo por lo que pesa.
+    const shrunk = await sharp(original)
+      .rotate()
+      .resize(STORED_ORIGINAL_MAX_SIDE, STORED_ORIGINAL_MAX_SIDE, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 90 })
+      .toBuffer();
+
+    // Pasada la medida gana el achicado aunque pese más: el tope de píxeles es
+    // lo que acota el bucket, y una foto que no comprime bien hoy tampoco iba
+    // a comprimir bien entera. Cuando entra en la medida y sólo pesaba de más,
+    // en cambio, se queda el más chico de los dos.
+    if (!cabe) return shrunk;
+    return shrunk.length < original.length ? shrunk : original;
+  } catch {
+    return original;
+  }
+}
+
 export async function renderImageSet(
   original: Buffer,
   params: ImageEditParams,

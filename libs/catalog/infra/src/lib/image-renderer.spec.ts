@@ -1,7 +1,17 @@
-import { DEFAULT_ADJUSTMENTS, type ImageEditParams, defaultCrop } from '@itadaki/catalog/domain';
+import {
+  DEFAULT_ADJUSTMENTS,
+  type ImageEditParams,
+  VARIANT_WIDTHS,
+  defaultCrop,
+} from '@itadaki/catalog/domain';
 import sharp from 'sharp';
 import { detectImageType, validateUpload } from './image-intake';
-import { renderImageSet } from './image-renderer';
+import {
+  STORED_ORIGINAL_MAX_BYTES,
+  STORED_ORIGINAL_MAX_SIDE,
+  renderImageSet,
+  shrinkOriginal,
+} from './image-renderer';
 
 jest.setTimeout(60_000);
 
@@ -215,5 +225,71 @@ describe('renderImageSet', () => {
     const meta = await sharp(variant?.data as Buffer).metadata();
 
     expect(meta.exif).toBeUndefined();
+  });
+});
+
+/**
+ * El original se guarda para poder reencuadrar después, no para servirse: la
+ * foto que sale de un teléfono pesaba megas que nadie descargaba nunca.
+ */
+describe('el original que se guarda', () => {
+  /** Un degradado suave comprime como una foto; el damero del resto del
+   *  archivo es ruido puro y no representa lo que sube un restaurante. */
+  async function makePhoto(width: number, height: number): Promise<Buffer> {
+    const pixels = Buffer.alloc(width * height * 3);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const offset = (y * width + x) * 3;
+        pixels[offset] = Math.round((x / width) * 255);
+        pixels[offset + 1] = Math.round((y / height) * 255);
+        pixels[offset + 2] = 140;
+      }
+    }
+    return sharp(pixels, { raw: { width, height, channels: 3 } }).jpeg({ quality: 95 }).toBuffer();
+  }
+
+  it('achica la foto grande y la deja dentro de la medida', async () => {
+    const grande = await makePhoto(4000, 3000);
+    const guardado = await shrinkOriginal(grande);
+
+    const { width, height } = await sharp(guardado).metadata();
+    expect(Math.max(width ?? 0, height ?? 0)).toBeLessThanOrEqual(STORED_ORIGINAL_MAX_SIDE);
+    expect(guardado.length).toBeLessThan(grande.length);
+  });
+
+  /** El tope de píxeles manda: una foto que no comprime bien no puede quedar
+   *  guardada entera sólo porque el reencode no le gane en bytes. */
+  it('respeta la medida aunque la foto comprima mal', async () => {
+    const ruidosa = await makeSource(4000, 3000);
+
+    const { width, height } = await sharp(await shrinkOriginal(ruidosa)).metadata();
+    expect(Math.max(width ?? 0, height ?? 0)).toBeLessThanOrEqual(STORED_ORIGINAL_MAX_SIDE);
+  });
+
+  /** Con 2560 de lado, un recorte a la mitad todavía supera la variante de 1200. */
+  it('deja margen para reencuadrar más cerrado que la variante más grande', () => {
+    expect(STORED_ORIGINAL_MAX_SIDE / 2).toBeGreaterThan(VARIANT_WIDTHS[0]);
+  });
+
+  it('no toca la que ya entra y pesa poco', async () => {
+    const chica = await makeSource(900, 600);
+    expect(chica.length).toBeLessThan(STORED_ORIGINAL_MAX_BYTES);
+
+    expect(await shrinkOriginal(chica)).toBe(chica);
+  });
+
+  it('hornea la orientación en vez de dejarla en los metadatos', async () => {
+    // Vertical con la marca de "rotala 90°": lo que manda un teléfono de lado.
+    const acostada = await sharp(await makeSource(4000, 3000))
+      .withMetadata({ orientation: 6 })
+      .toBuffer();
+
+    const { width, height } = await sharp(await shrinkOriginal(acostada)).metadata();
+    expect((height ?? 0) > (width ?? 0)).toBe(true);
+  });
+
+  it('devuelve lo que vino cuando no es una imagen', async () => {
+    const basura = Buffer.from('esto no es una foto');
+    expect(await shrinkOriginal(basura)).toBe(basura);
   });
 });

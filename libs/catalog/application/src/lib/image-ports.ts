@@ -31,4 +31,12 @@ export interface ImageRenderer {
     imageId: string,
     tenantId: string,
   ): Promise<Result<ImageSet, RepositoryError>>;
+
+  /**
+   * Deja el original en algo que se pueda guardar sin remordimiento.
+   *
+   * No devuelve `Result`: una foto que no se pudo achicar se guarda como vino.
+   * Perder la subida por no haber podido ahorrar espacio sería un mal negocio.
+   */
+  shrinkOriginal(original: Buffer): Promise<Buffer>;
 }

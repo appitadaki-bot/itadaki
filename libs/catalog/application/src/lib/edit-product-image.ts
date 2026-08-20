@@ -29,7 +29,13 @@ export function uploadImage(deps: {
       });
     }
 
-    const stored = await deps.images.saveOriginal(command.tenantId, command.imageId, command.original);
+    // Se guarda achicado: el original existe para reeditar el encuadre, no
+    // para servirse, y los doce megapíxeles de un teléfono no los descarga
+    // nadie nunca. Se renderiza desde el que subieron, que todavía está entero
+    // en memoria, así que esta primera vez no pierde nada.
+    const paraGuardar = await deps.renderer.shrinkOriginal(command.original);
+
+    const stored = await deps.images.saveOriginal(command.tenantId, command.imageId, paraGuardar);
     if (stored.isErr()) {
       return err(stored.error);
     }
