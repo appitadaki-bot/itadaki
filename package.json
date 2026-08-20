@@ -30,7 +30,8 @@
     "build:cocina": "ng build kds-web",
     "build:admin": "npm run legal && ng build admin-web",
     "build:salon": "ng build floor-web",
-    "legal": "node scripts/build-legal.mjs"
+    "legal": "node scripts/build-legal.mjs",
+    "db:backup:hosted": "node scripts/backup-hosted.mjs"
   },
   "devDependencies": {
     "@angular/build": "^19.2.27",
