@@ -43,3 +43,14 @@
 .input.code { font-variant-numeric: tabular-nums; letter-spacing: 0.35em; text-indent: 0.35em; }
 .cta { background: var(--itadaki-ink); color: var(--itadaki-surface); border: none; border-radius: var(--itadaki-radius-pill); padding: 1rem; font-family: var(--itadaki-font-display); font-weight: 600; font-size: 0.95rem; cursor: pointer; box-shadow: var(--itadaki-shadow-cta); min-height: 48px; }
 .cta:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+
+/* Discreto pero alcanzable: la pregunta aparece al escribir el nombre. */
+.lede-legal {
+  display: inline-block;
+  margin-top: 0.35rem;
+  color: var(--itadaki-ink-subtle);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

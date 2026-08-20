@@ -30,6 +30,11 @@
                 "glob": "manifest.webmanifest",
                 "input": "apps/diner-pwa/src",
                 "output": "/"
+              },
+              {
+                "glob": "*.html",
+                "input": "apps/diner-pwa/src/legal",
+                "output": "/legal"
               }
             ],
             "polyfills": [
@@ -140,6 +145,13 @@
             "outputPath": "dist/admin-web",
             "polyfills": [
               "zone.js"
+            ],
+            "assets": [
+              {
+                "glob": "*.html",
+                "input": "apps/admin-web/src/legal",
+                "output": "/legal"
+              }
             ]
           },
           "configurations": {

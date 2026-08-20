@@ -1720,3 +1720,27 @@
   border-color: var(--itadaki-status-late);
   color: var(--itadaki-status-late);
 }
+
+/* Los documentos legales, al pie de toda pantalla. */
+.legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 1.5rem;
+  max-width: 1180px;
+  margin: 3rem auto 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--itadaki-border);
+}
+
+.legal a {
+  color: var(--itadaki-ink-subtle);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.legal a:hover {
+  color: var(--itadaki-accent);
+  text-decoration: underline;
+}
