@@ -721,52 +721,100 @@ strong { color: var(--tinta); font-weight: 700; }
  * El botón de WhatsApp, flotando.
  *
  * Quien quiere preguntar algo no debería tener que buscar dónde: la duda
- * aparece leyendo cualquier sección, no al final.
+ * aparece leyendo cualquier sección, no al final. Verde de WhatsApp a
+ * propósito — es el color que la gente ya reconoce sin leer el botón.
  */
 .wa-flota {
   position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 60;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 90;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.7rem 1.1rem 0.7rem 0.85rem;
+  gap: 0.6rem;
+  padding: 0.9rem 1.4rem 0.9rem 1.1rem;
   border-radius: var(--r-pill);
-  background: oklch(62% 0.17 145);
-  color: oklch(18% 0.03 145);
+  background: #25d366;
+  color: #0b3d1f;
   font-family: var(--texto);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
   text-decoration: none;
-  box-shadow: 0 8px 24px oklch(20% 0.02 60 / 0.45);
-  transition: transform 0.16s ease, background 0.16s ease;
+  box-shadow: 0 10px 30px oklch(20% 0.02 60 / 0.55), 0 0 0 0 rgb(37 211 102 / 0.5);
+  animation: wa-entra 500ms cubic-bezier(0.16, 1, 0.3, 1) 900ms backwards,
+    wa-pulso 3.2s ease-out 2s infinite;
 }
 
 .wa-flota:hover {
-  background: oklch(68% 0.17 145);
+  background: #1fbe5a;
   transform: translateY(-2px);
+  animation-play-state: paused;
+}
+
+/* Entra después de la primera pantalla: apenas se abre la página compite con
+   el titular, que es lo que tiene que leerse primero. */
+@keyframes wa-entra {
+  from { opacity: 0; transform: translateY(14px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Un anillo que se expande y se apaga: llama la atención sin moverse de lugar,
+   que es lo que marea. */
+@keyframes wa-pulso {
+  0% { box-shadow: 0 10px 30px oklch(20% 0.02 60 / 0.55), 0 0 0 0 rgb(37 211 102 / 0.55); }
+  70% { box-shadow: 0 10px 30px oklch(20% 0.02 60 / 0.55), 0 0 0 18px rgb(37 211 102 / 0); }
+  100% { box-shadow: 0 10px 30px oklch(20% 0.02 60 / 0.55), 0 0 0 0 rgb(37 211 102 / 0); }
 }
 
 .wa-icono { display: flex; }
 
 /* En un teléfono queda sólo el ícono: el texto tapaba media pantalla. */
 @media (max-width: 560px) {
-  .wa-flota { padding: 0.8rem; right: 0.85rem; bottom: 0.85rem; }
+  .wa-flota { padding: 1rem; right: 1rem; bottom: 1rem; }
   .wa-texto { display: none; }
 }
 
-/* La salida para quien prefiere hablar antes de dejar sus datos. */
+/*
+ * La salida para quien prefiere hablar antes de dejar sus datos.
+ *
+ * Separada del formulario con una línea: son dos caminos al mismo lugar, no
+ * una aclaración al pie de uno.
+ */
 .o-bien {
-  margin: 1.5rem 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 2rem 0 0;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--borde);
   text-align: center;
-  font-size: 0.9rem;
+}
+
+.o-bien-linea {
+  font-size: 0.85rem;
   color: var(--tinta-suave);
 }
 
+/* Un botón y no un enlace más: escribir por WhatsApp es una de las dos formas
+   de contactarnos, no una nota al pie. */
 .wa-inline {
-  color: var(--acento);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding: 0.7rem 1.3rem;
+  border-radius: var(--r-pill);
+  background: #25d366;
+  color: #0b3d1f;
   font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+.wa-inline:hover { background: #1fbe5a; }
+
+/* En el pie, el mismo verde para que se reconozca sin leerlo. */
+.pie-wa {
+  color: #25d366 !important;
+  font-weight: 700;
 }

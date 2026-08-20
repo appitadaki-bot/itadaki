@@ -20,7 +20,7 @@
    * siguen apuntando al formulario en vez de abrir un chat roto — un botón que
    * lleva a un número inexistente es peor que no tenerlo.
    */
-  const WHATSAPP = '';
+  const WHATSAPP = '5492645135540';
 
   if (WHATSAPP !== '') {
     for (const enlace of document.querySelectorAll('[data-wa]')) {
