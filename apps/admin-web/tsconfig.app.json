@@ -8,5 +8,9 @@
   },
   "angularCompilerOptions": { "strictTemplates": true },
   "files": ["src/main.ts"],
-  "include": ["src/**/*.ts", "../../libs/shared/ui-image-editor/**/*.ts", "../../libs/shared/ui-auth/**/*.ts"]
+  "include": ["src/**/*.ts", "../../libs/shared/ui-image-editor/**/*.ts", "../../libs/shared/ui-auth/**/*.ts"],
+  // Los tests no se compilan en el bundle: usan los globales de Jest,
+  // que no existen en el navegador. Las otras apps ya lo excluían.
+  "exclude": ["src/**/*.spec.ts"]
+
 }
