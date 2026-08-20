@@ -10,49 +10,37 @@
 
   const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ── El título, letra por letra ── */
+  /* ── El título, palabra por palabra ── */
 
   /*
-   * El texto vive completo en el HTML y acá sólo se envuelve cada letra.
-   * Escribirlo desde el script lo dejaría invisible para un buscador y para
-   * un lector de pantalla si el JavaScript no corre.
+   * Entra por palabras y no por letras.
+   *
+   * Envolver cada letra en su propio elemento obliga a reconstruir el espacio
+   * entre palabras a mano, y ahí se rompía: el título terminaba leyéndose
+   * "Elpedidollegaalacocina". Animar la palabra entera se ve casi igual, no
+   * toca el espaciado del texto, y deja que el navegador corte las líneas
+   * como sabe.
+   *
+   * El texto vive completo en el HTML y acá sólo se envuelve: escribirlo desde
+   * el script lo dejaría invisible para un buscador si el JavaScript no corre.
    */
   const titulo = document.querySelector('[data-letras]');
 
   if (titulo !== null && !quieto) {
-    const texto = titulo.textContent ?? '';
+    const texto = (titulo.textContent ?? '').trim();
+    const palabras = texto.split(/\s+/);
 
-    // El texto original queda como etiqueta accesible: un lector de pantalla
-    // leería cuarenta spans sueltos, letra por letra, y eso es ilegible.
-    titulo.setAttribute('aria-label', texto.trim());
     titulo.textContent = '';
 
-    // Se envuelve palabra por palabra, y dentro cada letra. Una letra suelta
-    // es inline-block, así que el navegador colapsa el espacio entre spans a
-    // cero y las palabras se pegan; y sin la palabra como unidad, un salto de
-    // línea puede caer en medio de una y dejar una letra sola abajo.
-    let indice = 0;
+    for (const [i, palabra] of palabras.entries()) {
+      const span = document.createElement('span');
+      span.className = 'palabra';
+      span.textContent = palabra;
+      span.style.animationDelay = `${180 + i * 90}ms`;
+      titulo.append(span);
 
-    for (const palabra of texto.trim().split(/\s+/)) {
-      const contenedor = document.createElement('span');
-      contenedor.className = 'palabra';
-      contenedor.setAttribute('aria-hidden', 'true');
-
-      for (const caracter of palabra) {
-        const span = document.createElement('span');
-        span.className = 'letra';
-        span.textContent = caracter;
-        span.style.animationDelay = `${220 + indice * 28}ms`;
-        contenedor.append(span);
-        indice += 1;
-      }
-
-      // El espacio va adentro del contenedor, no entre dos elementos: un
-      // nodo de texto suelto entre inline-blocks lo colapsa el navegador
-      // según cómo quede el HTML, y las palabras terminan pegadas. Con
-      // padding no depende de eso — es ancho de caja, no un carácter.
-      titulo.append(contenedor);
-      indice += 1;
+      // Espacio de verdad entre palabras, fuera del elemento animado.
+      if (i < palabras.length - 1) titulo.append(' ');
     }
   }
 

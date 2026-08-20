@@ -145,8 +145,8 @@ body {
 /* En la barra queda chica y en segundo plano: ya se leyó grande arriba. */
 .marca.chica { font-size: 0.95rem; opacity: 0.55; }
 
-/* El título entra letra por letra. Cada una arranca invisible y baja: el
-   retardo lo pone el script, para no escribir cuarenta reglas a mano. */
+/* El título entra palabra por palabra: el retardo lo pone el script, para no
+   escribir una regla por cada una. */
 .hero-titulo {
   margin: 0 0 1.5rem;
   max-width: 20ch;
@@ -158,25 +158,18 @@ body {
   color: var(--tinta-media);
 }
 
-.letra {
-  display: inline-block;
-  opacity: 0;
-  transform: translateY(0.35em);
-  animation: entrar-letra 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
 /*
- * La palabra es la unidad que no se parte, y el espacio es suyo.
+ * Sólo la palabra se anima, y el espacio queda afuera.
  *
- * Separar con un nodo de texto entre inline-blocks no alcanza: el navegador
- * lo colapsa según cómo quede el HTML y las palabras se pegan. El padding es
- * ancho de caja y no depende de eso. La última no lo necesita, pero tampoco
- * molesta porque el bloque está centrado.
+ * Animar letra por letra obligaba a reconstruir el espacio a mano entre
+ * elementos inline-block, y el navegador lo colapsaba: el título se leía
+ * "Elpedidollegaalacocina".
  */
 .palabra {
   display: inline-block;
-  white-space: nowrap;
-  padding-right: 0.28em;
+  opacity: 0;
+  transform: translateY(0.3em);
+  animation: entrar-letra 560ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes entrar-letra {
