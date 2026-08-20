@@ -363,11 +363,13 @@ strong { color: var(--tinta); font-weight: 700; }
 /* ── Tarjetas ── */
 .tarjetas { display: grid; gap: 1rem; }
 @media (min-width: 700px) {
-  .tarjetas.tres { grid-template-columns: repeat(2, 1fr); }
+  .tarjetas.tres { grid-template-columns: repeat(3, 1fr); }
   .tarjetas.dos { grid-template-columns: repeat(2, 1fr); }
-  .tarjetas.cuatro { grid-template-columns: repeat(3, 1fr); }
+  /* Dos y dos: con tres arriba y una sola abajo queda un hueco que se lee
+     como algo que falta. */
+  .tarjetas.cuatro { grid-template-columns: repeat(2, 1fr); }
 }
-@media (min-width: 980px) {
+@media (min-width: 1000px) {
   .tarjetas.cuatro { grid-template-columns: repeat(4, 1fr); }
 }
 
@@ -821,3 +823,45 @@ strong { color: var(--tinta); font-weight: 700; }
   color: #25d366 !important;
   font-weight: 700;
 }
+
+/* El panel del dueño: los números del turno y las horas que se llenan. */
+.mini-panel { gap: 0.55rem; }
+
+.mini-dato {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mini-dato b {
+  font-family: var(--display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--tinta);
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-dato span {
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+/* Las barras de la hora pico: la más alta en acento, que es lo que se mira. */
+.mini-barras {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+  height: 34px;
+  margin-top: 0.15rem;
+}
+
+.mini-barras i {
+  flex: 1;
+  border-radius: 3px 3px 0 0;
+  background: var(--acento-hondo);
+}
+
+.mini-barras i.pico { background: var(--acento); }
