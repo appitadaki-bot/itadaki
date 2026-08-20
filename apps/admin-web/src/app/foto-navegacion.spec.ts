@@ -1,75 +1,75 @@
 /**
- * Ir del plato a su foto, sin perder el plato en el camino.
+ * Ir del plato a su foto.
  *
- * Había un ida y vuelta del que no se salía: "Trabajar la foto" cambiaba de
- * solapa pero dejaba el modal abierto encima, y cerrarlo borraba la selección.
- * La solapa de fotos se quedaba sin plato, decía "elegí un plato de tu carta"
- * y mandaba de vuelta a la carta.
+ * El acceso salía de un botón dentro de la ficha del plato, y esa ficha
+ * quedaba abierta tapando justamente la pantalla a la que acababa de llevar:
+ * había que adivinar que se cerraba tocando afuera. Ahora la foto se toca
+ * sobre la foto, en la fila, y no abre nada que después haya que cerrar.
  */
 
 type Tab = 'carta' | 'fotos';
 
 interface Pantalla {
   tab: Tab;
-  modal: 'editar' | null;
+  ficha: 'editar' | null;
   seleccionado: string | null;
 }
 
-/** Tocar un plato en la carta abre su ficha. */
-const tocarPlato = (p: Pantalla, id: string): Pantalla => ({
+const inicio: Pantalla = { tab: 'carta', ficha: null, seleccionado: null };
+
+/** Tocar el nombre o el precio abre la ficha del plato. */
+const tocarFicha = (p: Pantalla, id: string): Pantalla => ({
   ...p,
   seleccionado: id,
-  modal: 'editar',
+  ficha: 'editar',
 });
 
-/** Cerrar la ficha suelta el plato: se terminó de trabajar con él. */
-const cerrarFicha = (p: Pantalla): Pantalla => ({ ...p, modal: null, seleccionado: null });
+/** Tocar la foto lleva a la foto. Sin abrir la ficha. */
+const tocarFoto = (p: Pantalla, id: string): Pantalla => ({
+  ...p,
+  seleccionado: id,
+  tab: 'fotos',
+});
 
-/** "Trabajar la foto": cierra la ficha pero conserva el plato. */
-const trabajarLaFoto = (p: Pantalla): Pantalla => ({ ...p, modal: null, tab: 'fotos' });
+/** Elegir un plato desde la propia solapa de fotos. */
+const elegirEnFotos = (p: Pantalla, id: string): Pantalla => ({ ...p, seleccionado: id });
 
-/** La solapa de fotos sin plato ya no manda a ningún lado: se elige ahí. */
-const puedeEditarFoto = (p: Pantalla): boolean => p.tab === 'fotos' && p.seleccionado !== null;
+const puedeEditarFoto = (p: Pantalla): boolean =>
+  p.tab === 'fotos' && p.seleccionado !== null && p.ficha === null;
 
 describe('del plato a su foto', () => {
-  const inicio: Pantalla = { tab: 'carta', modal: null, seleccionado: null };
-
   it('llega a la foto con el plato puesto', () => {
-    const final = trabajarLaFoto(tocarPlato(inicio, 'milanesa'));
+    const final = tocarFoto(inicio, 'milanesa');
 
     expect(final.tab).toBe('fotos');
     expect(final.seleccionado).toBe('milanesa');
     expect(puedeEditarFoto(final)).toBe(true);
   });
 
-  it('no deja el modal abierto encima de la solapa nueva', () => {
-    // Ahí empezaba el loop: el modal tapaba la solapa de fotos, y cerrarlo
-    // borraba el plato.
-    expect(trabajarLaFoto(tocarPlato(inicio, 'milanesa')).modal).toBeNull();
+  it('no deja ninguna ficha abierta encima', () => {
+    // Acá estaba el problema: la ficha tapaba la pantalla de la foto y había
+    // que adivinar que se cerraba tocando afuera.
+    expect(tocarFoto(inicio, 'milanesa').ficha).toBeNull();
   });
 
-  it('cerrar la ficha desde la carta sí suelta el plato', () => {
-    // El otro camino tiene que seguir funcionando: quien mira una ficha y la
-    // cierra no quedó a mitad de nada.
-    const final = cerrarFicha(tocarPlato(inicio, 'milanesa'));
+  it('tocar la ficha sigue abriendo la ficha, no la foto', () => {
+    // Los dos accesos conviven en la misma fila y cada uno hace lo suyo.
+    const final = tocarFicha(inicio, 'milanesa');
 
-    expect(final.seleccionado).toBeNull();
+    expect(final.ficha).toBe('editar');
     expect(final.tab).toBe('carta');
   });
 
-  it('en fotos sin plato no se edita nada, y no se rebota', () => {
-    // Antes este estado mandaba de vuelta a la carta. Ahora el plato se elige
-    // en la misma solapa, así que el estado existe pero no es un callejón.
-    const enFotos: Pantalla = { tab: 'fotos', modal: null, seleccionado: null };
-    expect(puedeEditarFoto(enFotos)).toBe(false);
+  it('en fotos sin plato no se edita nada', () => {
+    expect(puedeEditarFoto({ tab: 'fotos', ficha: null, seleccionado: null })).toBe(false);
   });
 
   it('elegir el plato desde fotos alcanza para editar', () => {
-    const enFotos: Pantalla = { tab: 'fotos', modal: null, seleccionado: null };
-    const conPlato: Pantalla = { ...enFotos, seleccionado: 'provoleta' };
+    const enFotos: Pantalla = { tab: 'fotos', ficha: null, seleccionado: null };
+    const conPlato = elegirEnFotos(enFotos, 'provoleta');
 
     expect(puedeEditarFoto(conPlato)).toBe(true);
     // Y sin abrir ninguna ficha: elegir acá es elegir, no editar el plato.
-    expect(conPlato.modal).toBeNull();
+    expect(conPlato.ficha).toBeNull();
   });
 });

@@ -193,30 +193,44 @@ const ROLE_NAMES: Record<string, string> = {
 
         <div class="products">
           @for (product of products(); track product.id) {
-            <button
-              type="button"
-              class="product"
-              [attr.aria-pressed]="selected() === product.id"
-              (click)="select(product.id)"
-            >
-              @if (thumb(product); as url) {
-                <img class="product-thumb" [src]="url" alt="" width="56" height="56" />
-              } @else {
-                <span class="product-thumb empty" aria-hidden="true">
-                  {{ initials(product.name) }}
-                </span>
-              }
+            <!-- Dos accesos en la misma fila, cada uno a lo suyo: la foto se
+                 toca sobre la foto, y el resto abre la ficha del plato. Antes
+                 la foto salía de un botón dentro de la ficha, que quedaba
+                 abierta tapando la pantalla a la que acababa de llevar. -->
+            <div class="product" [class.on]="selected() === product.id">
+              <button
+                type="button"
+                class="product-foto"
+                [attr.aria-label]="'Poner la foto de ' + product.name"
+                (click)="irALaFoto(product.id)"
+              >
+                @if (thumb(product); as url) {
+                  <img class="product-thumb" [src]="url" alt="" width="56" height="56" />
+                } @else {
+                  <span class="product-thumb empty" aria-hidden="true">
+                    {{ initials(product.name) }}
+                  </span>
+                }
+                <span class="product-foto-pista">{{ thumb(product) ? 'cambiar' : 'poner foto' }}</span>
+              </button>
 
-              <span class="product-info">
-                <span class="product-name">{{ product.name }}</span>
-                <span class="product-meta">
-                  <span class="product-price">{{ format(product.price) }}</span>
-                  @if (!product.available) {
-                    <span class="badge out">sin stock</span>
-                  }
+              <button
+                type="button"
+                class="product-ficha"
+                [attr.aria-pressed]="selected() === product.id"
+                (click)="select(product.id)"
+              >
+                <span class="product-info">
+                  <span class="product-name">{{ product.name }}</span>
+                  <span class="product-meta">
+                    <span class="product-price">{{ format(product.price) }}</span>
+                    @if (!product.available) {
+                      <span class="badge out">sin stock</span>
+                    }
+                  </span>
                 </span>
-              </span>
-            </button>
+              </button>
+            </div>
           } @empty {
             <p class="muted">cargando la carta…</p>
           }
@@ -819,9 +833,6 @@ const ROLE_NAMES: Record<string, string> = {
 
           <div class="sheet-actions">
           <button type="submit" class="create">Guardar cambios</button>
-          <button type="button" class="secondary" (click)="trabajarLaFoto()">
-          Trabajar la foto →
-          </button>
           </div>
           </form>
         </div>
@@ -1323,18 +1334,16 @@ export class AdminComponent {
   }
 
   /**
-   * Del plato a su foto, sin perder el plato en el camino.
+   * De la fila del plato a su foto, sin pasar por la ficha.
    *
-   * Cambiar de solapa dejaba el modal abierto encima, y cerrarlo llamaba a
-   * `closeSheet`, que borra la selección. La solapa de fotos se quedaba sin
-   * plato, decía "elegí un plato de tu carta" y mandaba de vuelta — un ida y
-   * vuelta del que no se salía.
-   *
-   * El modal se cierra acá y la selección se conserva a propósito: es el plato
-   * cuya foto se va a trabajar.
+   * El acceso salía de un botón dentro de la ficha del plato, y esa ficha
+   * quedaba abierta tapando justamente la pantalla a la que acababa de
+   * llevar: había que adivinar que se cerraba tocando afuera. Tocar la foto
+   * en la fila no abre nada que después haya que cerrar.
    */
-  protected trabajarLaFoto(): void {
-    this.closeModal();
+  protected irALaFoto(id: string): void {
+    this.selected.set(id);
+    this.status.set(null);
     this.activeTab.set('fotos');
   }
 
