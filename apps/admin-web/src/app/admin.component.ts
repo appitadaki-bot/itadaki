@@ -1251,12 +1251,22 @@ export class AdminComponent {
         return;
       }
 
-      const body = (await response.json()) as { imported: number; photos: number };
+      const body = (await response.json()) as {
+        imported: number;
+        photos: number;
+        sinAlmacenamiento?: boolean;
+      };
       await this.load();
       this.modal.set(null);
       this.createdName.set(
         body.photos > 0 ? `${body.imported} platos, ${body.photos} con foto` : `${body.imported} platos`,
       );
+      if (body.sinAlmacenamiento === true) {
+        // La carta entró; las fotos no. Decirlo evita que alguien las busque.
+        this.importResult.set(
+          'Los platos se cargaron sin las fotos: falta configurar dónde guardarlas.',
+        );
+      }
       globalThis.setTimeout(() => this.createdName.set(null), 5000);
     } finally {
       this.importing.set(false);
@@ -1890,7 +1900,9 @@ export class AdminComponent {
       this.status.set(
         detail?.kind === 'UNSUPPORTED_TYPE'
           ? 'error: ese archivo no es una imagen válida'
-          : 'error: no pudimos procesar la imagen',
+          : detail?.kind === 'SIN_ALMACENAMIENTO'
+            ? 'error: falta configurar dónde se guardan las fotos — se perderían en el próximo despliegue'
+            : 'error: no pudimos procesar la imagen',
       );
       return;
     }

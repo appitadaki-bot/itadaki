@@ -11,7 +11,7 @@ import {
 import { join } from 'node:path';
 import { database } from './database';
 import { log } from './logger';
-import { urlFromEnv } from './config';
+import { storageIsEphemeral, urlFromEnv } from './config';
 
 const STORAGE_ROOT = process.env['IMAGE_ROOT'] ?? join(process.cwd(), '.image-store');
 /**
@@ -33,8 +33,9 @@ const PUBLIC_BASE = urlFromEnv('IMAGE_BASE_URL', 'http://localhost:3000/api/imag
  * production that trade-off has to be a decision, not an accident, so it is
  * announced at boot either way.
  */
+const bucket = S3BlobStorage.fromEnvironment();
+
 function resolveBlobStorage(): BlobStorage {
-  const bucket = S3BlobStorage.fromEnvironment();
   if (bucket !== null) {
     log.info('imágenes en bucket S3');
     return bucket;
@@ -53,6 +54,14 @@ const blobs = resolveBlobStorage();
 
 @Injectable()
 export class ImagesService {
+  /**
+   * Si una foto que se suba ahora se va a perder en el próximo despliegue.
+   *
+   * Lo consulta quien recibe la subida, para no aceptarla: la foto se sube
+   * bien, se ve bien, y desaparece días después sin que nadie la haya borrado.
+   */
+  readonly ephemeral = storageIsEphemeral(bucket !== null, process.env['NODE_ENV']);
+
   readonly store =
     process.env['USE_POSTGRES'] !== 'false'
       ? new PostgresImageStore(database, blobs)

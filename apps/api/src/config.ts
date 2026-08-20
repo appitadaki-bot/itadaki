@@ -14,3 +14,23 @@ export function urlFromEnv(name: string, fallback: string): string {
   const raw = (process.env[name] ?? '').trim().replace(/\/+$/, '');
   return raw === '' ? fallback : raw;
 }
+
+/**
+ * Si guardar una foto ahora sería tirarla.
+ *
+ * Sin bucket, los bytes van al disco del contenedor: Render lo borra en cada
+ * redespliegue y una segunda instancia no lo ve. Con eso, subir una foto es
+ * una promesa que el sistema no puede cumplir — y lo peor es que se cumple
+ * durante días, hasta el deploy siguiente, cuando la carta entera se queda sin
+ * imágenes y ya no hay de dónde recuperarlas.
+ *
+ * En desarrollo el disco está bien: no hay nada que perder y montar un bucket
+ * para probar sería pedirle demasiado a quien clona el repo.
+ *
+ * Corta la subida y no el arranque a propósito. La API es tomar pedidos,
+ * mandarlos a la cocina y cobrar; las fotos son lo de al lado. Un token vencido
+ * no puede dejar a un restaurante lleno sin sistema un sábado a la noche.
+ */
+export function storageIsEphemeral(hasBucket: boolean, nodeEnv: string | undefined): boolean {
+  return !hasBucket && nodeEnv === 'production';
+}

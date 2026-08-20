@@ -58,6 +58,13 @@ export class ImagesController {
   @RequirePermission('menu:write')
   @Post()
   async upload(@Body() body: unknown, @TenantId() tenantId: string) {
+    // Sin dónde guardarla, aceptar la foto es prometer algo que no se cumple:
+    // se ve bien hasta el despliegue siguiente y ahí desaparece, sin que nadie
+    // la haya borrado y sin nada de dónde recuperarla.
+    if (this.images.ephemeral) {
+      throw new HttpException({ kind: 'SIN_ALMACENAMIENTO' }, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
     const parsed = uploadSchema.safeParse(body);
     if (!parsed.success) {
       throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);

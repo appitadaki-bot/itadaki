@@ -546,6 +546,7 @@ export class MenuController {
     const imported: string[] = [];
     const failed: Array<{ name: string; reason: string }> = [];
     let photos = 0;
+    let queríanFoto = false;
 
     for (const [index, dish] of parsed.data.dishes.entries()) {
       const categoryId = byName.get(dish.category.toLowerCase());
@@ -582,7 +583,16 @@ export class MenuController {
       }
 
       imported.push(saved.value.name);
-      if (dish.imageUrl !== undefined && dish.imageUrl !== '' && photos < MAX_PHOTOS) {
+      if (dish.imageUrl !== undefined && dish.imageUrl !== '') queríanFoto = true;
+
+      // Sin dónde guardarlas no se bajan: serían minutos de descarga y de
+      // renderizado para fotos que el próximo despliegue borra.
+      if (
+        dish.imageUrl !== undefined &&
+        dish.imageUrl !== '' &&
+        !this.images.ephemeral &&
+        photos < MAX_PHOTOS
+      ) {
         // Una foto que no entra no tira el plato: la carta con los precios
         // bien vale más que la foto, y siempre se puede subir después.
         if (await this.attachPhoto(tenantId, saved.value.id, dish.imageUrl, dish.name)) {
@@ -591,7 +601,13 @@ export class MenuController {
       }
     }
 
-    return { imported: imported.length, photos, failed };
+    // Que la carta entre sin fotos y nadie sepa por qué es peor que decirlo.
+    return {
+      imported: imported.length,
+      photos,
+      failed,
+      sinAlmacenamiento: queríanFoto && this.images.ephemeral,
+    };
   }
 
   /**
