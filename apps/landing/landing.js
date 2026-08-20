@@ -27,13 +27,30 @@
     titulo.setAttribute('aria-label', texto.trim());
     titulo.textContent = '';
 
-    for (const [i, caracter] of [...texto].entries()) {
-      const span = document.createElement('span');
-      span.className = caracter === ' ' ? 'letra espacio' : 'letra';
-      span.textContent = caracter;
-      span.setAttribute('aria-hidden', 'true');
-      span.style.animationDelay = `${220 + i * 28}ms`;
-      titulo.append(span);
+    // Se envuelve palabra por palabra, y dentro cada letra. Una letra suelta
+    // es inline-block, así que el navegador colapsa el espacio entre spans a
+    // cero y las palabras se pegan; y sin la palabra como unidad, un salto de
+    // línea puede caer en medio de una y dejar una letra sola abajo.
+    let indice = 0;
+
+    for (const palabra of texto.trim().split(/\s+/)) {
+      const contenedor = document.createElement('span');
+      contenedor.className = 'palabra';
+      contenedor.setAttribute('aria-hidden', 'true');
+
+      for (const caracter of palabra) {
+        const span = document.createElement('span');
+        span.className = 'letra';
+        span.textContent = caracter;
+        span.style.animationDelay = `${220 + indice * 28}ms`;
+        contenedor.append(span);
+        indice += 1;
+      }
+
+      titulo.append(contenedor);
+      // Un espacio de texto normal entre palabras: no se anima, no colapsa.
+      titulo.append(document.createTextNode(' '));
+      indice += 1;
     }
   }
 
