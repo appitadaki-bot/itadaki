@@ -47,9 +47,11 @@
         indice += 1;
       }
 
+      // El espacio va adentro del contenedor, no entre dos elementos: un
+      // nodo de texto suelto entre inline-blocks lo colapsa el navegador
+      // según cómo quede el HTML, y las palabras terminan pegadas. Con
+      // padding no depende de eso — es ancho de caja, no un carácter.
       titulo.append(contenedor);
-      // Un espacio de texto normal entre palabras: no se anima, no colapsa.
-      titulo.append(document.createTextNode(' '));
       indice += 1;
     }
   }
