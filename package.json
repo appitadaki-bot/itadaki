@@ -25,10 +25,11 @@
     "db:reset": "docker compose down -v && npm run db:up && npm run db:seed",
     "db:backup": "bash scripts/backup.sh",
     "db:restore": "bash scripts/restore.sh",
-    "build:comensal": "ng build diner-pwa",
+    "build:comensal": "npm run legal && ng build diner-pwa",
     "build:cocina": "ng build kds-web",
-    "build:admin": "ng build admin-web",
-    "build:salon": "ng build floor-web"
+    "build:admin": "npm run legal && ng build admin-web",
+    "build:salon": "ng build floor-web",
+    "legal": "node scripts/build-legal.mjs"
   },
   "devDependencies": {
     "@angular/build": "^19.2.27",

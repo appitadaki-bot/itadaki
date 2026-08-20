@@ -653,6 +653,17 @@ const ROLE_NAMES: Record<string, string> = {
       }
     </div>
 
+    <!-- Al pie y en toda pantalla: un documento legal que no se encuentra es
+         como no tenerlo. Se abren en una pestaña nueva para no perder lo que
+         se estaba cargando. -->
+    <footer class="legal">
+      <a href="/legal/terminos.html" target="_blank" rel="noopener">Términos y condiciones</a>
+      <a href="/legal/privacidad.html" target="_blank" rel="noopener">Política de privacidad</a>
+      <a href="/legal/tratamiento-de-datos.html" target="_blank" rel="noopener">
+        Tratamiento de datos
+      </a>
+    </footer>
+
     <!-- Los modales, al final del template para que queden por encima de
          todo sin depender del orden de la página. -->
     @if (modal() !== null) {

@@ -23,6 +23,11 @@ const SUGGESTIONS = ['Ana', 'Beto', 'Cami', 'Dani', 'Eli', 'Fede', 'Gaby', 'Nico
       <h1 class="title">¿Cómo te llamamos?</h1>
       <p class="lede">
         Elegí un nombre para que el resto de la mesa vea qué pediste. No pedimos mail ni cuenta.
+        <!-- Acá y no al pie: la pregunta "¿qué datos me están pidiendo?"
+             aparece justo cuando hay que escribir un nombre. -->
+        <a class="lede-legal" href="/legal/privacidad.html" target="_blank" rel="noopener">
+          Cómo cuidamos tus datos
+        </a>
       </p>
 
       <form class="form" (submit)="submit($event)">
