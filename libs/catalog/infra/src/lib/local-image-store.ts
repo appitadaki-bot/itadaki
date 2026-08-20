@@ -11,7 +11,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { type BlobStorage, DiskBlobStorage } from './blob-storage';
 import sharp from 'sharp';
-import { renderImageSet, toImageSet } from './image-renderer';
+import { renderImageSet, shrinkOriginal, toImageSet } from './image-renderer';
 
 /**
  * Disk-backed store standing in for S3/MinIO. The layout mirrors what an
@@ -123,6 +123,10 @@ export class SharpImageRenderer implements ImageRenderer {
   ) {
     // A plain path still works, so existing callers keep their behaviour.
     this.blobs = typeof storage === 'string' ? new DiskBlobStorage(storage) : storage;
+  }
+
+  async shrinkOriginal(original: Buffer): Promise<Buffer> {
+    return shrinkOriginal(original);
   }
 
   async render(
