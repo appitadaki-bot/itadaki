@@ -10,6 +10,31 @@
 
   const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* ── WhatsApp ── */
+
+  /*
+   * El número vive acá y en un solo lugar.
+   *
+   * Va con código de país y sin espacios ni signos, que es como lo pide wa.me:
+   * 5491155555555 para un celular de Buenos Aires. Si queda vacío, los enlaces
+   * siguen apuntando al formulario en vez de abrir un chat roto — un botón que
+   * lleva a un número inexistente es peor que no tenerlo.
+   */
+  const WHATSAPP = '';
+
+  if (WHATSAPP !== '') {
+    for (const enlace of document.querySelectorAll('[data-wa]')) {
+      const texto = enlace.getAttribute('data-wa') ?? '';
+      enlace.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`;
+    }
+  } else {
+    // Sin número configurado no se abre una pestaña vacía: cae al formulario,
+    // que es la otra forma de dejar el contacto.
+    for (const enlace of document.querySelectorAll('[data-wa]')) {
+      enlace.removeAttribute('target');
+    }
+  }
+
   /* ── El título, palabra por palabra ── */
 
   /*

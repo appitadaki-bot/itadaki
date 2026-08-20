@@ -716,3 +716,57 @@ strong { color: var(--tinta); font-weight: 700; }
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
+
+/*
+ * El botón de WhatsApp, flotando.
+ *
+ * Quien quiere preguntar algo no debería tener que buscar dónde: la duda
+ * aparece leyendo cualquier sección, no al final.
+ */
+.wa-flota {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1.1rem 0.7rem 0.85rem;
+  border-radius: var(--r-pill);
+  background: oklch(62% 0.17 145);
+  color: oklch(18% 0.03 145);
+  font-family: var(--texto);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 8px 24px oklch(20% 0.02 60 / 0.45);
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+
+.wa-flota:hover {
+  background: oklch(68% 0.17 145);
+  transform: translateY(-2px);
+}
+
+.wa-icono { display: flex; }
+
+/* En un teléfono queda sólo el ícono: el texto tapaba media pantalla. */
+@media (max-width: 560px) {
+  .wa-flota { padding: 0.8rem; right: 0.85rem; bottom: 0.85rem; }
+  .wa-texto { display: none; }
+}
+
+/* La salida para quien prefiere hablar antes de dejar sus datos. */
+.o-bien {
+  margin: 1.5rem 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--tinta-suave);
+}
+
+.wa-inline {
+  color: var(--acento);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
