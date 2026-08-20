@@ -28,8 +28,14 @@
     for (const [i, palabra] of [...tituloHero.querySelectorAll('.palabra')].entries()) {
       palabra.style.animationDelay = `${180 + i * 90}ms`;
     }
-    // La clase enciende la animación. Sin ella las palabras ya están visibles.
-    tituloHero.classList.add('anima');
+
+    // La clase enciende la animación. Sin ella las palabras ya están visibles,
+    // así que el título se lee igual si el script no llega a correr.
+    //
+    // En el siguiente cuadro y no ahora mismo: aplicar el estado inicial y el
+    // final en el mismo cuadro hace que el navegador no vea el cambio y no
+    // anime nada — el título aparecería de golpe.
+    requestAnimationFrame(() => tituloHero.classList.add('anima'));
   }
 
   /* ── La demo del pedido, en loop ── */

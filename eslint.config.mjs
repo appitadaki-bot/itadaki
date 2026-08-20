@@ -26,6 +26,7 @@ export default tseslint.config(
         globalThis: 'readonly',
         setInterval: 'readonly',
         clearInterval: 'readonly',
+        requestAnimationFrame: 'readonly',
         IntersectionObserver: 'readonly',
       },
     },
