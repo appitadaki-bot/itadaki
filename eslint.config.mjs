@@ -16,6 +16,21 @@ export default tseslint.config(
     ],
   },
   {
+    // La landing es HTML plano con un script suelto: corre en el navegador,
+    // no en Node ni dentro de Angular, así que sus globales se declaran acá.
+    files: ['apps/landing/**/*.js'],
+    languageOptions: {
+      globals: {
+        document: 'readonly',
+        matchMedia: 'readonly',
+        globalThis: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        IntersectionObserver: 'readonly',
+      },
+    },
+  },
+  {
     // The service worker runs in its own global scope, not the window's.
     files: ['**/sw.js'],
     languageOptions: {
