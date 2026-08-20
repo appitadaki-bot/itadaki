@@ -13,35 +13,23 @@
   /* ── El título, palabra por palabra ── */
 
   /*
-   * Entra por palabras y no por letras.
+   * Las palabras ya vienen separadas desde el HTML. El script sólo reparte el
+   * retardo de cada una.
    *
-   * Envolver cada letra en su propio elemento obliga a reconstruir el espacio
-   * entre palabras a mano, y ahí se rompía: el título terminaba leyéndose
-   * "Elpedidollegaalacocina". Animar la palabra entera se ve casi igual, no
-   * toca el espaciado del texto, y deja que el navegador corte las líneas
-   * como sabe.
-   *
-   * El texto vive completo en el HTML y acá sólo se envuelve: escribirlo desde
-   * el script lo dejaría invisible para un buscador si el JavaScript no corre.
+   * Antes las envolvía él, y eso obligaba a reconstruir a mano el espacio
+   * entre elementos inline-block — que el navegador colapsa. El título se leía
+   * "Elpedidollegaalacocina". Con el texto ya partido en el HTML no hay nada
+   * que reconstruir: el espacio es texto normal y se ve bien aunque el script
+   * no llegue a correr.
    */
-  const titulo = document.querySelector('[data-letras]');
+  const tituloHero = document.querySelector('.hero-titulo');
 
-  if (titulo !== null && !quieto) {
-    const texto = (titulo.textContent ?? '').trim();
-    const palabras = texto.split(/\s+/);
-
-    titulo.textContent = '';
-
-    for (const [i, palabra] of palabras.entries()) {
-      const span = document.createElement('span');
-      span.className = 'palabra';
-      span.textContent = palabra;
-      span.style.animationDelay = `${180 + i * 90}ms`;
-      titulo.append(span);
-
-      // Espacio de verdad entre palabras, fuera del elemento animado.
-      if (i < palabras.length - 1) titulo.append(' ');
+  if (tituloHero !== null && !quieto) {
+    for (const [i, palabra] of [...tituloHero.querySelectorAll('.palabra')].entries()) {
+      palabra.style.animationDelay = `${180 + i * 90}ms`;
     }
+    // La clase enciende la animación. Sin ella las palabras ya están visibles.
+    tituloHero.classList.add('anima');
   }
 
   /* ── La demo del pedido, en loop ── */

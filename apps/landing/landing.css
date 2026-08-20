@@ -165,8 +165,15 @@ body {
  * elementos inline-block, y el navegador lo colapsaba: el título se leía
  * "Elpedidollegaalacocina".
  */
-.palabra {
-  display: inline-block;
+/*
+ * Visible por defecto: la animación sólo la activa el script.
+ *
+ * Arrancar en opacity 0 dejaba el título invisible si el JavaScript no
+ * llegaba a correr — y un titular que no se ve es peor que uno sin animación.
+ */
+.palabra { display: inline-block; }
+
+.hero-titulo.anima .palabra {
   opacity: 0;
   transform: translateY(0.3em);
   animation: entrar-letra 560ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
