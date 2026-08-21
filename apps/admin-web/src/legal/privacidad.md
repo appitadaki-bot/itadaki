@@ -41,7 +41,7 @@ siguiendo sus instrucciones, para prestarle el servicio.
 
 | Dato | Para qué | Cuánto tiempo |
 |---|---|---|
-| Apodo elegido al sentarse | Que el resto de la mesa vea quién pidió qué | Mientras dura la comida |
+| Apodo elegido al sentarse | Que el resto de la mesa vea quién pidió qué | Se borra a los 30 días de cerrada la mesa |
 | Platos pedidos y notas | Enviar el pedido a la cocina y armar la cuenta | Se conserva como registro de venta del Restaurante |
 | Identificador técnico de sesión | Reconocer el mismo teléfono si se recarga la página | Hasta que se cierra la mesa |
 
@@ -111,6 +111,10 @@ Al usar el servicio, el Restaurante presta conformidad a esta transferencia.
 
 - **Sesiones de mesa abiertas:** se cierran automáticamente tras un período de
   inactividad.
+- **Apodos de comensales:** se borran a los **30 días** de cerrada la mesa. Es
+  el único dato personal del comensal, y pasado ese plazo no cumple ninguna
+  función. La venta queda —qué se pidió y cuánto salió— porque es el registro
+  comercial del Restaurante y no identifica a nadie.
 - **Historial de pedidos y ventas:** mientras la cuenta esté activa, ya que son
   el registro comercial del Restaurante.
 - **Cuenta suspendida por falta de pago o fin de prueba:** al menos **90 días**,

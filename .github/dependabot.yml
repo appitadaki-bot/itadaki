@@ -1,0 +1,26 @@
+# Actualiza las dependencias solo, con un PR por semana.
+#
+# Sin esto, una falla publicada hoy se descubre el día que alguien corre la
+# auditoría a mano — que en la práctica es el día que algo ya pasó.
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    # Un PR por semana con todo junto: veinte PR sueltos no los revisa nadie,
+    # y lo que no se revisa se mergea sin mirar.
+    open-pull-requests-limit: 3
+    groups:
+      produccion:
+        dependency-type: production
+      desarrollo:
+        dependency-type: development
+
+  # Las acciones del CI también se quedan viejas, y corren con acceso al repo.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
