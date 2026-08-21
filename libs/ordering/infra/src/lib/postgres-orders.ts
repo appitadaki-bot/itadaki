@@ -347,6 +347,65 @@ export class PostgresSessionStore implements SessionReader, SessionWriter {
    * table forever, because the unique index only permits one OPEN row per
    * table. Runs across every tenant, so it is unscoped by design.
    */
+  /**
+   * Los restaurantes activos, para recorrerlos uno por uno.
+   *
+   * Con RLS en FORCE una consulta sin tenant en alcance no ve ninguna fila,
+   * así que cualquier tarea que abarque a todos tiene que caminar el
+   * directorio —que no está filtrado— y fijar el alcance en cada vuelta.
+   */
+  async activeTenants(): Promise<Result<readonly string[], OrderRepositoryError>> {
+    try {
+      const ids = await this.db.unscoped(async (client) => {
+        const result = await client.query<{ id: string }>(
+          'SELECT id FROM tenants WHERE active ORDER BY id',
+        );
+        return result.rows.map((row) => row.id);
+      });
+      return ok(ids);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /**
+   * Borra los pedidos de un día que ya quedó resumido.
+   *
+   * Exige que el resumen exista antes de borrar: sin esa condición, un error
+   * al guardarlo dejaría el día sin pedidos y sin números, y eso no se puede
+   * deshacer. Por eso la comprobación va en la misma consulta y no en el
+   * código que la llama.
+   *
+   * Sólo mesas cerradas: una abierta todavía está comiendo, y su cuenta se
+   * calcula con esos pedidos.
+   */
+  async purgeSummarised(
+    tenantId: string,
+    upToDay: Date,
+  ): Promise<Result<number, OrderRepositoryError>> {
+    try {
+      const borrados = await this.db.withTenant(tenantId, async (client) => {
+        const result = await client.query(
+          `DELETE FROM orders o
+             USING table_sessions s
+            WHERE o.session_id = s.id
+              AND s.status = 'CLOSED'
+              AND o.created_at < $1::date
+              AND EXISTS (
+                SELECT 1 FROM daily_summaries d
+                 WHERE d.day = o.created_at::date
+              )`,
+          [upToDay],
+        );
+        return result.rowCount ?? 0;
+      });
+
+      return ok(borrados);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   async closeStale(olderThanHours: number): Promise<Result<number, OrderRepositoryError>> {
     try {
       const closed = await this.db.unscoped(async (client) => {

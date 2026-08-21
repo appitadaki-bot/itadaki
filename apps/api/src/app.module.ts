@@ -18,6 +18,7 @@ import { MenuController } from './menu.controller';
 import { OrdersController } from './orders.controller';
 import { MetricsController } from './metrics.controller';
 import { OrdersService } from './orders.service';
+import { ArchiveService } from './archive.service';
 import { SessionsController } from './sessions.controller';
 import { SessionsService } from './sessions.service';
 import { TenantsService } from './tenants.service';
@@ -27,7 +28,7 @@ import { RealtimeGateway } from './realtime.gateway';
 
 @Module({
   controllers: [MenuController, OrdersController, ImagesController, SessionsController, BillsController, MetricsController, AuthController, TablesController, StaffController, HealthController, CallsController],
-  providers: [CatalogService, OrdersService, ImagesService, SessionsService, BillsService, StaffService, TenantsService, ResetsService, GoogleService, CallsService, RealtimeGateway,
+  providers: [CatalogService, OrdersService, ArchiveService, ImagesService, SessionsService, BillsService, StaffService, TenantsService, ResetsService, GoogleService, CallsService, RealtimeGateway,
     // First: cheap, and a flood should be turned away before any lookup.
     { provide: APP_GUARD, useClass: RateLimitGuard },
     // Applied globally: an endpoint is protected unless it opts out with @Public.
