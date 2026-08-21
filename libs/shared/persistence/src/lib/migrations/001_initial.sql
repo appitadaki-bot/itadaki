@@ -125,36 +125,23 @@ CREATE TABLE IF NOT EXISTS images (
   PRIMARY KEY (tenant_id, id)
 );
 
--- The role the API connects as, which every GRANT below targets.
+-- El rol `itadaki_app`, al que apuntan todos los GRANT de abajo, no se crea
+-- acá: crear roles es cosa del entorno, no del esquema.
 --
--- Created here when absent so migrating a fresh database never depends on
--- someone having run a setup step by hand; Docker Compose creates it too, and
--- both paths are idempotent.
+-- En la laptop lo crea `scripts/init-db.sql`, que Docker Compose corre al
+-- levantar la base por primera vez. En una base hosteada no existe ni hace
+-- falta: la app se conecta con el usuario que da el proveedor, que es el dueño
+-- de las tablas.
 --
--- On a hosted database (Render, Neon, Supabase) neither applies: the app
--- connects as the user the provider hands over. Failing here would abort the
--- whole migration over something that does not matter there, so the block
--- gives up quietly and the GRANTs below are skipped the same way — a role that
--- does not exist needs no permissions.
+-- Estuvo acá y se sacó porque cada proveedor se niega distinto y ninguna
+-- negativa se podía atrapar. Render no deja crear roles. Neon deja, acepta el
+-- comando, y recién al reenviar el DDL a su panel de control lo rechaza por
+-- contraseña débil — un error que nace fuera del bloque, donde ningún
+-- EXCEPTION lo alcanza. Con eso, migrar una base de Neon abortaba en el primer
+-- archivo y no se creaba ni una tabla.
 --
--- Se atrapa cualquier error y no sólo la falta de permiso, porque cada
--- proveedor se niega a su manera: Render no deja crear roles, y Neon sí pero
--- su panel rechaza esta contraseña por corta, con un error interno que no se
--- parece en nada al otro. Los dos significan lo mismo acá — este rol es del
--- Postgres de la laptop y allá no hace falta.
---
--- The password is only ever used by docker compose on a laptop. A hosted
--- deploy never reaches this branch, so it is not a credential in production.
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN
-    BEGIN
-      CREATE ROLE itadaki_app LOGIN PASSWORD 'itadaki_app';
-    EXCEPTION WHEN OTHERS THEN
-      RAISE NOTICE 'no se pudo crear itadaki_app (%): la app usa el usuario del proveedor', SQLERRM;
-    END;
-  END IF;
-END $$;
+-- Los GRANT de abajo ya preguntan si el rol existe, así que sin él el esquema
+-- se aplica igual.
 
 DO $$
 BEGIN
