@@ -20,6 +20,16 @@ import { log } from './logger';
  * cerrar la cuenta, y el mozo puede liberarla a mano cuando pagaron en caja.
  */
 const STALE_AFTER_HOURS = Number(process.env['SESSION_STALE_HOURS'] ?? 3);
+
+/**
+ * Cuántos días se conserva el apodo de una mesa ya cerrada.
+ *
+ * Treinta, no cero: un restaurante que revisa lo que pasó el fin de semana
+ * anterior todavía quiere ver quién pidió qué en una mesa que discutió la
+ * cuenta. Pasado ese plazo el nombre no le sirve a nadie, y guardarlo es
+ * conservar un dato personal sin motivo.
+ */
+const FORGET_DINERS_AFTER_DAYS = Number(process.env['FORGET_DINERS_DAYS'] ?? 30);
 const SWEEP_EVERY_MS = 30 * 60_000;
 
 @Injectable()
@@ -54,6 +64,14 @@ export class SessionsService implements OnModuleInit, OnModuleDestroy {
     const closed = await this.store.closeStale(STALE_AFTER_HOURS);
     if (closed.isOk() && closed.value > 0) {
       log.info('abandoned sessions closed', { closed: closed.value });
+    }
+
+    // El apodo se borra cuando ya no cumple ninguna función. Es el único dato
+    // del comensal que guardamos, y la política de privacidad promete no
+    // conservarlo de más — una promesa que no se cumple sola.
+    const olvidadas = await this.store.forgetDiners(FORGET_DINERS_AFTER_DAYS);
+    if (olvidadas.isOk() && olvidadas.value > 0) {
+      log.info('apodos borrados de mesas cerradas', { mesas: olvidadas.value });
     }
 
     // Las invitaciones vencidas no sirven para nada y se acumulan de a una por
