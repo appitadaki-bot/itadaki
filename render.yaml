@@ -54,6 +54,12 @@ services:
 
       # Sin proveedor de correo la API se niega a arrancar en producción: un
       # flujo de recuperación que no manda nada es peor que uno que falta.
+      # Sin esto el guard de producción no corre y la API arranca con el
+      # mailer de consola: el link de recuperación se imprime en el log del
+      # servidor en vez de enviarse. Parece que funciona y nadie recibe nada.
+      - key: NODE_ENV
+        value: production
+
       - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM
