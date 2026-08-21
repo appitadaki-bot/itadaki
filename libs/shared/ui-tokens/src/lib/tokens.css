@@ -57,8 +57,18 @@
   --itadaki-blob-amber: oklch(80% 0.13 85 / 0.25);
 
   /* Typography — Unbounded for display, Onest for body */
-  --itadaki-font-display: 'Unbounded', sans-serif;
-  --itadaki-font-body: 'Onest', sans-serif;
+  /*
+   * El respaldo importa tanto como la fuente.
+   *
+   * `sans-serif` a secas queda a criterio del sistema y en algunos da una
+   * fuente que no se parece en nada. La pila del sistema arranca por la que
+   * cada plataforma ya tiene cargada, así que mientras Unbounded viaja por la
+   * red el texto se ve con algo cercano en vez de saltar de una serif a otra.
+   */
+  --itadaki-font-display: 'Unbounded', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', sans-serif;
+  --itadaki-font-body: 'Onest', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
 
   /*
    * Movimiento.
