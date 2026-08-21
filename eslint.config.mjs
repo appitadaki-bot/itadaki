@@ -19,7 +19,14 @@ export default tseslint.config(
     // Los scripts de mantenimiento corren en Node, no en el navegador.
     files: ['scripts/**/*.mjs'],
     languageOptions: {
-      globals: { process: 'readonly', console: 'readonly' },
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        fetch: 'readonly',
+        setTimeout: 'readonly',
+        Buffer: 'readonly',
+        URL: 'readonly',
+      },
     },
   },
   {
