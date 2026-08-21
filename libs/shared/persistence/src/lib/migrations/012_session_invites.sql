@@ -39,6 +39,11 @@ CREATE POLICY tenant_isolation ON session_invites
   USING (tenant_id = current_setting('app.tenant_id', true))
   WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
 
+-- Los permisos del rol de la app, si ese rol existe.
+--
+-- En una base hosteada no existe: la app se conecta con el usuario del
+-- proveedor, que es dueño de las tablas. Sin esta pregunta, migrar una base de
+-- Neon o de Supabase se cortaba acá con «role "itadaki_app" does not exist».
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN

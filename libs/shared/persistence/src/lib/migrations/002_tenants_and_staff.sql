@@ -78,9 +78,19 @@ CREATE OR REPLACE VIEW staff_login_lookup AS
   SELECT tenant_id, id, email, display_name, password_hash, role, active
   FROM staff_users;
 
-GRANT SELECT ON staff_login_lookup TO itadaki_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON tenants TO itadaki_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON staff_users TO itadaki_app;
+-- Los permisos del rol de la app, si ese rol existe.
+--
+-- En una base hosteada no existe: la app se conecta con el usuario del
+-- proveedor, que es dueño de las tablas. Sin esta pregunta, migrar una base de
+-- Neon o de Supabase se cortaba acá con «role "itadaki_app" does not exist».
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN
+    GRANT SELECT ON staff_login_lookup TO itadaki_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON tenants TO itadaki_app;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON staff_users TO itadaki_app;
+  END IF;
+END $$;
 
 -- Tenants are the directory itself: readable by the app, not row-filtered.
 ALTER TABLE tenants DISABLE ROW LEVEL SECURITY;

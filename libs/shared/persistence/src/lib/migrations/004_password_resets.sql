@@ -20,4 +20,14 @@ CREATE INDEX IF NOT EXISTS password_resets_user
 -- Reset happens before anyone is signed in, so this table cannot be read
 -- through a tenant-scoped connection. It is written and read by the app role
 -- directly, and every row is found by a digest nobody can guess.
-GRANT SELECT, INSERT, UPDATE, DELETE ON password_resets TO itadaki_app;
+-- Los permisos del rol de la app, si ese rol existe.
+--
+-- En una base hosteada no existe: la app se conecta con el usuario del
+-- proveedor, que es dueño de las tablas. Sin esta pregunta, migrar una base de
+-- Neon o de Supabase se cortaba acá con «role "itadaki_app" does not exist».
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON password_resets TO itadaki_app;
+  END IF;
+END $$;

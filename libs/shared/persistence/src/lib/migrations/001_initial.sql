@@ -143,6 +143,11 @@ CREATE TABLE IF NOT EXISTS images (
 -- Los GRANT de abajo ya preguntan si el rol existe, así que sin él el esquema
 -- se aplica igual.
 
+-- Los permisos del rol de la app, si ese rol existe.
+--
+-- En una base hosteada no existe: la app se conecta con el usuario del
+-- proveedor, que es dueño de las tablas. Sin esta pregunta, migrar una base de
+-- Neon o de Supabase se cortaba acá con «role "itadaki_app" does not exist».
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN
