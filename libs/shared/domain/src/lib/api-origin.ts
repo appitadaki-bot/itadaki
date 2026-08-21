@@ -46,6 +46,24 @@ function currentPage(): PageContext {
 /** Origin of the API, without a trailing slash: `https://api.itadaki.ar`. */
 export function apiOrigin(page: PageContext = currentPage()): string {
   const configured = page.configured?.trim() ?? '';
+
+  /*
+   * En localhost manda el puerto de desarrollo, no el <meta>.
+   *
+   * El meta trae la API de producción para que el deploy no dependa de
+   * configurar nada, pero abrir la app en la máquina la mandaba contra ese
+   * servidor — que no acepta pedidos desde localhost, y con razón. Quedaba
+   * "no pudimos conectar" sin manera de probar nada en local.
+   *
+   * Se resuelve acá y no editando el meta a mano cada vez, que es lo que
+   * termina yéndose a producción en un commit distraído.
+   */
+  const enLaMaquina =
+    page.hostname === 'localhost' || page.hostname === '127.0.0.1';
+  if (enLaMaquina) {
+    return `${page.protocol}//${page.hostname}:${DEV_API_PORT}`;
+  }
+
   // A deploy that forgets to substitute the placeholder must not silently
   // become a request to a literal "__API_ORIGIN__" host.
   if (configured !== '' && !configured.startsWith('__')) {
