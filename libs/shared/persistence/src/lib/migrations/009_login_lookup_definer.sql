@@ -104,7 +104,18 @@ CREATE POLICY qr_lookup ON restaurant_tables
   FOR SELECT
   USING (current_setting('app.tenant_id', true) = '__login__');
 
-CREATE OR REPLACE FUNCTION table_secret_lookup_fn(p_tenant text, p_table text)
+-- Se borra antes de crearla, y no basta con CREATE OR REPLACE: la 011 le
+-- agrega una columna al retorno, y Postgres no deja cambiar el tipo de retorno
+-- de una función que ya existe. Como las migraciones vuelven a correr todas en
+-- cada despliegue, este archivo se aplica de nuevo sobre una base donde la 011
+-- ya la amplió, y ahí fallaba con «cannot change return type».
+--
+-- Sobre una base al día queda un instante con la forma vieja, hasta que la 011
+-- —dos archivos más adelante en la misma corrida— la repone. Es una operación
+-- de mantenimiento, no un horario de servicio.
+DROP FUNCTION IF EXISTS table_secret_lookup_fn(text, text);
+
+CREATE FUNCTION table_secret_lookup_fn(p_tenant text, p_table text)
 RETURNS TABLE (
   tenant_id  text,
   id         text,
