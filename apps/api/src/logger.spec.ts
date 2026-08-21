@@ -4,7 +4,7 @@ describe('log', () => {
 
   beforeEach(() => {
     jest.resetModules();
-    fetchMock = jest.fn().mockResolvedValue(undefined);
+    fetchMock = jest.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK' });
     global.fetch = fetchMock as unknown as typeof fetch;
     jest.spyOn(console, 'log').mockImplementation(() => undefined);
     jest.spyOn(console, 'warn').mockImplementation(() => undefined);
@@ -53,13 +53,26 @@ describe('log', () => {
     expect(entry?.['_time']).toBe(entry?.['at']);
   });
 
-  it('un fetch que rechaza no rompe el log', async () => {
+  it('un fetch que rechaza no rompe el log, y avisa por consola', async () => {
     process.env['AXIOM_TOKEN'] = 'xaat-test';
     process.env['AXIOM_DATASET'] = 'itadaki-api';
     fetchMock.mockRejectedValue(new Error('network down'));
     const { log } = await import('./logger');
 
     expect(() => log.error('igual sigue')).not.toThrow();
+    await Promise.resolve().then(() => Promise.resolve());
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('network down'));
+  });
+
+  it('una respuesta no-ok de Axiom (ej. token inválido) avisa por consola, no rompe el log', async () => {
+    process.env['AXIOM_TOKEN'] = 'xaat-test';
+    process.env['AXIOM_DATASET'] = 'itadaki-api';
+    fetchMock.mockResolvedValue({ ok: false, status: 401, statusText: 'Unauthorized' });
+    const { log } = await import('./logger');
+
+    expect(() => log.error('token vencido')).not.toThrow();
+    await Promise.resolve().then(() => Promise.resolve());
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('401'));
   });
 });
 

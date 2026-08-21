@@ -1,0 +1,26 @@
+meta {
+  name: 03 - Provocar error (Sentry+Axiom)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/health/boom
+  body: none
+  auth: none
+}
+
+docs {
+  Dispara un error no controlado a propósito — no requiere tocar
+  Postgres. Sólo existe fuera de producción (en prod da 404).
+
+  1. Arrancá la API con las tres variables seteadas
+     (`SENTRY_DSN`, `AXIOM_TOKEN`, `AXIOM_DATASET`) y `NODE_ENV` distinto
+     de `production` (o sin setear, que es el default).
+  2. Mandá esta request. Va a dar 500 con
+     `{ "kind": "INTERNAL_ERROR", "incident": "xxxxxx" }`.
+  3. Copiá el `incident` de la respuesta y buscalo:
+     - en la consola donde corre la API (misma línea, con el stack),
+     - en Sentry → Issues (tag `incident`),
+     - en Axiom → tu dataset → Query (`incident == "xxxxxx"`).
+}

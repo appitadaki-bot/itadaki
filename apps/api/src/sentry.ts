@@ -3,6 +3,9 @@ import { trimmedEnv } from './config';
 
 const dsn = trimmedEnv('SENTRY_DSN');
 
+/** Para el log de arranque — confirma si la variable llegó al proceso, sin imprimir el DSN. */
+export const sentryEnabled = dsn !== undefined;
+
 /**
  * Opcional a propósito: sin `SENTRY_DSN` la API tiene que arrancar y andar
  * exactamente igual que hoy — no es un secreto de seguridad como

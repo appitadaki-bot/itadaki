@@ -1,0 +1,23 @@
+meta {
+  name: 02 - Menu publico
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/menu?tenant={{tenant}}
+  body: none
+  auth: none
+}
+
+docs {
+  Carta pública — la única ruta de catálogo que un comensal lee sin
+  token, así que no hace falta loguearse para probarla. Con Postgres
+  arriba: 200 con categorías y platos.
+
+  Si cortás Postgres (`npm run db:down`) y mandás esta misma request, da
+  502 `catalog unavailable` — pero ojo, ese es un error *esperado*
+  (`Result.isErr()` → `HttpException`), así que no pasa por el
+  ErrorFilter y no llega a Sentry ni a Axiom. Para ver el flujo completo
+  de observabilidad, usar la request 03.
+}

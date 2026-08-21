@@ -22,9 +22,14 @@ export interface LogFields {
 const axiomToken = trimmedEnv('AXIOM_TOKEN');
 const axiomDataset = trimmedEnv('AXIOM_DATASET');
 
+/** Para el log de arranque — confirma si las dos variables llegaron al proceso, sin imprimir el token. */
+export const axiomEnabled = axiomToken !== undefined && axiomDataset !== undefined;
+
 /**
  * Fire-and-forget: shipping a log can never be why a request is slow, and a
- * network hiccup here can never be why the process crashes.
+ * network hiccup here can never be why the process crashes. Un fallo se avisa
+ * por `console.warn` directo, nunca por `log.warn` — eso volvería a pasar por
+ * `write()` y a reintentar contra el mismo Axiom que acaba de fallar.
  */
 const shipToAxiom = (line: Record<string, unknown>): void => {
   if (axiomToken === undefined || axiomDataset === undefined) return;
@@ -33,7 +38,15 @@ const shipToAxiom = (line: Record<string, unknown>): void => {
     method: 'POST',
     headers: { Authorization: `Bearer ${axiomToken}`, 'Content-Type': 'application/json' },
     body: JSON.stringify([{ ...line, _time: line['at'] }]),
-  }).catch(() => {});
+  })
+    .then((response) => {
+      if (!response.ok) {
+        console.warn(`axiom ingest rejected: ${response.status} ${response.statusText}`);
+      }
+    })
+    .catch((error: unknown) => {
+      console.warn(`axiom ingest failed: ${error instanceof Error ? error.message : String(error)}`);
+    });
 };
 
 const write = (level: LogLevel, message: string, fields: LogFields): void => {

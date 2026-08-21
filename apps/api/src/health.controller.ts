@@ -1,4 +1,4 @@
-import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
+import { Controller, Get, HttpStatus, NotFoundException, Res } from '@nestjs/common';
 import { type Response } from 'express';
 import { Public } from './auth';
 import { databaseAvailable } from './database';
@@ -54,5 +54,23 @@ export class HealthController {
       return { status: 'degraded', database: false };
     }
     return { status: 'ok', database: true };
+  }
+
+  /**
+   * Tira un error no controlado a propósito.
+   *
+   * Casi todo lo esperable en esta API vuelve como `Result`, no como
+   * excepción — así que no hay forma "natural" de provocar un 500 real desde
+   * afuera para confirmar que un error nuevo efectivamente llega a Sentry y a
+   * Axiom. Esto lo da a mano. 404 en producción: no tiene sentido dejar un
+   * botón para tirar la API a propósito ahí.
+   */
+  @Public()
+  @Get('boom')
+  boom(): void {
+    if (process.env['NODE_ENV'] === 'production') {
+      throw new NotFoundException();
+    }
+    throw new Error('itadaki-api: error de prueba disparado a mano (GET /health/boom)');
   }
 }
