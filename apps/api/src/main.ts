@@ -1,12 +1,14 @@
 import 'reflect-metadata';
+import './sentry';
 import { type ServerResponse } from 'node:http';
 import { type NestExpressApplication } from '@nestjs/platform-express';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { USING_DEV_SECRET } from './auth';
 import { databaseAvailable } from './database';
-import { log } from './logger';
+import { axiomEnabled, log } from './logger';
 import { ErrorFilter } from './error.filter';
+import { sentryEnabled } from './sentry';
 
 const PORT = Number(process.env['PORT'] ?? 3000);
 
@@ -103,6 +105,8 @@ async function bootstrap(): Promise<void> {
     url: `http://localhost:${PORT}/api`,
     storage,
     cors: origins.join(', '),
+    sentry: sentryEnabled,
+    axiom: axiomEnabled,
   });
 
   if (USING_DEV_SECRET) {

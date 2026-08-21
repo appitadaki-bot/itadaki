@@ -105,6 +105,8 @@ En desarrollo funcionan los valores por defecto. Para producción:
 | `NODE_ENV=production` | Endurece el arranque: exige los secretos, falla si Postgres no responde y agrega HSTS. |
 | `IMAGE_BASE_URL` | Prefijo de las URLs de las fotos, p. ej. `https://api.tudominio.com/api/images`. Se guarda dentro de cada registro: definila antes de la primera subida. |
 | `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | Guarda las fotos en un bucket. Sin ellas van al disco local, que no sirve con más de una instancia. `S3_REGION` es opcional (`auto`). |
+| `SENTRY_DSN` | Opcional. Manda cada error no controlado a Sentry, con el mismo `incident` que ya se loguea. Sin ella la API arranca y anda igual, sólo que un error nuevo no avisa solo. |
+| `AXIOM_TOKEN`, `AXIOM_DATASET` | Opcionales, van juntas. Además de a consola, cada línea de log se manda también a Axiom — sirve para buscar después de que se pierda la retención corta del log de Render. |
 
 Las apps del navegador no llevan la URL de la API compilada: la leen en runtime
 del `<meta name="itadaki-api">` de su `index.html`. El mismo build sirve para
