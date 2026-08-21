@@ -1,0 +1,32 @@
+meta {
+  name: 03 - Simular division de la cuenta
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/bills/{{sessionId}}/split
+  body: json
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+body:json {
+  {
+    "kind": "EQUAL",
+    "parts": 2,
+    "tip": { "kind": "PERCENTAGE", "percent": 0.1 }
+  }
+}
+
+docs {
+  Calcula una división sin persistirla — la mesa puede probar varias
+  antes de decidirse. `kind` también acepta `BY_DINER`, `BY_ITEM` (con
+  `assignments`) y `CUSTOM_AMOUNT` (con `amounts`); `tip` acepta `NONE`,
+  `PERCENTAGE` o `FIXED`.
+
+  200 con `{ kind, subtotal, tip, total, shares[] }`.
+}

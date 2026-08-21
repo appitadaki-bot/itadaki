@@ -1,0 +1,41 @@
+meta {
+  name: 08 - Guardar opciones del producto
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/menu/products/{{productId}}/options
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "name": "Punto de cocción",
+    "minSelections": 1,
+    "maxSelections": 1,
+    "options": [
+      { "name": "A punto", "priceDeltaMinor": 0 },
+      { "name": "Jugoso", "priceDeltaMinor": 0 }
+    ]
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar('modifierGroupId', res.body.id);
+  }
+}
+
+docs {
+  Crea un grupo de opciones (modificadores) para el plato de "05 - Crear
+  producto" — sin `id` en el body crea uno nuevo; mandándolo edita el
+  existente. Guarda `modifierGroupId` para "12 - Limpieza".
+
+  200 con `{ id, name }`.
+}

@@ -1,0 +1,21 @@
+meta {
+  name: 02 - Listar mesas
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/tables
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Lista las mesas del restaurante con un link de QR recién firmado por
+  cada una (el link no vence por sí solo, pero se regenera en cada
+  lectura). 200 con un array de `{ id, label, seats, url }`.
+}

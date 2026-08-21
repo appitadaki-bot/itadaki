@@ -1,0 +1,31 @@
+meta {
+  name: 09 - Importar carta desde una URL
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/menu/import/fetch
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "url": "https://example.com"
+  }
+}
+
+docs {
+  Baja una página del lado del servidor (por eso pide `menu:write`, y por
+  eso `fetchPage` bloquea direcciones de red interna) y devuelve el texto
+  interpretado para revisar antes de guardar nada. `https://example.com`
+  es sólo para probar el camino feliz (200 con `{ text }`); el texto va a
+  venir prácticamente vacío porque esa página no tiene una carta. Para un
+  resultado con platos de verdad, cambiá `url` por la página de un
+  restaurante real.
+}

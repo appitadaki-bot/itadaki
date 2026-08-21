@@ -1,0 +1,34 @@
+meta {
+  name: 08 - Restablecer contraseña (manual)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/auth/reset-password
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "token": "{{resetToken}}",
+    "password": "OtraClaveSegura!456"
+  }
+}
+
+docs {
+  No se puede encadenar automáticamente: el token viaja por mail (link
+  `{ADMIN_APP_URL}/?reset=<token>`), no vuelve en la respuesta de "07 -
+  Olvide mi contraseña". Para probar el caso feliz:
+
+  1. Corré "07 - Olvide mi contraseña".
+  2. Buscá el link en el mail recibido, o en el log del servidor si el
+     mailer no está configurado.
+  3. Pegá el `token` de esa URL en la variable `resetToken` y corré esta
+     request.
+
+  200 con `{ reset: true }` si el token es válido y no vencido (vence a
+  los `RESET_TOKEN_MINUTES` minutos y es de un solo uso). Si ya se usó o
+  venció: 400 `{ kind: "INVALID_TOKEN" }`.
+}

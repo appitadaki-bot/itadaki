@@ -1,0 +1,22 @@
+meta {
+  name: 02 - Rotar QR de una mesa
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/tables/{{tableId}}/rotate
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Invalida todos los QR impresos de la mesa, firmando un secreto nuevo —
+  por eso va al final: hacerlo antes rompería `tableToken` y con él cada
+  request de "05 - Sesiones" en adelante. 200 con
+  `{ id, label, url }` (la `url` ya firmada con el secreto nuevo).
+}

@@ -1,7 +1,7 @@
 meta {
-  name: 02 - Menu publico
+  name: 01 - Carta publica
   type: http
-  seq: 2
+  seq: 1
 }
 
 get {
@@ -12,12 +12,15 @@ get {
 
 docs {
   Carta pública — la única ruta de catálogo que un comensal lee sin
-  token, así que no hace falta loguearse para probarla. Con Postgres
-  arriba: 200 con categorías y platos.
+  token, así que no hace falta loguearse para probarla. Usa el tenant
+  de demo sembrado por `npm run db:seed` (variable `tenant`, "itadaki"
+  por defecto), no el restaurante creado en la carpeta "02 - Auth".
+
+  Con Postgres arriba: 200 con categorías y platos.
 
   Si cortás Postgres (`npm run db:down`) y mandás esta misma request, da
   502 `catalog unavailable` — pero ojo, ese es un error *esperado*
   (`Result.isErr()` → `HttpException`), así que no pasa por el
   ErrorFilter y no llega a Sentry ni a Axiom. Para ver el flujo completo
-  de observabilidad, usar la request 03.
+  de observabilidad, usar "01 - Salud / 03 - Provocar error".
 }

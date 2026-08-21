@@ -1,0 +1,49 @@
+meta {
+  name: 01 - Registrar restaurante (signup)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "restaurant": "{{restaurantName}}",
+    "email": "{{authEmail}}",
+    "password": "{{authPassword}}",
+    "displayName": "Dueño de prueba"
+  }
+}
+
+script:pre-request {
+  const suffix = Date.now();
+  bru.setVar('authEmail', `owner+${suffix}@bruno.test`);
+  bru.setVar('authPassword', 'ClaveSegura!123');
+  bru.setVar('restaurantName', `Restaurante Bruno ${suffix}`);
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setVar('staffToken', res.body.token);
+    bru.setVar('ownerId', res.body.user.id);
+    bru.setVar('restaurantSlug', res.body.restaurant.slug);
+  }
+}
+
+docs {
+  Punto de entrada de todo el flujo: da de alta un restaurante nuevo y a
+  su dueño de una, y devuelve una sesión — por eso es pública.
+
+  El pre-request script genera un email y un nombre de restaurante
+  únicos en cada corrida (con `Date.now()`), así esta request se puede
+  repetir sin chocar con un `EMAIL_TAKEN` (409). El resto de la colección
+  usa el token, el `tenantId` y las credenciales que quedan guardados acá
+  como variables de runtime (`staffToken`, `ownerId`, `authEmail`,
+  `authPassword`), así que conviene correrla primero.
+
+  200/201 con `{ token, expiresAt, restaurant, user }`.
+}

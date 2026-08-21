@@ -1,0 +1,34 @@
+meta {
+  name: 02 - Iniciar sesion (login)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{authEmail}}",
+    "password": "{{authPassword}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setVar('staffToken', res.body.token);
+  }
+}
+
+docs {
+  Requiere haber corrido antes "01 - Registrar restaurante (signup)" en
+  esta misma corrida: reusa `authEmail`/`authPassword`, las credenciales
+  que esa request acaba de crear. Reemplaza `staffToken` por uno nuevo.
+
+  200 con `{ token, expiresAt, user }`. Con credenciales inválidas da 401
+  `{ kind: "INVALID_CREDENTIALS" }` — a propósito no distingue email
+  inexistente de contraseña incorrecta.
+}

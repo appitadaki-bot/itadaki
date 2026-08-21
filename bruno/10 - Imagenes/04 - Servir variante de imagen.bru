@@ -1,0 +1,25 @@
+meta {
+  name: 04 - Servir variante de imagen
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/images/{{productId}}/{{imageVariantFile}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Sirve el binario de una variante renderizada (`.avif`, `.webp` o
+  `.jpeg`). `imageVariantFile` lo saca automáticamente el script de "01 -
+  Subir imagen de un plato" del primer archivo en `imageSet.variants`.
+
+  Es pública (no necesita token) porque una carta se mira sin cuenta;
+  acá se manda el token igual porque `TenantId` lo prioriza cuando está
+  presente. 200 con el binario y `Cache-Control` de un año.
+}

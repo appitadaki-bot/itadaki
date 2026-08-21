@@ -1,0 +1,21 @@
+meta {
+  name: 06 - Eliminar categoria
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/menu/categories/{{categoryId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Borra la categoría de "03 - Menu / 02 - Crear categoria". Corre después
+  de "05 - Eliminar producto": una categoría con platos adentro no se
+  puede eliminar. 200 con `{ ok: true }`.
+}

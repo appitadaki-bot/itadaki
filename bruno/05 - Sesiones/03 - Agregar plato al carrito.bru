@@ -1,0 +1,42 @@
+meta {
+  name: 03 - Agregar plato al carrito
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/sessions/{{sessionId}}/lines
+  body: json
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+body:json {
+  {
+    "dinerId": "{{dinerId}}",
+    "productId": "{{productId}}",
+    "quantity": 2,
+    "notes": "Sin cebolla",
+    "modifierIds": []
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    const lines = res.body.lines || [];
+    const last = lines[lines.length - 1];
+    if (last) bru.setVar('lineId', last.id);
+  }
+}
+
+docs {
+  Agrega una línea al carrito compartido de la mesa. El precio se calcula
+  del lado del servidor a partir del catálogo — el cliente nunca manda
+  montos. Usa `productId` de "03 - Menu / 05 - Crear producto".
+
+  200 con la sesión actualizada; guarda el id de la línea recién creada
+  en `lineId`.
+}

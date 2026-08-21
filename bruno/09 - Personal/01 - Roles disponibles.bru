@@ -1,0 +1,22 @@
+meta {
+  name: 01 - Roles disponibles
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/staff/roles
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Roles que el panel puede ofrecer al invitar a alguien, para que nunca
+  proponga uno que la API vaya a rechazar. 200 con un array de roles
+  (`OWNER` queda afuera a propósito: transferir la titularidad no es una
+  invitación).
+}

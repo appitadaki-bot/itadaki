@@ -1,0 +1,51 @@
+meta {
+  name: 01 - Subir imagen de un plato
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/images
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "imageId": "{{productId}}",
+    "alt": "Foto de prueba",
+    "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "params": {
+      "crop": { "x": 0, "y": 0, "size": 1 },
+      "depthOfField": null,
+      "adjustments": { "sharpen": 0, "brightness": 1, "saturation": 1 }
+    }
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    const variants = (res.body.imageSet && res.body.imageSet.variants) || [];
+    if (variants.length > 0) {
+      const url = variants[0].url;
+      bru.setVar('imageVariantFile', url.substring(url.lastIndexOf('/') + 1));
+    }
+  }
+}
+
+docs {
+  `data` es un PNG de 1x1 en base64 — alcanza para pasar la validación de
+  magic bytes y probar el camino feliz sin subir un archivo real. `id`
+  comparte el mismo valor que el producto (`productId` de "03 - Menu /
+  05 - Crear producto"): no hay un campo separado que los una.
+
+  Si el servidor no tiene almacenamiento persistente configurado (sin
+  `S3_BUCKET` en producción), da 503 `{ kind: "SIN_ALMACENAMIENTO" }` en
+  vez de aceptar la foto — en local con disco (`IMAGE_ROOT`) funciona.
+
+  200 con `{ id, imageSet, params }`.
+}

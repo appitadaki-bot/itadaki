@@ -1,0 +1,21 @@
+meta {
+  name: 07 - Eliminar mesa
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/tables/{{tableId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Saca del salón la mesa de "04 - Mesas / 01 - Crear mesa". Se niega
+  (409) si tiene gente sentada — funciona acá porque "08 - Cuenta / 04 -
+  Confirmar pago (settle)" ya la liberó. 200 con `{ id, removed: true }`.
+}

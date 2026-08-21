@@ -1,0 +1,21 @@
+meta {
+  name: 07 - Mesas abiertas (staff)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/sessions/open
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Mesas ocupadas y su código, para el salón. Nunca por el token de la
+  mesa: el código existe justamente para que una foto del QR no alcance.
+  200 con un array de `{ sessionId, tableId, joinCode, diners, openedAt }`.
+}

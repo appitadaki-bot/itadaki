@@ -1,0 +1,24 @@
+meta {
+  name: 01 - Cerrar cuenta de la mesa
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/bills/close/{{sessionId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+docs {
+  Arma la cuenta con lo que la mesa consumió: lo ya enviado a cocina
+  (excepto lo cancelado) más lo que quedó en el carrito sin enviar.
+  "Cerrar" acá quiere decir "emitida", no pagada — hasta "04 - Confirmar
+  pago (settle)" la cuenta sigue siguiendo al carrito compartido.
+
+  200 con la cuenta (`status: "OPEN"`).
+}

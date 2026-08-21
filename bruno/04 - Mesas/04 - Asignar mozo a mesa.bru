@@ -1,0 +1,29 @@
+meta {
+  name: 04 - Asignar mozo a mesa
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/tables/{{tableId}}/assign
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "staffId": "{{ownerId}}"
+  }
+}
+
+docs {
+  Usa `tableId` de "01 - Crear mesa" y `ownerId` de "02 - Auth / 01 -
+  Registrar restaurante" — el dueño también es una cuenta de staff, así
+  que sirve para probar el endpoint sin depender de "09 - Personal".
+
+  200 con `{ tableId, staffId }`.
+}

@@ -1,0 +1,21 @@
+meta {
+  name: 02 - Leer cuenta
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/bills/{{sessionId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+docs {
+  Lee la cuenta ya emitida en "01 - Cerrar cuenta de la mesa". Acepta
+  `?display=USD|EUR|BRL` (además de ARS) para mostrarla convertida sin
+  cambiar el monto real. 200 con la cuenta.
+}

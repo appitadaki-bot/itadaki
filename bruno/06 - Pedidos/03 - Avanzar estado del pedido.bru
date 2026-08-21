@@ -1,0 +1,31 @@
+meta {
+  name: 03 - Avanzar estado del pedido
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/orders/{{orderId}}/status
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "next": "ACCEPTED",
+    "actorId": "{{ownerId}}"
+  }
+}
+
+docs {
+  Usa `orderId` de "01 - Enviar pedido a cocina". `next` acepta ACCEPTED,
+  IN_PREP, READY, DELIVERED o CANCELLED — este caso feliz mueve el
+  pedido a ACCEPTED, el primer paso natural. Sin `itemId` avanza el
+  ticket entero; con `itemId` avanza un solo plato.
+
+  200 con el pedido actualizado.
+}

@@ -1,0 +1,33 @@
+meta {
+  name: 02 - Reeditar imagen
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/images/{{productId}}/reedit
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "alt": "Foto reeditada desde Bruno",
+    "params": {
+      "crop": { "x": 0, "y": 0, "size": 1 },
+      "depthOfField": null,
+      "adjustments": { "sharpen": 1, "brightness": 1.1, "saturation": 1.05 }
+    }
+  }
+}
+
+docs {
+  Vuelve a renderizar desde el original guardado en "01 - Subir imagen de
+  un plato", con nuevos parámetros de recorte/ajuste — sin volver a
+  subir el archivo ni perder calidad en cada edición. 200 con
+  `{ id, imageSet, params }`.
+}

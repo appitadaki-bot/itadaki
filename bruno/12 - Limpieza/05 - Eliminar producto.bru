@@ -1,0 +1,22 @@
+meta {
+  name: 05 - Eliminar producto
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/menu/products/{{productId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Saca de la carta el plato de "03 - Menu / 05 - Crear producto". Se
+  niega (409) si está en un pedido todavía no cobrado — en esta
+  colección ya se cobró en "08 - Cuenta / 04 - Confirmar pago (settle)",
+  así que acá debería andar. 200 con `{ id, removed: true }`.
+}

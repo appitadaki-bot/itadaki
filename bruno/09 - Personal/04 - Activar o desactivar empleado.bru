@@ -1,0 +1,32 @@
+meta {
+  name: 04 - Activar o desactivar empleado
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/staff/{{staffId}}/active
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "active": false
+  }
+}
+
+docs {
+  Revoca (o restaura, con `active: true`) el acceso del empleado de "03 -
+  Invitar empleado"; la cuenta se conserva para el historial. Toma efecto
+  al toque, no cuando expira el token cacheado.
+
+  Nadie puede desactivarse a sí mismo — probarlo con el propio `staffId`
+  del dueño da 409 `{ kind: "CANNOT_DEACTIVATE_SELF" }`.
+
+  200 con la cuenta actualizada.
+}

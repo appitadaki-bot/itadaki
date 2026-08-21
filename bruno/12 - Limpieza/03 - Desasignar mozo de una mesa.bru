@@ -1,0 +1,27 @@
+meta {
+  name: 03 - Desasignar mozo de una mesa
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/tables/{{tableId}}/assign
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "staffId": "{{ownerId}}"
+  }
+}
+
+docs {
+  Deshace "04 - Mesas / 04 - Asignar mozo a mesa". Con `staffId` saca
+  sólo a ese mozo; sin `staffId` en el body deja la mesa sin nadie
+  asignado. 200 con `{ tableId, staffId: null }`.
+}

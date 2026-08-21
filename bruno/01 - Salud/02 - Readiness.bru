@@ -1,0 +1,20 @@
+meta {
+  name: 02 - Readiness
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/health/ready
+  body: none
+  auth: none
+}
+
+docs {
+  Readiness: si esta instancia puede realmente atender tráfico.
+
+  Con Postgres arriba: 200 `{ status: "ok", database: true }`.
+  Con Postgres caído: 503 `{ status: "degraded", database: false }`, para
+  que un orquestador deje de mandarle tráfico en vez de que cada pedido
+  falle uno por uno.
+}

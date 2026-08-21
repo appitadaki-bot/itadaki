@@ -1,0 +1,43 @@
+meta {
+  name: 03 - Invitar empleado
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/staff
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "email": "{{staffEmail}}",
+    "password": "ClaveMozo!123",
+    "displayName": "Mozo de prueba",
+    "role": "WAITER"
+  }
+}
+
+script:pre-request {
+  bru.setVar('staffEmail', `mozo+${Date.now()}@bruno.test`);
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setVar('staffId', res.body.id);
+  }
+}
+
+docs {
+  El dueño da de alta a un colega con su primera contraseña puesta a
+  mano — nadie espera un mail de invitación que puede no llegar nunca un
+  viernes a la noche. El email se genera único en cada corrida.
+
+  200/201 con la cuenta creada; guarda `staffId` para la siguiente
+  request.
+}

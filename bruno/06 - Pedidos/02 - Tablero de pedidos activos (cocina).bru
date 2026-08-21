@@ -1,0 +1,21 @@
+meta {
+  name: 02 - Tablero de pedidos activos (cocina)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/orders
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Todo lo que sigue en juego, con la mesa y la estación de cocina
+  resueltas para cada ítem. Es lo que ve la pantalla de cocina. 200 con
+  un array de pedidos.
+}

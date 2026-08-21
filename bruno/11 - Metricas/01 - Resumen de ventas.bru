@@ -1,0 +1,25 @@
+meta {
+  name: 01 - Resumen de ventas
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/metrics?days=30
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Ventas de la ventana pedida (1 a 365 días, 30 por defecto). Cuenta
+  pedidos entregados/en curso, no cancelados — con el pedido de "06 -
+  Pedidos / 01 - Enviar pedido a cocina" ya avanzado a ACCEPTED debería
+  aparecer acá.
+
+  200 con `{ windowDays, orders, averageTicket, medianPrepMinutes,
+  ordersByHour, cancelled, topProducts, bottomProducts }`.
+}

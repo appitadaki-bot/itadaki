@@ -1,0 +1,17 @@
+meta {
+  name: 03 - Proveedores de login (providers)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/auth/providers
+  body: none
+  auth: none
+}
+
+docs {
+  Le dice al panel si mostrar o no el botón de Google, sin que tenga que
+  adivinar. 200 con `{ google: { clientId } | null }` — `null` si
+  `GOOGLE_CLIENT_ID` no está configurado en el servidor.
+}

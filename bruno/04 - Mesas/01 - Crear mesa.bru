@@ -1,0 +1,42 @@
+meta {
+  name: 01 - Crear mesa
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/tables
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "label": "Mesa Bruno 1",
+    "seats": 4
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setVar('tableId', res.body.id);
+    const match = res.body.url.match(/[?&]t=([^&]+)/);
+    if (match) {
+      bru.setVar('tableToken', decodeURIComponent(match[1]));
+    }
+  }
+}
+
+docs {
+  Crea la mesa que va a usar el resto de la colección. La respuesta trae
+  `url`, el link firmado que se imprime en el QR de la mesa
+  (`{DINER_APP_URL}/bienvenida?t=<token>`) — el script se lo saca del
+  query string y lo guarda en `tableToken`, la credencial que usan todas
+  las requests de "05 - Sesiones" en adelante.
+
+  200/201 con `{ id, label, seats, url }`.
+}

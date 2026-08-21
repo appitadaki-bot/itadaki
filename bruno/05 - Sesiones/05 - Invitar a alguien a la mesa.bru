@@ -1,0 +1,36 @@
+meta {
+  name: 05 - Invitar a alguien a la mesa
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/sessions/{{sessionId}}/invite
+  body: json
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+body:json {
+  {
+    "dinerId": "{{dinerId}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setVar('inviteCode', res.body.code);
+  }
+}
+
+docs {
+  La pide alguien ya sentado (`dinerId` de "01 - Unirse a la mesa") para
+  que el resto del grupo entre sin el PIN de la mesa. El código vence en
+  minutos y sirve para todo el que llegue mientras esté vigente.
+
+  200 con `{ code, expiresAt, url }` — `url` es el link corto para el QR
+  de invitación.
+}
