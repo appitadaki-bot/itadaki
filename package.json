@@ -30,7 +30,9 @@
     "build:cocina": "ng build kds-web",
     "build:admin": "npm run legal && ng build admin-web",
     "build:salon": "ng build floor-web",
-    "legal": "node scripts/build-legal.mjs"
+    "legal": "node scripts/build-legal.mjs",
+    "build:landing": "npm run legal && node scripts/build-landing.mjs",
+    "video": "node scripts/grabar-flujo.mjs"
   },
   "devDependencies": {
     "@angular/build": "^19.2.27",

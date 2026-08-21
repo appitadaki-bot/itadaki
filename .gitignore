@@ -11,3 +11,4 @@ backups/
 # por acá; un commit distraído las publica y no se borran del historial.
 .env
 .env.*
+video-out/
