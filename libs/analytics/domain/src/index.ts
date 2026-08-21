@@ -8,3 +8,8 @@ export {
   ordersByHour,
   abandonmentRate,
 } from './lib/metrics';
+export {
+  type DailySummary,
+  mergeSummaries,
+  summariseDay,
+} from './lib/daily-summary';

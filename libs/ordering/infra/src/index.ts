@@ -13,3 +13,4 @@ export {
   PostgresAssignmentStore,
   type AssignmentError,
 } from './lib/postgres-assignments';
+export { PostgresSummaryStore, type SummaryError } from './lib/postgres-summaries';
