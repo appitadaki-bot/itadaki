@@ -131,11 +131,17 @@ CREATE TABLE IF NOT EXISTS images (
 -- someone having run a setup step by hand; Docker Compose creates it too, and
 -- both paths are idempotent.
 --
--- On a hosted database (Render, Neon, Supabase) neither applies: the provider
--- hands over one user that cannot CREATE ROLE, and the app connects as that
--- user. Failing here would abort the whole migration over something that does
--- not matter there, so the block gives up quietly and the GRANTs below are
--- skipped the same way — a role that does not exist needs no permissions.
+-- On a hosted database (Render, Neon, Supabase) neither applies: the app
+-- connects as the user the provider hands over. Failing here would abort the
+-- whole migration over something that does not matter there, so the block
+-- gives up quietly and the GRANTs below are skipped the same way — a role that
+-- does not exist needs no permissions.
+--
+-- Se atrapa cualquier error y no sólo la falta de permiso, porque cada
+-- proveedor se niega a su manera: Render no deja crear roles, y Neon sí pero
+-- su panel rechaza esta contraseña por corta, con un error interno que no se
+-- parece en nada al otro. Los dos significan lo mismo acá — este rol es del
+-- Postgres de la laptop y allá no hace falta.
 --
 -- The password is only ever used by docker compose on a laptop. A hosted
 -- deploy never reaches this branch, so it is not a credential in production.
@@ -144,8 +150,8 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN
     BEGIN
       CREATE ROLE itadaki_app LOGIN PASSWORD 'itadaki_app';
-    EXCEPTION WHEN insufficient_privilege THEN
-      RAISE NOTICE 'sin permiso para crear itadaki_app: la app usa el usuario del proveedor';
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'no se pudo crear itadaki_app (%): la app usa el usuario del proveedor', SQLERRM;
     END;
   END IF;
 END $$;
