@@ -31,7 +31,7 @@
   font-size: 1.3rem;
   color: var(--itadaki-ink-strong);
   margin: 0.15rem 0 0;
-  letter-spacing: -0.4px;
+  letter-spacing: var(--itadaki-tracking-title);
 }
 
 .head-right {
@@ -46,7 +46,7 @@
   align-items: center;
   gap: 0.4rem;
   margin: 0;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--itadaki-ink-subtle);
 }
@@ -71,7 +71,7 @@
   border-radius: var(--itadaki-radius-pill);
   padding: 0.4rem 0.9rem;
   font-family: inherit;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -93,7 +93,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.7px;
@@ -110,7 +110,7 @@
   border-radius: var(--itadaki-radius-pill);
   background: var(--itadaki-accent);
   color: white;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -159,16 +159,16 @@
   font-weight: 800;
   font-size: 1.05rem;
   color: var(--itadaki-ink-strong);
-  letter-spacing: -0.3px;
+  letter-spacing: -0.02em;
 }
 
 .table.small {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
 }
 
 .reason,
 .dish {
-  font-size: 0.87rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--itadaki-ink-muted);
 }
@@ -178,7 +178,7 @@
 .queued {
   margin: 0;
   padding: 0.35rem 0.7rem;
-  border-radius: 999px;
+  border-radius: var(--itadaki-radius-pill);
   background: #fef3c7;
   color: #92400e;
   font-size: 0.8rem;
@@ -191,10 +191,10 @@
   align-self: flex-start;
   margin-top: 0.25rem;
   padding: 0.2rem 0.55rem;
-  border-radius: 999px;
+  border-radius: var(--itadaki-radius-pill);
   background: #92400e;
   color: #fff;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 700;
 }
 
@@ -202,29 +202,29 @@
   align-self: flex-start;
   margin-top: 0.25rem;
   padding: 0.2rem 0.55rem;
-  border-radius: 999px;
+  border-radius: var(--itadaki-radius-pill);
   background: #1d4ed8;
   color: #fff;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 700;
 }
 
 .paying {
   align-self: flex-start;
   margin-top: 0.25rem;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #4b5563;
 }
 
 .note {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-style: italic;
   color: var(--itadaki-accent);
 }
 
 .waited {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--itadaki-ink-subtle);
   white-space: nowrap;
@@ -267,7 +267,7 @@
   background: none;
   padding: 0.25rem 0;
   font-family: inherit;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--itadaki-ink-subtle);
   cursor: pointer;
@@ -287,7 +287,7 @@
 /* La pregunta y sus dos salidas, cuando se va a liberar sin cobrar. */
 .owing-card .release-ask {
   margin: 0.35rem 0 0.3rem;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--itadaki-ink-soft);
   text-align: right;
@@ -334,7 +334,7 @@
 }
 
 .quiet {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--itadaki-ink-subtle);
   margin: 0;
   padding: 0.6rem 0.2rem;
@@ -391,7 +391,8 @@
 /* El número de mesa es lo que el mozo busca al levantar la vista. */
 .trip-table {
   font-family: var(--itadaki-font-display);
-  font-size: 1.35rem;
+  font-size: 1.35rem
+  letter-spacing: var(--itadaki-tracking-title);;
   font-weight: 800;
   line-height: 1;
 }
@@ -423,7 +424,7 @@
   padding: 0.05rem 0.3rem;
   border-radius: var(--itadaki-radius-chip);
   background: var(--itadaki-surface-sunken);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 700;
   text-align: center;
 }
@@ -501,7 +502,7 @@
   background: transparent;
   color: var(--itadaki-ink-soft);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -525,7 +526,7 @@
   border-radius: var(--itadaki-radius-chip);
   background: var(--itadaki-accent-soft);
   color: var(--itadaki-ink-strong);
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
@@ -533,7 +534,7 @@
   flex-shrink: 0;
   padding: 0.35rem 0.7rem;
   border: 1px solid var(--itadaki-border);
-  border-radius: 999px;
+  border-radius: var(--itadaki-radius-pill);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -591,7 +592,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 0.35rem;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   color: var(--itadaki-ink-soft);
 }
 
@@ -620,7 +621,7 @@
   color: white;
   font: inherit;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   cursor: pointer;
   min-height: 44px;
 }

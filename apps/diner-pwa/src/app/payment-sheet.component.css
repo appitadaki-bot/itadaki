@@ -64,12 +64,12 @@
 .label {
   font-family: var(--itadaki-font-display);
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   color: var(--itadaki-ink-strong);
 }
 
 .hint {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--itadaki-ink-muted);
 }
 
@@ -78,7 +78,7 @@
   background: none;
   padding: 0.6rem;
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--itadaki-ink-subtle);
   cursor: pointer;
