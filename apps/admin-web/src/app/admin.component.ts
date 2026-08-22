@@ -228,6 +228,9 @@ const ROLE_NAMES: Record<string, string> = {
                     }
                   </span>
                 </span>
+                <!-- Una flecha sola no dice qué abre: había que tocarla para
+                     descubrir que era la ficha del plato y no otra cosa. -->
+                <span class="product-abrir">editar plato →</span>
               </button>
             </div>
           } @empty {
@@ -688,11 +691,20 @@ const ROLE_NAMES: Record<string, string> = {
         </header>
 
         <div class="modal-body">
-          <itd-image-editor
-            [subjectId]="dish.id"
-            [existingUrl]="currentPhoto()"
-            (applied)="upload($event)"
-          />
+          <!--
+            Una instancia por plato, no una reutilizada.
+            Angular conserva el componente al cambiar de plato, así que la foto
+            recién subida y su recorte quedaban colgados del siguiente: se abría
+            la "Provoleta" y se veía el bife. Con el id en el @if, el editor se
+            destruye y nace limpio.
+          -->
+          @if (modal() === 'foto' && selected(); as platoId) {
+            <itd-image-editor
+              [subjectId]="platoId"
+              [existingUrl]="currentPhoto()"
+              (applied)="upload($event)"
+            />
+          }
 
           @if (status(); as state) {
             <p class="status" [class.error]="state.startsWith('error')">{{ state }}</p>
@@ -1367,6 +1379,9 @@ export class AdminComponent {
   protected irALaFoto(id: string): void {
     this.selected.set(id);
     this.status.set(null);
+    // La vista previa del plato anterior también se va: quedaba abajo del
+    // editor nuevo y hacía creer que la foto ya estaba subida.
+    this.result.set(null);
     this.modal.set('foto');
   }
 

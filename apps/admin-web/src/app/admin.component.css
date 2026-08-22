@@ -214,6 +214,7 @@
 .product-ficha {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1rem;
   padding: 0;
   border: none;
@@ -1858,4 +1859,49 @@
 }
 
 /* La foto necesita más ancho que un formulario: la imagen y sus controles. */
-.modal.ancho { max-width: 720px; }
+/*
+ * El modal de la foto necesita más ancho que un formulario.
+ *
+ * `.modal` fija `width`, así que un `max-width` no lo ensanchaba: el editor
+ * entraba en 560px con los controles apilados uno encima de otro.
+ */
+.modal.ancho {
+  width: min(860px, calc(100vw - 2rem));
+  max-height: min(92vh, 900px);
+}
+
+/*
+ * Dentro del modal, la tipografía del sistema.
+ *
+ * Unbounded es una display: brilla en un titular de dos palabras y se vuelve
+ * ilegible en etiquetas de control, valores numéricos y texto de ayuda, que es
+ * casi todo lo que hay acá. La marca la ponen el título y el color, no cada
+ * palabra de un panel de ajustes.
+ */
+.modal.ancho .modal-body,
+.modal.ancho .modal-body * {
+  font-family: var(--itadaki-font-body);
+}
+
+/* El título sí la conserva: ahí es una palabra y es donde se lee la marca. */
+.modal.ancho .modal-title {
+  font-family: var(--itadaki-font-display);
+}
+
+
+/* Dice qué abre. La flecha sola obligaba a tocarla para averiguarlo. */
+.product-abrir {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--itadaki-ink-faint);
+  white-space: nowrap;
+}
+
+.product-ficha:hover .product-abrir { color: var(--itadaki-accent); }
+
+@media (max-width: 560px) {
+  /* En un teléfono el nombre y el precio necesitan el ancho entero. */
+  .product-abrir { display: none; }
+}

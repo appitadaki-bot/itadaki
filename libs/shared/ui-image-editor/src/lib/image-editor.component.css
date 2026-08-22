@@ -232,3 +232,47 @@ input[type='range'] {
   outline: 3px solid var(--itadaki-accent-bright);
   outline-offset: 2px;
 }
+
+
+/*
+ * Aire entre los controles.
+ *
+ * Los deslizadores, sus etiquetas y los botones venían con el espaciado de una
+ * barra lateral angosta: dentro del modal quedaban pegados y no se distinguía
+ * qué etiqueta era de qué control.
+ */
+:host { gap: 1.4rem; }
+
+.controls { gap: 1.1rem 1.4rem; }
+
+.control-label {
+  margin-bottom: 0.15rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+}
+
+/* El valor a la derecha, alineado en columna: leídos uno debajo del otro los
+   números bailaban al cambiar de ancho. */
+.control-label b {
+  float: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--itadaki-accent);
+}
+
+.actions {
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--itadaki-border);
+}
+
+/* Por qué el botón de aplicar está apagado. Sin esto quedaba gris sin motivo. */
+.editor-nota {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--itadaki-radius-chip);
+  background: var(--itadaki-surface-sunken);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--itadaki-ink-subtle);
+}
