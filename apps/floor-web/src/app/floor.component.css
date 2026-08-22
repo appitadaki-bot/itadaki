@@ -68,7 +68,7 @@
   border: 1px solid var(--itadaki-border);
   background: transparent;
   color: var(--itadaki-ink-subtle);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   padding: 0.4rem 0.9rem;
   font-family: inherit;
   font-size: 0.75rem;
@@ -178,7 +178,7 @@
 .queued {
   margin: 0;
   padding: 0.35rem 0.7rem;
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: #fef3c7;
   color: #92400e;
   font-size: 0.8rem;
@@ -202,7 +202,7 @@
   align-self: flex-start;
   margin-top: 0.25rem;
   padding: 0.2rem 0.55rem;
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: #1d4ed8;
   color: #fff;
   font-size: 0.875rem;
@@ -233,7 +233,7 @@
 /* Thumb-sized: tapped while carrying plates. */
 .action {
   border: none;
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: var(--itadaki-ink);
   color: white;
   padding: 0.6rem 1.2rem;
@@ -311,7 +311,7 @@
   background: var(--itadaki-status-late);
   color: white;
   border: 1px solid var(--itadaki-status-late);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   padding: 0.6rem 1rem;
   font-family: var(--itadaki-font-display);
   font-size: 0.8rem;
@@ -498,7 +498,7 @@
   flex: 0 0 auto;
   padding: 0.3rem 0.7rem;
   border: 1px solid var(--itadaki-border);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: transparent;
   color: var(--itadaki-ink-soft);
   font: inherit;
@@ -534,7 +534,7 @@
   flex-shrink: 0;
   padding: 0.35rem 0.7rem;
   border: 1px solid var(--itadaki-border);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -599,7 +599,7 @@
 /* El número del cartelito, que es como el mozo llama a la mesa. */
 .shift-table {
   padding: 0.1rem 0.5rem;
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: var(--itadaki-surface);
   font-weight: 700;
   font-size: 0.8rem;
@@ -616,7 +616,7 @@
 .shift-btn {
   padding: 0.55rem 1rem;
   border: none;
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: var(--itadaki-ink-strong);
   color: white;
   font: inherit;
@@ -629,7 +629,7 @@
 .shift-toggle {
   padding: 0.5rem 0.85rem;
   border: 1px solid var(--itadaki-border);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: transparent;
   color: var(--itadaki-ink-soft);
   font: inherit;
@@ -657,3 +657,38 @@
   text-align: left;
 }
 
+
+/*
+ * Que las cosas se muevan, no que salten.
+ *
+ * El salón tampoco tenía transiciones: una mesa que llama aparecía de golpe en
+ * la lista, y el mozo no distinguía entre algo nuevo y la pantalla
+ * refrescándose.
+ */
+.card,
+.trip,
+.cooking-row {
+  transition:
+    border-color var(--itadaki-smooth) var(--itadaki-ease),
+    background var(--itadaki-smooth) var(--itadaki-ease);
+}
+
+button {
+  transition:
+    background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease),
+    color var(--itadaki-quick) var(--itadaki-ease),
+    transform var(--itadaki-quick) var(--itadaki-ease);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card,
+  .trip {
+    animation: salon-entra var(--itadaki-settle) var(--itadaki-ease-out);
+  }
+}
+
+@keyframes salon-entra {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}

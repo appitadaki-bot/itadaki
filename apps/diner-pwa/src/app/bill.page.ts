@@ -37,7 +37,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
       <p class="eyebrow">
         @if (session.tableLabel(); as mesa) { mesa {{ mesa }} · }cuenta
       </p>
-      <h1 class="title">gochisousama!</h1>
+      <h1 class="title">Gochisousama!</h1>
     </header>
 
     @if (store.bill(); as bill) {
@@ -62,7 +62,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
         </section>
 
         <section class="card">
-          <h2 class="card-title">ver en</h2>
+          <h2 class="card-title">Ver en</h2>
           <div class="chips">
             @for (code of currencies; track code) {
               <button
@@ -78,7 +78,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
         </section>
 
         <section class="card">
-          <h2 class="card-title">cómo dividimos</h2>
+          <h2 class="card-title">Cómo dividimos</h2>
           <div class="options">
             @for (option of splitOptions; track option.kind) {
               <button
@@ -95,7 +95,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
 
           @if (splitKind() === 'EQUAL') {
             <div class="stepper-row">
-              <span class="stepper-label">entre</span>
+              <span class="stepper-label">Entre</span>
               <div class="stepper" role="group" aria-label="Cantidad de personas">
                 <button type="button" class="step" (click)="changeParts(-1)" aria-label="Menos personas">–</button>
                 <span class="qty">{{ parts() }}</span>
@@ -106,7 +106,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
           }
 
           @if (splitKind() === 'BY_ITEM') {
-            <p class="assign-hint">tocá un nombre para asignarle cada plato</p>
+            <p class="assign-hint">Tocá un nombre para asignarle cada plato</p>
             @for (line of bill.lines; track line.id) {
               <div class="assign">
                 <span class="assign-name">{{ line.quantity }}× {{ line.name }}</span>
@@ -130,7 +130,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
         </section>
 
         <section class="card">
-          <h2 class="card-title">propina <em>(opcional)</em></h2>
+          <h2 class="card-title">Propina <em>(opcional)</em></h2>
           <div class="chips">
             @for (option of tipOptions; track option.label) {
               <button
@@ -151,7 +151,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
 
         @if (store.split(); as split) {
           <section class="card result">
-            <h2 class="card-title">quién paga qué</h2>
+            <h2 class="card-title">Quién paga qué</h2>
             @for (share of split.shares; track share.payerId) {
               <div class="share">
                 <span class="share-name">{{ share.label }}</span>
@@ -161,12 +161,12 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
 
             @if (split.tip.amountInMinorUnits > 0) {
               <div class="line sub">
-                <span>propina incluida</span>
+                <span>Propina incluida</span>
                 <span class="amount">{{ money(split.tip) }}</span>
               </div>
             }
             <div class="line total">
-              <span>total</span>
+              <span>Total</span>
               <span class="amount">{{ money(split.total) }}</span>
             </div>
           </section>
@@ -175,14 +175,14 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
 
       <footer class="foot">
         @if (bill.status === 'SETTLED') {
-          <p class="settled" role="status">cuenta cerrada · gracias!</p>
+          <p class="settled" role="status">Cuenta cerrada · gracias!</p>
         } @else if (told()) {
           <!-- Cerrar la cuenta lo hace el local. Desde acá sólo se avisa, y
                eso es lo que dice la pantalla: prometer "listo, cerrada" sería
                mentir sobre algo que todavía no pasó. -->
-          <p class="settled" role="status">le avisamos al mozo · ya se acerca</p>
+          <p class="settled" role="status">Le avisamos al mozo · ya se acerca</p>
         } @else {
-          <button type="button" class="cta" (click)="confirming.set(true)">pedir la cuenta</button>
+          <button type="button" class="cta" (click)="confirming.set(true)">Pedir la cuenta</button>
         }
       </footer>
 
@@ -203,7 +203,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
     } @else {
       <main class="body empty">
         @if (store.busy()) {
-          <p>abriendo la cuenta…</p>
+          <p>Abriendo la cuenta…</p>
         } @else if (!session.isJoined()) {
           <p class="muted">Unite a la mesa para ver la cuenta.</p>
           <a class="link" routerLink="/unirse">Unirme a la mesa</a>

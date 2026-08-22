@@ -29,10 +29,10 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
       <p class="eyebrow">
         @if (session.tableLabel(); as mesa) { mesa {{ mesa }} · }estado
         @if (session.connected()) {
-          <span class="live"><span class="live-dot" aria-hidden="true"></span>en vivo</span>
+          <span class="live"><span class="live-dot" aria-hidden="true"></span>En vivo</span>
         }
       </p>
-      <h1 class="title">itadakimasu!</h1>
+      <h1 class="title">Itadakimasu!</h1>
     </header>
 
     @if (store.hasOrders()) {
@@ -67,7 +67,7 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
         </section>
 
         <section class="card">
-          <h2 class="dishes-title">tu pedido</h2>
+          <h2 class="dishes-title">Tu pedido</h2>
           <ul class="dishes">
             @for (dish of dishes(); track dish.key) {
               <li class="dish" [attr.data-status]="dish.status">
@@ -81,31 +81,31 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
 
         @for (order of store.cancelled(); track order.id) {
           <section class="card cancelled">
-            <h2 class="card-title">pedido cancelado</h2>
+            <h2 class="card-title">Pedido cancelado</h2>
             <p class="items">{{ itemSummary(order) }}</p>
-            <p class="cancel-note">hablá con el mozo si fue un error</p>
+            <p class="cancel-note">Hablá con el mozo si fue un error</p>
           </section>
         }
 
         @if (!store.allDelivered() && store.minutesRemaining() > 0) {
           <section class="card eta">
-            <span class="eta-label">llega en aproximadamente</span>
+            <span class="eta-label">Llega en aproximadamente</span>
             <span class="eta-value">{{ store.minutesRemaining() }} min</span>
           </section>
         }
       </main>
 
       <footer class="foot">
-        <a class="cta cta-link" routerLink="/carta">seguir pidiendo</a>
-        <a class="link" routerLink="/cuenta">ver la cuenta →</a>
+        <a class="cta cta-link" routerLink="/carta">Seguir pidiendo</a>
+        <a class="link" routerLink="/cuenta">Ver la cuenta →</a>
       </footer>
     } @else {
       <main class="body empty">
         @if (store.busy()) {
-          <p class="muted">buscando tu pedido…</p>
+          <p class="muted">Buscando tu pedido…</p>
         } @else {
-          <p class="muted">todavía no mandaste ningún pedido.</p>
-          <a class="cta cta-link" routerLink="/carta">ver la carta →</a>
+          <p class="muted">Todavía no mandaste ningún pedido.</p>
+          <a class="cta cta-link" routerLink="/carta">Ver la carta →</a>
         }
       </main>
     }

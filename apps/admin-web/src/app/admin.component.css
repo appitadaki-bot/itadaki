@@ -41,7 +41,7 @@
 .signout {
   border: 1px solid var(--itadaki-border);
   background: var(--itadaki-surface-raised);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   padding: 0.5rem 1rem;
   font-family: inherit;
   font-size: 0.8rem;
@@ -399,7 +399,7 @@
   border: none;
   background: var(--itadaki-ink);
   color: white;
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   padding: 0.8rem;
   font-family: var(--itadaki-font-display);
   font-weight: 600;
@@ -574,7 +574,7 @@
   border: 1px solid var(--itadaki-accent);
   background: transparent;
   color: var(--itadaki-accent);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   padding: 0.45rem 0.9rem;
   font-family: inherit;
   font-size: 0.8rem;
@@ -601,7 +601,7 @@
   border: 1px solid var(--itadaki-border);
   background: transparent;
   color: var(--itadaki-ink-subtle);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   padding: 0.45rem 0.9rem;
   font-family: inherit;
   font-size: 0.8rem;
@@ -615,7 +615,7 @@
   border: none;
   background: var(--itadaki-ink);
   color: white;
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   padding: 0.75rem 1rem;
   font-family: var(--itadaki-font-display);
   font-size: 0.875rem;
@@ -686,7 +686,7 @@
   border: 1px solid var(--itadaki-border);
   background: transparent;
   color: var(--itadaki-ink-subtle);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   padding: 0.45rem 0.9rem;
   font-family: inherit;
   font-size: 0.8rem;
@@ -868,7 +868,7 @@
   margin-top: 0.9rem;
   padding: 0.6rem 1rem;
   border: 1px solid var(--itadaki-border);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: transparent;
   color: var(--itadaki-ink);
   font: inherit;
@@ -1237,7 +1237,7 @@
   gap: 0.5rem;
   padding: 0.55rem 0.9rem;
   border: 1.5px dashed var(--itadaki-border);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   font-size: 0.84rem;
   font-weight: 600;
   color: var(--itadaki-ink-soft);
@@ -1517,7 +1517,7 @@
 
 .table-assign-select {
   border: 1px solid var(--itadaki-border);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: var(--itadaki-surface-raised);
   padding: 0.4rem 0.7rem;
   font-family: inherit;
@@ -1713,7 +1713,7 @@
 .table-save {
   padding: 0.5rem 0.9rem;
   border: none;
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: var(--itadaki-accent);
   color: white;
   font: inherit;
@@ -1727,7 +1727,7 @@
 .table-edit-btn {
   padding: 0.45rem 0.8rem;
   border: 1px solid var(--itadaki-border);
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: transparent;
   color: var(--itadaki-ink-muted);
   font: inherit;
@@ -1742,7 +1742,7 @@
 .table-delete {
   padding: 0.45rem 0.8rem;
   border: 1px solid transparent;
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: transparent;
   color: var(--itadaki-ink-subtle);
   font: inherit;
@@ -1843,7 +1843,7 @@
 .borrar {
   padding: 0.6rem 1rem;
   border: 1px solid transparent;
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   background: transparent;
   color: var(--itadaki-ink-subtle);
   font-family: inherit;

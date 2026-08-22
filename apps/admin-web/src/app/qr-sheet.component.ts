@@ -80,7 +80,7 @@ interface RenderedQr {
               <path [attr.d]="qr.path" fill="black" />
             </svg>
 
-            <p class="instruction">escaneá y pedí desde tu celu</p>
+            <p class="instruction">Escaneá y pedí desde tu celu</p>
           }
         </article>
       } @empty {
