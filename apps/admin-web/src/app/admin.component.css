@@ -1905,3 +1905,15 @@
   /* En un teléfono el nombre y el precio necesitan el ancho entero. */
   .product-abrir { display: none; }
 }
+
+/*
+ * El nombre del plato entra con la mayúscula puesta.
+ *
+ * Lo escribe el dueño, y muchos lo cargan todo en minúscula. Se muestra tal
+ * cual está guardado —no se reescribe lo que él tipeó— pero como título de la
+ * ventana se ve descuidado. `first-letter` y no `capitalize`: eso último daría
+ * "Bife De Chorizo", que en español se lee peor que la minúscula.
+ */
+.modal-title::first-letter {
+  text-transform: uppercase;
+}
