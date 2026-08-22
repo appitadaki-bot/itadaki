@@ -10,6 +10,23 @@
     <!-- Set by the deploy; empty or a placeholder falls back to the
        page origin, which is right when the API shares the domain. -->
   <meta name="itadaki-api" content="https://itadaki-api.onrender.com" />
+    <!--
+      Las fuentes de la marca.
+      Estaban declaradas en los tokens pero nunca se cargaban, así que las
+      cuatro apps caían al sans-serif del sistema: se veía Helvetica donde
+      tenía que verse Unbounded. La landing sí las carga, y por eso se veía
+      de otra marca.
+
+      preconnect va antes: sin él el navegador descubre el segundo dominio
+      recién al leer la hoja, y suma un viaje de ida y vuelta al primer
+      renderizado.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Onest:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
 </head>
   <body>
     <itd-root></itd-root>
