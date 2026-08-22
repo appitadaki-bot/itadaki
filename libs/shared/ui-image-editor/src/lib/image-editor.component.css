@@ -1,10 +1,23 @@
-:host { display: block; }
+/* El editor se mide a sí mismo para decidir si entra en dos columnas: se usa
+   tanto en el modal ancho como en paneles angostos, y quien sabe cuánto lugar
+   hay es el contenedor, no la ventana. */
+:host {
+  display: block;
+  container-type: inline-size;
+}
 
+/*
+ * El ancho lo decide quien lo usa, no el editor.
+ *
+ * Antes esto se plantaba en 460px. Dentro del modal de la foto —que pide 860px
+ * justamente para poner la imagen y sus controles al lado— el editor se
+ * quedaba en su media pantalla y la otra media era un hueco vacío.
+ */
 .editor {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-width: 460px;
+  width: 100%;
 }
 
 .stage {
@@ -231,4 +244,95 @@ input[type='range'] {
 .dropzone:focus-within {
   outline: 3px solid var(--itadaki-accent-bright);
   outline-offset: 2px;
+}
+
+
+/*
+ * Aire entre los controles.
+ *
+ * Los deslizadores, sus etiquetas y los botones venían con el espaciado de una
+ * barra lateral angosta: dentro del modal quedaban pegados y no se distinguía
+ * qué etiqueta era de qué control.
+ */
+/* Va en `.editor` y no en `:host`: el host es `display: block`, donde `gap`
+   no existe — la separación que esto buscaba nunca se estaba aplicando. */
+.editor { gap: 1.4rem; }
+
+.controls { gap: 1.1rem 1.4rem; }
+
+.control-label {
+  margin-bottom: 0.15rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+}
+
+/* El valor a la derecha, alineado en columna: leídos uno debajo del otro los
+   números bailaban al cambiar de ancho. */
+.control-label b {
+  float: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--itadaki-accent);
+}
+
+.actions {
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--itadaki-border);
+}
+
+/* Por qué el botón de aplicar está apagado. Sin esto quedaba gris sin motivo. */
+.editor-nota {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--itadaki-radius-chip);
+  background: var(--itadaki-surface-sunken);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--itadaki-ink-subtle);
+}
+
+/*
+ * Con ancho de sobra, la foto a un lado y los ajustes al otro.
+ *
+ * En una sola columna la foto empuja los deslizadores fuera de la pantalla: hay
+ * que hacer scroll para mover el brillo y volver a subir para ver qué cambió,
+ * que es exactamente lo que no se puede hacer cuando se está ajustando algo a
+ * ojo. Al lado, se mueve un control y se ve el efecto en el mismo golpe de
+ * vista.
+ *
+ * El corte es por el ancho del editor y no por el de la ventana: el mismo
+ * componente se usa en el modal ancho y en paneles angostos, y el que sabe si
+ * entran dos columnas es el contenedor, no la pantalla.
+ */
+@container (min-width: 640px) {
+  .editor {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    row-gap: 1rem;
+    column-gap: 1.6rem;
+  }
+
+  /* La foto y su selector de modo mandan la columna izquierda: el modo cambia
+     lo que hace el arrastre sobre la imagen, así que va pegado a ella. */
+  .stage,
+  .modes,
+  .existing-note,
+  .auto-note,
+  .hint {
+    grid-column: 1;
+  }
+
+  /* Los ajustes y lo que se hace con ellos, en la derecha. */
+  .controls,
+  .editor-nota,
+  .actions {
+    grid-column: 2;
+  }
+
+  /* Las acciones al pie de su columna, no flotando a media altura. */
+  .actions {
+    margin-top: auto;
+  }
 }

@@ -26,9 +26,9 @@ import { TrackingStore } from './tracking.store';
           tu pedido
         }
       </p>
-      <h1 class="title">carrito</h1>
+      <h1 class="title">Carrito</h1>
       @if (session.isJoined() && session.connected()) {
-        <p class="live"><span class="live-dot" aria-hidden="true"></span>se actualiza en vivo</p>
+        <p class="live"><span class="live-dot" aria-hidden="true"></span>Se actualiza en vivo</p>
       }
     </header>
 
@@ -83,7 +83,7 @@ import { TrackingStore } from './tracking.store';
                 </div>
               </article>
             } @empty {
-              <p class="group-empty">todavía no pidió nada</p>
+              <p class="group-empty">Todavía no pidió nada</p>
             }
           </section>
         }
@@ -196,8 +196,8 @@ import { TrackingStore } from './tracking.store';
         </article>
       } @empty {
         <div class="empty">
-          <p>tu carrito está vacío.</p>
-          <a class="link" routerLink="/carta">volver a la carta</a>
+          <p>Tu carrito está vacío.</p>
+          <a class="link" routerLink="/carta">Volver a la carta</a>
         </div>
       }
     </main>
@@ -205,11 +205,11 @@ import { TrackingStore } from './tracking.store';
     @if (cart.count() > 0) {
       <footer class="foot">
         <div class="totals">
-          <span>subtotal</span>
+          <span>Subtotal</span>
           <span>{{ cart.total() | money }}</span>
         </div>
         <div class="total-line">
-          <span>total</span>
+          <span>Total</span>
           <span>{{ cart.total() | money }}</span>
         </div>
         @if (orders.submitState(); as state) {

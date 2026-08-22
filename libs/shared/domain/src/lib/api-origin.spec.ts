@@ -52,3 +52,36 @@ describe('where the browser apps find the API', () => {
     expect(socketUrl(configured)).toBe('https://api.itadaki.ar');
   });
 });
+
+describe('en la máquina de desarrollo manda el puerto local', () => {
+  const enLocalhost = {
+    configured: 'https://itadaki-api.onrender.com',
+    protocol: 'http:',
+    hostname: 'localhost',
+    origin: 'http://localhost:4200',
+  };
+
+  it('ignora la API de producción cuando se abre en localhost', () => {
+    // El meta trae producción para que el deploy no dependa de configurar
+    // nada, pero ese servidor no acepta pedidos desde localhost —y con razón—
+    // así que abrir la app en la máquina quedaba en "no pudimos conectar".
+    expect(apiOrigin(enLocalhost)).toBe('http://localhost:3000');
+  });
+
+  it('también con 127.0.0.1', () => {
+    expect(apiOrigin({ ...enLocalhost, hostname: '127.0.0.1' })).toBe('http://127.0.0.1:3000');
+  });
+
+  it('en producción sí respeta el meta', () => {
+    // Acá la API vive en otro dominio, así que caer al origen de la página
+    // mandaría los pedidos contra el sitio estático.
+    expect(
+      apiOrigin({
+        configured: 'https://itadaki-api.onrender.com',
+        protocol: 'https:',
+        hostname: 'carta.itadaki.com.ar',
+        origin: 'https://carta.itadaki.com.ar',
+      }),
+    ).toBe('https://itadaki-api.onrender.com');
+  });
+});

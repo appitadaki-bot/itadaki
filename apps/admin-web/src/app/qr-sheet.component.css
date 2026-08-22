@@ -31,7 +31,7 @@
 }
 
 .hint {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   color: var(--itadaki-ink-subtle);
   max-width: 46ch;
 }
@@ -43,10 +43,10 @@
 
 .print,
 .ghost {
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   padding: 0.65rem 1.2rem;
   font-family: var(--itadaki-font-display);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   min-height: 42px;
@@ -101,7 +101,7 @@
   font-size: 1.5rem;
   color: oklch(22% 0.02 40);
   margin: 0;
-  letter-spacing: -0.5px;
+  letter-spacing: var(--itadaki-tracking-title);
 }
 
 /* The quiet zone is part of the symbol: scanners need the white margin. */
@@ -114,7 +114,7 @@
 }
 
 .instruction {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: oklch(45% 0.02 40);
   margin: 0;
 }

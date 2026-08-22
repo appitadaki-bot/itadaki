@@ -224,20 +224,23 @@ const ROLE_NAMES: Record<string, string> = {
                   <span class="product-meta">
                     <span class="product-price">{{ format(product.price) }}</span>
                     @if (!product.available) {
-                      <span class="badge out">sin stock</span>
+                      <span class="badge out">Sin stock</span>
                     }
                   </span>
                 </span>
+                <!-- Una flecha sola no dice qué abre: había que tocarla para
+                     descubrir que era la ficha del plato y no otra cosa. -->
+                <span class="product-abrir">Editar plato →</span>
               </button>
             </div>
           } @empty {
-            <p class="muted">cargando la carta…</p>
+            <p class="muted">Cargando la carta…</p>
           }
         </div>
 
 
         <details class="details manage-cats">
-          <summary>organizar categorías</summary>
+          <summary>Organizar categorías</summary>
 
           <div class="cat-list">
             @for (category of categories(); track category.id) {
@@ -278,10 +281,10 @@ const ROLE_NAMES: Record<string, string> = {
 
           <form class="new-form" (submit)="createCategory($event)">
             <label class="field">
-              <span>nueva categoría</span>
-              <input name="name" required maxlength="40" placeholder="ej: parrilla, entradas, vinos" />
+              <span>Nueva categoría</span>
+              <input name="name" required maxlength="40" placeholder="Ej: parrilla, entradas, vinos" />
             </label>
-            <button type="submit" class="create">crear categoría</button>
+            <button type="submit" class="create">Crear categoría</button>
           </form>
 
           @if (catError(); as error) {
@@ -503,7 +506,7 @@ const ROLE_NAMES: Record<string, string> = {
                     </span>
                   </div>
                   @if (member.id === auth.profile()?.id) {
-                    <span class="staff-you">vos</span>
+                    <span class="staff-you">Vos</span>
                   } @else {
                     <button
                       type="button"
@@ -526,7 +529,7 @@ const ROLE_NAMES: Record<string, string> = {
               </label>
               <label class="field">
                 <span>Email</span>
-                <input name="email" type="email" required placeholder="nico@turestaurante.ar" />
+                <input name="email" type="email" required placeholder="Nico@turestaurante.ar" />
               </label>
               <label class="field">
                 <span>Contraseña inicial</span>
@@ -627,21 +630,21 @@ const ROLE_NAMES: Record<string, string> = {
 
                   <form class="new-form" (submit)="createProduct($event)">
             <label class="field">
-              <span>nombre</span>
-              <input name="name" required maxlength="60" placeholder="ej: gyoza de cerdo" />
+              <span>Nombre</span>
+              <input name="name" required maxlength="60" placeholder="Ej: gyoza de cerdo" />
             </label>
             <label class="field">
-              <span>descripción</span>
-              <input name="description" maxlength="140" placeholder="ej: seis unidades, salsa ponzu" />
+              <span>Descripción</span>
+              <input name="description" maxlength="140" placeholder="Ej: seis unidades, salsa ponzu" />
             </label>
             <label class="field">
-              <span>precio en pesos</span>
+              <span>Precio en pesos</span>
               <!-- step=1: a price is whatever the restaurant charges, not a
                    multiple of a hundred. -->
               <input name="price" type="number" min="0" step="1" required placeholder="4500" />
             </label>
             <label class="field">
-              <span>categoría</span>
+              <span>Categoría</span>
               <select name="categoryId">
                 @for (category of categories(); track category.id) {
                   <option [value]="category.id">{{ category.name }}</option>
@@ -652,7 +655,7 @@ const ROLE_NAMES: Record<string, string> = {
                  nace sin ellas es invisible para quien filtra la carta, y
                  nadie vuelve a editarlo para agregarlas. -->
             <fieldset class="field diets">
-              <legend>apto para</legend>
+              <legend>Apto para</legend>
               <div class="checks">
                 @for (diet of dietOptions; track diet.id) {
                   <label class="check">
@@ -663,7 +666,7 @@ const ROLE_NAMES: Record<string, string> = {
               </div>
             </fieldset>
 
-            <button type="submit" class="create">crear plato</button>
+            <button type="submit" class="create">Crear plato</button>
             @if (createError(); as error) {
               <p class="status error">{{ error }}</p>
             }
@@ -679,7 +682,7 @@ const ROLE_NAMES: Record<string, string> = {
       <div class="modal ancho" role="dialog" aria-modal="true" aria-label="La foto del plato">
         <header class="modal-head">
           <div>
-            <p class="modal-eyebrow">la foto de</p>
+            <p class="modal-eyebrow">La foto de</p>
             <h2 class="modal-title">{{ dish.name }}</h2>
           </div>
           <button type="button" class="modal-close" (click)="cerrarFoto()" aria-label="Cerrar">
@@ -688,11 +691,20 @@ const ROLE_NAMES: Record<string, string> = {
         </header>
 
         <div class="modal-body">
-          <itd-image-editor
-            [subjectId]="dish.id"
-            [existingUrl]="currentPhoto()"
-            (applied)="upload($event)"
-          />
+          <!--
+            Una instancia por plato, no una reutilizada.
+            Angular conserva el componente al cambiar de plato, así que la foto
+            recién subida y su recorte quedaban colgados del siguiente: se abría
+            la "Provoleta" y se veía el bife. Con el id en el @if, el editor se
+            destruye y nace limpio.
+          -->
+          @if (modal() === 'foto' && selected(); as platoId) {
+            <itd-image-editor
+              [subjectId]="platoId"
+              [existingUrl]="currentPhoto()"
+              (applied)="upload($event)"
+            />
+          }
 
           @if (status(); as state) {
             <p class="status" [class.error]="state.startsWith('error')">{{ state }}</p>
@@ -731,11 +743,11 @@ const ROLE_NAMES: Record<string, string> = {
           <form class="edit-form" (submit)="saveDish($event, dish)">
           <div class="field-row">
           <label class="field">
-          <span>nombre</span>
+          <span>Nombre</span>
           <input name="name" [value]="dish.name" required maxlength="60" />
           </label>
           <label class="field narrow">
-          <span>precio</span>
+          <span>Precio</span>
           <input
           name="price"
           type="number"
@@ -748,12 +760,12 @@ const ROLE_NAMES: Record<string, string> = {
           </div>
 
           <label class="field">
-          <span>descripción</span>
+          <span>Descripción</span>
           <input name="description" [value]="dish.description" maxlength="140" />
           </label>
 
           <label class="field">
-          <span>categoría</span>
+          <span>Categoría</span>
           <select name="categoryId">
           @for (category of categories(); track category.id) {
           <option [value]="category.id" [selected]="category.id === dish.categoryId">
@@ -766,7 +778,7 @@ const ROLE_NAMES: Record<string, string> = {
           <!-- Los filtros de la carta leen esto: un plato sin dietas es
           invisible para quien busca vegano o sin gluten. -->
           <fieldset class="field diets">
-          <legend>apto para</legend>
+          <legend>Apto para</legend>
           <div class="checks">
           @for (diet of dietOptions; track diet.id) {
           <label class="check">
@@ -827,7 +839,7 @@ const ROLE_NAMES: Record<string, string> = {
             <input
               type="url"
               class="import-url-input"
-              placeholder="https://mirestaurante.com/carta"
+              placeholder="Https://mirestaurante.com/carta"
               [value]="importUrl()"
               (input)="onImportUrl($event)"
             />
@@ -849,7 +861,7 @@ const ROLE_NAMES: Record<string, string> = {
               accept=".csv,.txt,.tsv,text/csv,text/plain"
               (change)="onImportFile($event)"
             />
-            <span>o subí un archivo (.csv o .txt)</span>
+            <span>O subí un archivo (.csv o .txt)</span>
           </label>
 
           <textarea
@@ -1367,6 +1379,9 @@ export class AdminComponent {
   protected irALaFoto(id: string): void {
     this.selected.set(id);
     this.status.set(null);
+    // La vista previa del plato anterior también se va: quedaba abajo del
+    // editor nuevo y hacía creer que la foto ya estaba subida.
+    this.result.set(null);
     this.modal.set('foto');
   }
 
