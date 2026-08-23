@@ -5,6 +5,7 @@ import {
   byItemSplit,
   customSplit,
   equalSplit,
+  singlePayerSplit,
   sharesTotal,
   type SplitStrategy,
 } from './bill-split';
@@ -228,6 +229,38 @@ describe('custom split', () => {
   });
 });
 
+describe('single payer', () => {
+  it('carga el total entero a quien paga', () => {
+    const result = singlePayerSplit('d1').split(makeBill());
+    if (result.isErr()) throw new Error('expected ok');
+
+    expect(result.value).toHaveLength(1);
+    expect(result.value[0]?.payerId).toBe('d1');
+    expect(result.value[0]?.label).toBe('Ana');
+    // 820.000 del ramen + 2 × 340.000 de los onigiri.
+    expect(result.value[0]?.amount.amountInMinorUnits).toBe(1_500_000);
+  });
+
+  it('no cobra a alguien que no está en la mesa', () => {
+    // Sin esto la cuenta queda a nombre de nadie y no hay a quién reclamarle.
+    const result = singlePayerSplit('fantasma').split(makeBill());
+    expect(result.isErr()).toBe(true);
+  });
+
+  it('paga todo aunque no haya pedido nada', () => {
+    // El que invita: no figura en ninguna línea, pero pone la tarjeta.
+    const result = singlePayerSplit('d2').split(
+      makeBill({
+        lines: [{ id: 'l1', dinerId: 'd1', name: 'ramen', quantity: 1, unitTotal: ars(820_000) }],
+      }),
+    );
+    if (result.isErr()) throw new Error('expected ok');
+
+    expect(result.value[0]?.payerId).toBe('d2');
+    expect(result.value[0]?.amount.amountInMinorUnits).toBe(820_000);
+  });
+});
+
 describe('every strategy sums to the bill', () => {
   // Awkward totals are where rounding bugs surface.
   const totals = [1, 7, 100, 1001, 99_999, 1_234_567];
@@ -238,6 +271,7 @@ describe('every strategy sums to the bill', () => {
         lines: [{ id: 'l1', dinerId: 'd1', name: 'x', quantity: 1, unitTotal: ars(total) }],
       });
 
+      expectSharesSumToBill(singlePayerSplit('d1'), bill);
       expectSharesSumToBill(equalSplit(2), bill);
       expectSharesSumToBill(equalSplit(3), bill);
       expectSharesSumToBill(equalSplit(7), bill);

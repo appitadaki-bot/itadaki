@@ -1,7 +1,7 @@
 import { Money, type MoneyError, type Result, err, ok } from '@itadaki/shared/domain';
 import { type Bill, billSubtotal, lineTotal, subtotalFor } from './bill';
 
-export type SplitKind = 'EQUAL' | 'BY_DINER' | 'BY_ITEM' | 'CUSTOM_AMOUNT';
+export type SplitKind = 'SINGLE_PAYER' | 'EQUAL' | 'BY_DINER' | 'BY_ITEM' | 'CUSTOM_AMOUNT';
 
 export interface SplitShare {
   readonly payerId: string;
@@ -55,6 +55,37 @@ export function equalSplit(parts: number): SplitStrategy {
           amount,
         })),
       );
+    },
+  };
+}
+
+/**
+ * Uno paga todo.
+ *
+ * Es la forma más común de cerrar una mesa —el que invita, el que labura, el
+ * que junta la plata en efectivo y pone la tarjeta— y era la única que no se
+ * podía elegir: había que dividir aunque nadie quisiera dividir.
+ *
+ * No hay reparto que hacer, así que tampoco hay centavos que repartir: el
+ * total va entero a una sola persona.
+ */
+export function singlePayerSplit(payerId: string): SplitStrategy {
+  return {
+    kind: 'SINGLE_PAYER',
+    split(bill) {
+      // Quien paga tiene que estar en la mesa: cobrarle a un id que no está
+      // entre los participantes deja una cuenta a nombre de nadie.
+      const payer = bill.participants.find((participant) => participant.id === payerId);
+      if (payer === undefined) {
+        return err({ kind: 'NO_PAYERS' });
+      }
+
+      const total = billSubtotal(bill);
+      if (total.isErr()) {
+        return err(total.error);
+      }
+
+      return ok([{ payerId: payer.id, label: payer.nickname, amount: total.value }]);
     },
   };
 }

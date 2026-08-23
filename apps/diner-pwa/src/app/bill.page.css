@@ -47,3 +47,65 @@
 .cta { width: 100%; background: var(--itadaki-ink); color: white; border: none; border-radius: var(--itadaki-radius-pill); padding: 1rem; font-family: var(--itadaki-font-display); font-weight: 600; font-size: 0.9rem; cursor: pointer; min-height: 48px; }
 .cta:disabled { opacity: 0.45; cursor: not-allowed; }
 .settled { font-family: var(--itadaki-font-display); font-weight: 700; font-size: 0.95rem; color: var(--itadaki-status-ready-fg); background: var(--itadaki-status-ready-bg); border-radius: var(--itadaki-radius-pill); padding: 0.9rem; margin: 0; text-align: center; }
+
+/*
+ * Quién paga, cuando paga uno solo.
+ *
+ * Los mismos botones que asignan platos, pero sueltos y con más aire: acá se
+ * elige una vez, no plato por plato.
+ */
+.quien-paga {
+  margin-bottom: 0.3rem;
+  gap: 0.4rem;
+}
+
+.quien-paga .person {
+  padding: 0.5rem 0.95rem;
+  font-size: 0.8rem;
+}
+
+/*
+ * El plato que todavía no tiene dueño.
+ *
+ * Una raya al costado y nada más: en una mesa larga hay que poder barrer la
+ * lista con la vista y ver cuáles faltan, sin que los ya asignados parezcan
+ * un error.
+ */
+.assign.pendiente {
+  border-left: 3px solid var(--itadaki-accent);
+  padding-left: 0.6rem;
+  margin-left: -0.6rem;
+}
+
+.assign-falta {
+  margin: 0.7rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--itadaki-accent);
+}
+
+/*
+ * Por qué el botón está apagado.
+ *
+ * Sin esto quedaba gris sin motivo: la mesa tocaba, no pasaba nada, y no había
+ * forma de saber qué faltaba.
+ */
+.foot-falta {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: var(--itadaki-ink-subtle);
+  text-align: center;
+}
+
+/* Lo elegido se nota antes de leerlo: el botón activo pesa más. */
+.person[aria-pressed='true'] {
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.person {
+  transition:
+    background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease),
+    color var(--itadaki-quick) var(--itadaki-ease);
+}
