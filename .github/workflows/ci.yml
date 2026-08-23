@@ -10,9 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -35,6 +35,27 @@ jobs:
           npx ng build admin-web
           npx ng build floor-web
 
+  # Una dependencia con una falla conocida entra sin que nadie la escriba: la
+  # instala otra dependencia. Se revisa en cada cambio porque el aviso llega
+  # cuando la falla se publica, no cuando alguien decide mirar.
+  #
+  # Sólo lo que llega al servidor (`--omit=dev`): una falla en una herramienta
+  # de desarrollo no la puede alcanzar nadie desde afuera, y frenar los PR por
+  # eso enseña a ignorar el aviso.
+  dependencies:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Vulnerabilidades conocidas
+        run: npm audit --omit=dev --audit-level=high
+
   # The API has to start from `dependencies` alone. Catching this in CI is the
   # point: a runtime package left in devDependencies installs fine here and
   # fails only on the server, where the build step never runs.
@@ -42,9 +63,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -78,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build the image
         run: docker build -t itadaki-api:ci .
