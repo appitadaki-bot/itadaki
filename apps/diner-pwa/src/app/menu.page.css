@@ -667,7 +667,6 @@
  * pantalla en reposo.
  */
 .card-add {
-  position: relative;
   display: grid;
   place-items: center;
   border: 1px solid var(--itadaki-accent-line);
@@ -694,30 +693,15 @@
 }
 
 /*
- * El relleno de color, detrás del texto.
+ * El color se pinta en el fondo del botón, sin capas.
  *
- * Crece desde el centro en vez de aparecer de golpe: un cambio de fondo seco
- * se lee como un parpadeo, y esto se lee como que el botón se prende.
+ * Antes esto era un `::before` con `z-index: -1` para que creciera desde el
+ * centro. Estaba mal: el texto del botón es un nodo de texto suelto, no un
+ * elemento, así que la regla que debía dejarlo por encima no aplicaba a nada
+ * y la capa se iba detrás de la tarjeta entera — el rojo terminaba pintando
+ * el fondo del plato en vez del botón. Un `background` directo no puede
+ * escaparse del elemento.
  */
-.card-add::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: var(--itadaki-accent);
-  transform: scale(0.6);
-  opacity: 0;
-  transition:
-    transform var(--itadaki-smooth) var(--itadaki-ease-out),
-    opacity var(--itadaki-quick) var(--itadaki-ease);
-}
-
-/* El texto por encima del relleno. */
-.card-add > * {
-  position: relative;
-  z-index: 1;
-}
-
 @media (hover: hover) {
   .card-add:hover:not(:disabled) {
     background: var(--itadaki-accent-tint-strong);
@@ -728,35 +712,18 @@
 }
 
 /*
- * Al tocarlo se llena y se hunde a la vez.
+ * Mientras se manda, y sólo ahí.
  *
- * El color llega recién acá: es la confirmación de que el plato se sumó, en el
- * mismo lugar donde estaba el dedo.
+ * La confirmación va acá y no en `:active`: en un teléfono `:active` no se
+ * suelta al levantar el dedo —queda puesto hasta que se toca otra cosa— así
+ * que el botón se quedaba rojo mucho después del toque, sin motivo visible.
+ * `:disabled` dura exactamente lo que dura el envío, que es lo que el color
+ * tiene que decir.
  */
-.card-add:active:not(:disabled) {
-  color: white;
-  border-color: var(--itadaki-accent);
-  transform: translateY(1px) scale(0.98);
-  box-shadow: 0 1px 4px oklch(50% 0.17 33 / 0.2);
-}
-
-.card-add:active:not(:disabled)::before {
-  transform: scale(1);
-  opacity: 1;
-}
-
-/* Mientras se manda: el color se queda, así se ve que algo está pasando. */
 .card-add:disabled {
-  color: white;
+  background: var(--itadaki-accent);
   border-color: var(--itadaki-accent);
-}
-
-.card-add:disabled::before {
-  transform: scale(1);
-  opacity: 1;
-}
-
-.card-add:disabled {
+  color: white;
   cursor: default;
 }
 
@@ -939,25 +906,22 @@
 }
 
 /*
- * La tarjeta se tiñe al tocarla.
+ * La tarjeta no se pinta al tocarla.
  *
- * Antes sólo se levantaba, y en un teléfono el dedo tapa justo la parte que
- * se movía. El color llega hasta el borde de la tarjeta, que es lo que se ve
- * alrededor del dedo.
+ * Tuvo un `:active` teñido, y estaba mal por dos motivos. `:active` sube desde
+ * el hijo, así que tocar "Agregar" —que vive dentro de la tarjeta— teñía el
+ * plato entero: el color aparecía lejos del dedo, en algo que no se estaba
+ * tocando, y se leía como un error y no como una respuesta.
+ *
+ * Y en un teléfono `:active` no se suelta al levantar el dedo: queda puesto
+ * hasta que se toca otra cosa. Un plato quedaba pintado de rojo sin motivo
+ * visible mucho después del toque.
+ *
+ * Lo que confirma el toque es el botón, que es lo que se toca. La tarjeta se
+ * queda quieta.
  */
-.card:active {
-  background: var(--itadaki-accent-tint);
-}
-
 .card {
   transition:
-    background var(--itadaki-quick) var(--itadaki-ease),
     box-shadow var(--itadaki-smooth) var(--itadaki-ease),
     transform var(--itadaki-smooth) var(--itadaki-ease);
-}
-
-@media (hover: hover) {
-  .card:hover {
-    background: color-mix(in oklab, var(--itadaki-accent-tint) 45%, white);
-  }
 }
