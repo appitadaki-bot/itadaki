@@ -13,3 +13,5 @@ export {
   PostgresAssignmentStore,
   type AssignmentError,
 } from './lib/postgres-assignments';
+export { InMemoryAssignmentStore } from './lib/in-memory-assignments';
+export { InMemoryCallStore } from './lib/in-memory-calls';

@@ -24,6 +24,10 @@ const DEV_ORIGINS = [
   'http://localhost:4300',
   'http://localhost:4400',
   'http://localhost:4500',
+  // El salón. Faltaba: `ng serve floor-web` no tiene puerto en los scripts, así
+  // que se levanta a mano y el que estaba libre quedaba fuera de esta lista —
+  // la app cargaba pero el navegador le bloqueaba cada llamada a la API.
+  'http://localhost:4600',
 ];
 
 function allowedOrigins(): string[] {

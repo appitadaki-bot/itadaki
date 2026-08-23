@@ -29,7 +29,7 @@ import {
 import { lineTotal as cartLineTotal } from '@itadaki/ordering/domain';
 import { Money, type CurrencyCode, type MoneyError, ok } from '@itadaki/shared/domain';
 import { z } from 'zod';
-import { PostgresTableStore } from '@itadaki/identity/infra';
+import { InMemoryTableStore, PostgresTableStore } from '@itadaki/identity/infra';
 import { type DinerScope, Public, RequirePermission, Scope, TableScoped } from './auth';
 import { database } from './database';
 import { BillsService } from './bills.service';
@@ -91,7 +91,14 @@ export class BillsController {
   ) {}
 
   /** Cobrar termina la mesa, y una mesa que termina estrena código. */
-  private readonly tables = new PostgresTableStore(database);
+  /*
+   * `USE_POSTGRES=false` levanta la app sin base de datos, y un store que no
+   * mira la bandera devuelve STORAGE_FAILURE en la primera llamada.
+   */
+  private readonly tables =
+    process.env['USE_POSTGRES'] !== 'false'
+      ? new PostgresTableStore(database)
+      : new InMemoryTableStore();
 
   /**
    * Confirms the session belongs to the caller's table.

@@ -20,7 +20,7 @@ import {
 } from '@itadaki/ordering/application';
 import { type Order, groupByDiner, placedTotals } from '@itadaki/ordering/domain';
 import { Money } from '@itadaki/shared/domain';
-import { PostgresTableStore, TABLE_TOKEN_HOURS, signTableToken } from '@itadaki/identity/infra';
+import { InMemoryTableStore, PostgresTableStore, TABLE_TOKEN_HOURS, signTableToken } from '@itadaki/identity/infra';
 import { type PostgresInviteStore } from '@itadaki/ordering/infra';
 import { z } from 'zod';
 import {
@@ -158,7 +158,14 @@ export class SessionsController {
   ) {}
 
   /** El código de cada mesa vive acá, no en la sesión. */
-  private readonly tables = new PostgresTableStore(database);
+  /*
+   * `USE_POSTGRES=false` levanta la app sin base de datos, y un store que no
+   * mira la bandera devuelve STORAGE_FAILURE en la primera llamada.
+   */
+  private readonly tables =
+    process.env['USE_POSTGRES'] !== 'false'
+      ? new PostgresTableStore(database)
+      : new InMemoryTableStore();
 
   /** Las invitaciones de un solo uso para el que llega tarde. */
   private get invites(): PostgresInviteStore {
