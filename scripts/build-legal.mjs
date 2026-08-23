@@ -154,6 +154,6 @@ ${cuerpo}
 `;
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, html, 'utf8');
-  // eslint-disable-next-line no-undef -- script de Node, corre fuera del navegador
+   
   console.log('generado', out);
 }
