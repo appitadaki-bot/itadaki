@@ -173,39 +173,39 @@
   position: relative;
   flex-shrink: 0;
   border: none;
-  border-radius: 0;
-  padding: 0.7rem 0.9rem;
+  /* Redondeado y con aire abajo: el fondo cuadrado llegaba hasta la línea del
+     borde y las dos marcas del mismo estado se pisaban. */
+  border-radius: var(--itadaki-radius-pill);
+  padding: 0.55rem 0.95rem;
+  margin-bottom: 0.35rem;
   font-family: inherit;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   background: transparent;
   color: var(--itadaki-ink-subtle);
-  transition: color var(--itadaki-smooth) var(--itadaki-ease);
-}
-
-/* La línea crece desde el centro al elegir la categoría. */
-.chip::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  right: 50%;
-  bottom: -1px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--itadaki-accent);
   transition:
-    left var(--itadaki-smooth) cubic-bezier(0.2, 0, 0.2, 1),
-    right var(--itadaki-smooth) cubic-bezier(0.2, 0, 0.2, 1);
+    color var(--itadaki-smooth) var(--itadaki-ease),
+    background var(--itadaki-quick) var(--itadaki-ease);
 }
 
+@media (hover: hover) {
+  .chip:hover {
+    background: var(--itadaki-accent-tint);
+    color: var(--itadaki-accent-deep);
+  }
+}
+
+/*
+ * La categoría elegida se marca con el fondo, y sólo con el fondo.
+ *
+ * Antes tenía además un subrayado pegado a la línea del borde: dos marcas
+ * para el mismo estado, una encima de la otra, que es lo que se leía tosco.
+ * La pastilla alcanza y deja la fila limpia.
+ */
 .chip[aria-pressed='true'] {
-  color: var(--itadaki-ink-strong);
-}
-
-.chip[aria-pressed='true']::after {
-  left: 0.7rem;
-  right: 0.7rem;
+  background: var(--itadaki-accent-tint);
+  color: var(--itadaki-accent-deep);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -619,67 +619,134 @@
   font-size: 0.875rem;
   text-decoration: none;
   font-variant-numeric: tabular-nums;
-}
-
-/*
- * La acción principal de la tarjeta.
- *
- * Comparte fila con la indicación para la cocina, que pesa menos: la mayoría
- * pide el plato tal cual, y dos botones iguales obligan a elegir dos veces.
- */
-.card-add {
-  display: grid;
-  place-items: center;
-  border: none;
-  border-radius: var(--itadaki-radius-pill);
-  background: var(--itadaki-ink);
-  color: white;
-  padding: 0.55rem 0.95rem;
-  font-family: var(--itadaki-font-display);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  min-height: 44px;
-  white-space: nowrap;
-  text-align: center;
-  text-decoration: none;
-  /*
-   * Una sombra tenue, del color del propio botón.
-   *
-   * Un rectángulo negro plano sobre el crema se ve pegado al papel: la sombra
-   * lo despega apenas y es lo que separa un botón de un bloque de color. Del
-   * color del botón y no gris, porque una sombra gris sobre un fondo cálido
-   * se ve sucia.
-   */
-  box-shadow: 0 2px 8px oklch(24% 0.02 40 / 0.18);
+  box-shadow: var(--itadaki-shadow-cta);
   transition:
     transform var(--itadaki-quick) var(--itadaki-ease),
     box-shadow var(--itadaki-smooth) var(--itadaki-ease),
     background var(--itadaki-quick) var(--itadaki-ease);
 }
 
-/* Se levanta apenas: dice que responde antes de que el dedo llegue. */
+/*
+ * Acá el negro sí manda: es la acción principal de la pantalla y hay una sola.
+ * Lo que cambia es que responde — se levanta al acercarse y se apoya al tocar.
+ */
+@media (hover: hover) {
+  .cta:hover {
+    background: var(--itadaki-ink-strong);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px oklch(24% 0.02 40 / 0.28);
+  }
+}
+
+.cta:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: 0 2px 8px oklch(24% 0.02 40 / 0.22);
+}
+
+/*
+ * Agregar: un contorno que se llena, no un bloque negro.
+ *
+ * El negro sólido es la decisión visual más fuerte que hay en la pantalla, y
+ * estaba puesta en un botón que se repite en cada tarjeta de la carta. Diez
+ * platos eran diez bloques negros compitiendo con las fotos y con los nombres,
+ * que es lo que la persona vino a leer. Agregar es una acción común, no una
+ * decisión grave: pesa como tal.
+ *
+ * En reposo es sólo un contorno tenue. El color aparece cuando el dedo se
+ * acerca y llena el botón cuando se toca — el peso está en el gesto y no en la
+ * pantalla en reposo.
+ */
+.card-add {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--itadaki-accent-line);
+  border-radius: var(--itadaki-radius-pill);
+  background: var(--itadaki-accent-tint);
+  color: var(--itadaki-accent-deep);
+  padding: 0.55rem 1.1rem;
+  font-family: var(--itadaki-font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  min-height: 44px;
+  white-space: nowrap;
+  text-align: center;
+  text-decoration: none;
+  overflow: hidden;
+  transition:
+    color var(--itadaki-quick) var(--itadaki-ease),
+    background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease),
+    transform var(--itadaki-quick) var(--itadaki-ease),
+    box-shadow var(--itadaki-smooth) var(--itadaki-ease);
+}
+
+/*
+ * El relleno de color, detrás del texto.
+ *
+ * Crece desde el centro en vez de aparecer de golpe: un cambio de fondo seco
+ * se lee como un parpadeo, y esto se lee como que el botón se prende.
+ */
+.card-add::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--itadaki-accent);
+  transform: scale(0.6);
+  opacity: 0;
+  transition:
+    transform var(--itadaki-smooth) var(--itadaki-ease-out),
+    opacity var(--itadaki-quick) var(--itadaki-ease);
+}
+
+/* El texto por encima del relleno. */
+.card-add > * {
+  position: relative;
+  z-index: 1;
+}
+
 @media (hover: hover) {
   .card-add:hover:not(:disabled) {
-    background: var(--itadaki-ink-strong);
+    background: var(--itadaki-accent-tint-strong);
+    border-color: var(--itadaki-accent);
     transform: translateY(-1px);
-    box-shadow: 0 4px 14px oklch(24% 0.02 40 / 0.26);
+    box-shadow: 0 4px 14px oklch(50% 0.17 33 / 0.14);
   }
 }
 
 /*
- * Al presionar se hunde y pierde la sombra a la vez.
+ * Al tocarlo se llena y se hunde a la vez.
  *
- * Sólo achicarse se siente como un salto; que la sombra se achique con él es
- * lo que hace leer el gesto como apoyar algo sobre la mesa.
+ * El color llega recién acá: es la confirmación de que el plato se sumó, en el
+ * mismo lugar donde estaba el dedo.
  */
 .card-add:active:not(:disabled) {
+  color: white;
+  border-color: var(--itadaki-accent);
   transform: translateY(1px) scale(0.98);
-  box-shadow: 0 1px 3px oklch(24% 0.02 40 / 0.2);
+  box-shadow: 0 1px 4px oklch(50% 0.17 33 / 0.2);
+}
+
+.card-add:active:not(:disabled)::before {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* Mientras se manda: el color se queda, así se ve que algo está pasando. */
+.card-add:disabled {
+  color: white;
+  border-color: var(--itadaki-accent);
+}
+
+.card-add:disabled::before {
+  transform: scale(1);
+  opacity: 1;
 }
 
 .card-add:disabled {
-  opacity: 0.55;
   cursor: default;
 }
 
@@ -835,5 +902,52 @@
   .card:hover {
     box-shadow: var(--itadaki-shadow-card-hover, var(--itadaki-shadow-card));
     transform: translateY(-1px);
+  }
+}
+
+/*
+ * La pantalla entra en vez de aparecer.
+ *
+ * Va en el `:host` porque cada página es un componente que Angular crea de
+ * nuevo al navegar: la animación se dispara sola con el nodo, sin tener que
+ * tocar el router.
+ *
+ * Sólo la opacidad, y el desplazamiento aparte en el encabezado. Un
+ * `transform` en el `:host` haría que las barras `position: fixed` de adentro
+ * —la del total, la del pie— se posicionen respecto a la página en vez de la
+ * ventana: dejarían de estar pegadas abajo justo mientras dura la animación.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  :host {
+    animation: itadaki-appear var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
+
+  :host > header,
+  :host > main {
+    animation: itadaki-rise var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
+}
+
+/*
+ * La tarjeta se tiñe al tocarla.
+ *
+ * Antes sólo se levantaba, y en un teléfono el dedo tapa justo la parte que
+ * se movía. El color llega hasta el borde de la tarjeta, que es lo que se ve
+ * alrededor del dedo.
+ */
+.card:active {
+  background: var(--itadaki-accent-tint);
+}
+
+.card {
+  transition:
+    background var(--itadaki-quick) var(--itadaki-ease),
+    box-shadow var(--itadaki-smooth) var(--itadaki-ease),
+    transform var(--itadaki-smooth) var(--itadaki-ease);
+}
+
+@media (hover: hover) {
+  .card:hover {
+    background: color-mix(in oklab, var(--itadaki-accent-tint) 45%, white);
   }
 }

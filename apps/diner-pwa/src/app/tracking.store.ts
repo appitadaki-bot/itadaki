@@ -80,11 +80,19 @@ export class TrackingStore {
     // pedidos de la anterior hasta que llegara la respuesta.
     effect(() => {
       const sessionId = this.session.session()?.id ?? null;
-      if (sessionId === this.loadedFor) return;
+      // El token se lee tambien acá: al recuperar la mesa tras un reload
+      // aparece después de la sesión, y sin leerlo el efecto no vuelve a
+      // correr cuando llega — la pantalla se quedaba diciendo que no había
+      // pedidos aunque estuvieran en la cocina.
+      const token = this.api.tableToken();
+      if (sessionId === this.loadedFor && this.loaded()) return;
 
-      this.loadedFor = sessionId;
-      this.clear();
-      if (sessionId !== null) void this.load(sessionId);
+      if (sessionId !== this.loadedFor) {
+        this.loadedFor = sessionId;
+        this.clear();
+      }
+
+      if (sessionId !== null && token !== null) void this.load(sessionId);
     });
 
     // La cocina avanza el pedido por el mismo socket que la sesión ya tiene
@@ -95,6 +103,14 @@ export class TrackingStore {
     });
   }
 
+  /**
+   * Trae los pedidos de la mesa.
+   *
+   * Puede fallar sin que sea culpa de nadie —el token de la mesa todavía no
+   * llegó, se cayó la red— y en ese caso `loaded` queda en falso a propósito:
+   * es lo que hace que el próximo intento vuelva a pedirlos en vez de dar la
+   * mesa por vacía para siempre.
+   */
   async load(sessionId: string): Promise<void> {
     if (this.api.tableToken() === null) return;
 

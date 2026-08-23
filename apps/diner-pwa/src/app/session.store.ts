@@ -204,7 +204,7 @@ export class SessionStore {
     // —así la matriz queda legible— y el servidor lo emite al canjearla.
     const porInvitacion = invitacion !== null && restaurante !== null;
     if (tableToken === null && !porInvitacion) {
-      this.joinError.set('escaneá el QR de tu mesa para pedir');
+      this.joinError.set('Escaneá el QR de tu mesa para pedir');
       return false;
     }
 
@@ -319,6 +319,23 @@ export class SessionStore {
   async refresh(sessionId: string): Promise<void> {
     try {
       const response = await this.api.fetch(`/sessions/${sessionId}`);
+
+      /*
+       * Una mesa que el servidor ya no tiene se suelta.
+       *
+       * Antes cualquier respuesta que no fuera OK se trataba igual que un
+       * problema de red y se conservaba la última mesa conocida. Con un 404
+       * eso deja al comensal dentro de una mesa que no existe: la pantalla
+       * sigue diciendo "mesa 7" y recién al enviar el pedido aparece el error.
+       *
+       * Los demás códigos sí se aguantan — un 500 o un corte es pasajero y la
+       * mesa sigue estando.
+       */
+      if (response.status === 404) {
+        this.forget();
+        return;
+      }
+
       if (!response.ok) return;
       this.session.set((await response.json()) as SessionDto);
     } catch {

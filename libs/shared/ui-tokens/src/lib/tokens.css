@@ -10,6 +10,27 @@
   --itadaki-accent-bright: oklch(62% 0.19 33);
   --itadaki-accent-soft: oklch(70% 0.15 33 / 0.18);
   --itadaki-accent-hover: oklch(45% 0.18 33);
+  /*
+   * El terracota, pero apoyado en vez de encendido.
+   *
+   * Mismo tono de la marca (33), subido en luminosidad y bajado en croma: en
+   * oklch eso da el mismo color visto con menos fuerza, no un color distinto.
+   * Un terracota al 50% sobre el crema es un bloque que compite con la foto
+   * del plato; éste tiñe la superficie y se lee como que el elemento está
+   * vivo, sin pedir la atención que merece el precio o el botón de pedir.
+   *
+   * `-tint` es el relleno, `-line` el borde —un poco más presente, porque una
+   * línea de 1px con el mismo valor que un fondo directamente no se ve— y
+   * `-deep` el texto encima, que es el único que tiene que pasar contraste.
+   *
+   * El relleno está en 91% y no más arriba porque contra el crema de la
+   * superficie tiene que distinguirse solo: a 94% daba 1.07 contra el fondo,
+   * o sea nada, y todo el trabajo lo hacía el borde.
+   */
+  --itadaki-accent-tint: oklch(91% 0.055 33);
+  --itadaki-accent-tint-strong: oklch(86% 0.075 33);
+  --itadaki-accent-line: oklch(84% 0.07 33);
+  --itadaki-accent-deep: oklch(42% 0.12 33);
 
   /* Ink — near-black warm brown; primary text and dark surfaces */
   --itadaki-ink: oklch(24% 0.02 40);
@@ -226,4 +247,66 @@
   :where(button, .cta, [role='button']):active {
     transform: none;
   }
+}
+
+/*
+ * Que las cosas entren, no que aparezcan.
+ *
+ * Una lista que se dibuja de golpe se lee como un salto de la pantalla; la
+ * misma lista entrando desde abajo se lee como que llegó. Es la diferencia
+ * entre una página que se carga y una app que responde.
+ */
+@keyframes itadaki-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * Escalonado para listas.
+ *
+ * Cada elemento entra un poco después del anterior, así la lista se lee de
+ * arriba abajo en vez de aparecer entera. Se corta a los seis: más allá nadie
+ * percibe el escalón y sólo se siente lento el último en llegar.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .itd-rise {
+    animation: itadaki-rise var(--itadaki-settle) var(--itadaki-ease-out) both;
+  }
+
+  .itd-rise:nth-child(1) { animation-delay: 0ms; }
+  .itd-rise:nth-child(2) { animation-delay: 40ms; }
+  .itd-rise:nth-child(3) { animation-delay: 80ms; }
+  .itd-rise:nth-child(4) { animation-delay: 120ms; }
+  .itd-rise:nth-child(5) { animation-delay: 160ms; }
+  .itd-rise:nth-child(n + 6) { animation-delay: 200ms; }
+}
+
+/*
+ * La pantalla entera al cambiar de ruta.
+ *
+ * Sin esto, ir de la carta a un plato es un corte seco: la pantalla nueva
+ * reemplaza a la anterior sin decir que hubo un movimiento. Un desplazamiento
+ * corto alcanza para que se lea como avanzar.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .itd-page-enter {
+    animation: itadaki-rise var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
+}
+
+/*
+ * Aparecer sin moverse.
+ *
+ * Para contenedores que tienen hijos `position: fixed`: un `transform` los
+ * ataría al contenedor y dejarían de estar pegados a la ventana.
+ */
+@keyframes itadaki-appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

@@ -31,6 +31,7 @@
     "build:admin": "npm run legal && ng build admin-web",
     "build:salon": "ng build floor-web",
     "legal": "node scripts/build-legal.mjs",
+    "start:salon": "ng serve floor-web --port 4600",
     "build:landing": "npm run legal && node scripts/build-landing.mjs",
     "video": "node scripts/grabar-flujo.mjs"
   },

@@ -27,31 +27,69 @@ import { goBack } from './back';
     </button>
   `,
   styles: `
+    /*
+     * Volver, con forma de botón.
+     *
+     * Antes era una flecha gris del mismo tono que el texto de ayuda: se leía
+     * como una etiqueta y no como algo que se toca, y en el teléfono agregado
+     * al inicio no hay botón del navegador que lo reemplace. Ahora tiene
+     * fondo, borde y aire propio — la misma píldora del resto de la app.
+     */
     .itd-back {
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
-      /* Alineado con el texto de la cabecera, no metido hacia adentro: el
-         padding sigue siendo zona táctil. */
-      margin: 0 0 0.5rem -0.5rem;
-      padding: 0.5rem;
-      min-height: 44px;
-      border: none;
-      background: none;
-      font-family: inherit;
-      font-size: 0.85rem;
+      gap: 0.45rem;
+      margin: 0 0 0.75rem;
+      padding: 0.5rem 0.95rem 0.5rem 0.75rem;
+      min-height: 40px;
+      border: 1px solid var(--itadaki-accent-line);
+      border-radius: var(--itadaki-radius-pill);
+      background: var(--itadaki-accent-tint);
+      font-family: var(--itadaki-font-display);
+      font-size: 0.8rem;
       font-weight: 600;
-      color: var(--itadaki-ink-subtle);
+      color: var(--itadaki-accent-deep);
       cursor: pointer;
+      transition:
+        color var(--itadaki-quick) var(--itadaki-ease),
+        background var(--itadaki-quick) var(--itadaki-ease),
+        border-color var(--itadaki-quick) var(--itadaki-ease),
+        box-shadow var(--itadaki-smooth) var(--itadaki-ease),
+        transform var(--itadaki-quick) var(--itadaki-ease);
     }
 
     .itd-back-arrow {
-      font-size: 1.05rem;
+      font-size: 1rem;
       line-height: 1;
+      transition: transform var(--itadaki-smooth) var(--itadaki-ease-out);
+    }
+
+    /* La flecha se corre hacia donde lleva: dice a dónde va antes de tocarla. */
+    @media (hover: hover) {
+      .itd-back:hover {
+        background: var(--itadaki-accent-tint-strong);
+        border-color: var(--itadaki-accent);
+        box-shadow: 0 4px 12px oklch(50% 0.17 33 / 0.12);
+      }
+
+      .itd-back:hover .itd-back-arrow {
+        transform: translateX(-3px);
+      }
+    }
+
+    .itd-back:active {
+      transform: scale(0.97);
     }
 
     .itd-back:active .itd-back-arrow {
-      transform: translateX(-2px);
+      transform: translateX(-3px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .itd-back,
+      .itd-back-arrow {
+        transition: none;
+      }
     }
   `,
 })

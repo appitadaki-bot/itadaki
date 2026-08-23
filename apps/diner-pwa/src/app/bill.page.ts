@@ -37,7 +37,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
   styleUrl: './bill.page.css',
   template: `
     <header class="pad">
-      <itd-back to="/carta" label="la carta" />
+      <itd-back to="/carta" label="La carta" />
       <p class="eyebrow">
         @if (session.tableLabel(); as mesa) { mesa {{ mesa }} · }cuenta
       </p>

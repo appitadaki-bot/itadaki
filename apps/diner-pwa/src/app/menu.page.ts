@@ -144,7 +144,7 @@ const DIET_LABELS: ReadonlyArray<{ tag: DietTag; label: string }> = [
 
           <div class="list">
             @for (product of section.products; track product.id) {
-              <article class="card">
+              <article class="card itd-rise">
               <a class="card-link" [routerLink]="['/producto', product.id]">
           @if (product.images; as set) {
             <picture class="photo-pic">
