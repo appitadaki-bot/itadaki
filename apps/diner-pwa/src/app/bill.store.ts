@@ -37,7 +37,7 @@ export interface SplitDto {
   }>;
 }
 
-export type SplitKind = 'EQUAL' | 'BY_DINER' | 'BY_ITEM' | 'CUSTOM_AMOUNT';
+export type SplitKind = 'SINGLE_PAYER' | 'EQUAL' | 'BY_DINER' | 'BY_ITEM' | 'CUSTOM_AMOUNT';
 export type TipChoice = { kind: 'NONE' } | { kind: 'PERCENTAGE'; percent: number };
 
 @Injectable({ providedIn: 'root' })
@@ -56,12 +56,12 @@ export class BillStore {
     try {
       const response = await this.api.fetch(`/bills/close/${sessionId}`, { method: 'POST' });
       if (!response.ok) {
-        this.error.set('no pudimos abrir la cuenta');
+        this.error.set('No pudimos abrir la cuenta');
         return;
       }
       this.bill.set((await response.json()) as BillDto);
     } catch {
-      this.error.set('sin conexión');
+      this.error.set('Sin conexión');
     } finally {
       this.busy.set(false);
     }
@@ -84,6 +84,18 @@ export class BillStore {
   // y este teléfono nunca lo tiene. Lo hace el mozo desde salón, después de
   // cobrar; desde el comensal sale el aviso, que es una llamada a la mesa.
 
+  /**
+   * Borra la división a medio hacer.
+   *
+   * Mientras el comensal está eligiendo quién paga qué no hay división válida
+   * que mostrar, y dejar la anterior en pantalla sería mostrar montos que ya
+   * no corresponden a lo que está marcado.
+   */
+  clearSplit(): void {
+    this.split.set(null);
+    this.error.set(null);
+  }
+
   /** Splits are computed server-side and never persisted, so the table can try options. */
   async computeSplit(
     sessionId: string,
@@ -91,6 +103,7 @@ export class BillStore {
     tip: TipChoice,
     parts?: number,
     assignments?: ReadonlyArray<{ lineId: string; payerIds: readonly string[] }>,
+    payerId?: string,
   ): Promise<void> {
     this.error.set(null);
 
@@ -99,16 +112,17 @@ export class BillStore {
       tip,
       parts,
       assignments,
+      payerId,
     });
 
     if (!response.ok) {
       const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
       this.error.set(
         detail?.kind === 'UNASSIGNED_LINES'
-          ? 'falta asignar algún plato'
+          ? 'Falta decir quién paga algún plato'
           : detail?.kind === 'AMOUNTS_DO_NOT_MATCH'
-            ? 'los montos no suman el total'
-            : 'no pudimos calcular la división',
+            ? 'Los montos no suman el total'
+            : 'No pudimos calcular la división',
       );
       this.split.set(null);
       return;
