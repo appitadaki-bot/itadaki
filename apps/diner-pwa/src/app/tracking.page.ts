@@ -11,10 +11,10 @@ import { SessionStore } from './session.store';
 import { TrackingStore, type TrackedOrder } from './tracking.store';
 
 const STEP_LABELS: Record<string, { title: string; hint: string }> = {
-  SENT: { title: 'pedido enviado', hint: 'la cocina ya lo recibió' },
-  ACCEPTED: { title: 'confirmado', hint: 'lo tienen anotado' },
-  IN_PREP: { title: 'en cocina', hint: 'lo están preparando' },
-  READY: { title: 'listo', hint: 'sale para tu mesa' },
+  SENT: { title: 'Pedido enviado', hint: 'la cocina ya lo recibió' },
+  ACCEPTED: { title: 'Confirmado', hint: 'lo tienen anotado' },
+  IN_PREP: { title: 'En cocina', hint: 'lo están preparando' },
+  READY: { title: 'Listo', hint: 'sale para tu mesa' },
 };
 
 @Component({
@@ -25,7 +25,7 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
   styleUrl: './tracking.page.css',
   template: `
     <header class="pad">
-      <itd-back to="/carta" label="la carta" />
+      <itd-back to="/carta" label="La carta" />
       <p class="eyebrow">
         @if (session.tableLabel(); as mesa) { mesa {{ mesa }} · }estado
         @if (session.connected()) {
@@ -100,12 +100,17 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
         <a class="link" routerLink="/cuenta">Ver la cuenta →</a>
       </footer>
     } @else {
+      <!-- "No mandaste nada" solo cuando el servidor ya contesto.
+           Antes bastaba con que la carga terminara, sin importar si habia
+           funcionado: si el token de la mesa todavia no habia llegado, la
+           pantalla afirmaba que no habia pedidos mientras el plato ya estaba
+           en la cocina. Mientras no se sepa, se espera. -->
       <main class="body empty">
-        @if (store.busy()) {
-          <p class="muted">Buscando tu pedido…</p>
-        } @else {
+        @if (store.loaded()) {
           <p class="muted">Todavía no mandaste ningún pedido.</p>
           <a class="cta cta-link" routerLink="/carta">Ver la carta →</a>
+        } @else {
+          <p class="muted">Buscando tu pedido…</p>
         }
       </main>
     }

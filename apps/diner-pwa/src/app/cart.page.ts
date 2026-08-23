@@ -18,12 +18,16 @@ import { TrackingStore } from './tracking.store';
   styleUrl: './cart.page.css',
   template: `
     <header class="pad">
-      <itd-back to="/carta" label="la carta" />
+      <itd-back to="/carta" label="La carta" />
+      <!-- Compartido solo si de verdad se entro a la mesa. El nombre de la
+           mesa sale del token del QR, que queda guardado con solo escanear:
+           mostrarlo sin sesion prometia un pedido compartido que no existia, y
+           el error recien aparecia al tocar enviar. -->
       <p class="eyebrow">
-        @if (session.tableLabel(); as mesa) {
-          mesa {{ mesa }} · pedido compartido
+        @if (session.isJoined() && session.tableLabel(); as mesa) {
+          Mesa {{ mesa }} · pedido compartido
         } @else {
-          tu pedido
+          Tu pedido
         }
       </p>
       <h1 class="title">Carrito</h1>
@@ -216,10 +220,10 @@ import { TrackingStore } from './tracking.store';
           @switch (state.kind) {
             @case ('sent') {
               <p class="sent-note" role="status">
-                pedido enviado · la cocina ya lo está viendo
+                Pedido enviado · la cocina ya lo está viendo
               </p>
               <a class="cta cta-link" routerLink="/estado" (click)="startNew()">
-                seguir mi pedido →
+                Seguir mi pedido →
               </a>
             }
             @case ('queued') {
@@ -228,20 +232,28 @@ import { TrackingStore } from './tracking.store';
                 sin señal · guardamos tu pedido y lo enviamos apenas vuelva
               </p>
               <a class="cta cta-link" routerLink="/estado" (click)="startNew()">
-                entendido →
+                Entendido →
               </a>
             }
             @default {
-              <button
-                type="button"
-                class="cta"
-                [disabled]="state.kind === 'sending'"
-                (click)="send()"
-              >
-                {{ state.kind === 'sending' ? 'enviando…' : 'enviar pedido a cocina →' }}
-              </button>
-              @if (state.kind === 'failed') {
-                <p class="error-note" role="alert">{{ state.message }} — probá de nuevo</p>
+              <!-- Sin mesa el pedido no tiene a donde ir, y eso se sabe antes
+                   de tocar: el boton lleva a unirse en vez de fallar. Dejarlo
+                   activo era ofrecer algo que siempre terminaba en un error. -->
+              @if (!session.isJoined()) {
+                <a class="cta" routerLink="/unirse">Unirme a la mesa para pedir →</a>
+                <p class="error-note">Escaneá el QR de tu mesa o pedile el código al mozo</p>
+              } @else {
+                <button
+                  type="button"
+                  class="cta"
+                  [disabled]="state.kind === 'sending'"
+                  (click)="send()"
+                >
+                  {{ state.kind === 'sending' ? 'Enviando…' : 'Enviar pedido a cocina →' }}
+                </button>
+                @if (state.kind === 'failed') {
+                  <p class="error-note" role="alert">{{ state.message }} — probá de nuevo</p>
+                }
               }
             }
           }
