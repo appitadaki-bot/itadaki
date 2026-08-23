@@ -406,6 +406,50 @@ export class PostgresSessionStore implements SessionReader, SessionWriter {
     }
   }
 
+  /**
+   * Borra el apodo de las mesas que ya terminaron.
+   *
+   * El apodo es el único dato del comensal que guardamos, y la política de
+   * privacidad promete que no se conserva más de lo necesario. Una vez cerrada
+   * la cuenta ya no cumple ninguna función: sirve para que el resto de la mesa
+   * vea quién pidió qué mientras están comiendo, y después es un nombre suelto
+   * en una base para siempre.
+   *
+   * Lo que queda es la venta —qué se pidió y cuánto salió— que es el registro
+   * comercial del restaurante y no identifica a nadie: los pedidos guardan su
+   * propia copia del plato y el precio, nunca el nombre.
+   */
+  async forgetDiners(olderThanDays: number): Promise<Result<number, OrderRepositoryError>> {
+    try {
+      const limpiadas = await this.db.unscoped(async (client) => {
+        // Mismo recorrido que el barrido: con RLS en FORCE, una consulta sin
+        // tenant en alcance no ve ninguna fila y reporta éxito igual.
+        const tenants = await client.query<{ tenant_id: string }>(
+          'SELECT id AS tenant_id FROM tenants WHERE active',
+        );
+
+        let total = 0;
+        for (const row of tenants.rows) {
+          await client.query('SELECT set_config($1, $2, false)', ['app.tenant_id', row.tenant_id]);
+          const result = await client.query(
+            `UPDATE table_sessions
+                SET diners = '[]'::jsonb
+              WHERE status = 'CLOSED'
+                AND diners <> '[]'::jsonb
+                AND opened_at < now() - ($1 || ' days')::interval`,
+            [olderThanDays],
+          );
+          total += result.rowCount ?? 0;
+        }
+        return total;
+      });
+
+      return ok(limpiadas);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   async closeStale(olderThanHours: number): Promise<Result<number, OrderRepositoryError>> {
     try {
       const closed = await this.db.unscoped(async (client) => {
