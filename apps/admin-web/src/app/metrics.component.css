@@ -30,7 +30,7 @@
 .window {
   border: 1px solid var(--itadaki-border);
   background: transparent;
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   padding: 0.4rem 0.85rem;
   font-family: inherit;
   font-size: 0.8rem;

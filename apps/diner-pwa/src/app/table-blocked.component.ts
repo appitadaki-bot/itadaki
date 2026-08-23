@@ -67,7 +67,7 @@ import { SessionStore } from './session.store';
       <div class="screen" role="alert">
         @if (reason === 'SESSION_CLOSED') {
           <span class="mark" aria-hidden="true">🍽️</span>
-          <h1 class="title">gochisousama!</h1>
+          <h1 class="title">Gochisousama!</h1>
           <p class="lede">
             La cuenta de esta mesa ya se cerró. Gracias por venir.
           </p>
@@ -76,7 +76,7 @@ import { SessionStore } from './session.store';
           </button>
         } @else {
           <span class="mark" aria-hidden="true">📷</span>
-          <h1 class="title">escaneá de nuevo</h1>
+          <h1 class="title">Escaneá de nuevo</h1>
           <p class="lede">
             El código de tu mesa venció. Escaneá el QR otra vez para seguir
             pidiendo — no perdés nada de lo que ya enviaste.

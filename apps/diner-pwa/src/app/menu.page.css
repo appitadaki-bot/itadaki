@@ -643,13 +643,39 @@
   white-space: nowrap;
   text-align: center;
   text-decoration: none;
+  /*
+   * Una sombra tenue, del color del propio botón.
+   *
+   * Un rectángulo negro plano sobre el crema se ve pegado al papel: la sombra
+   * lo despega apenas y es lo que separa un botón de un bloque de color. Del
+   * color del botón y no gris, porque una sombra gris sobre un fondo cálido
+   * se ve sucia.
+   */
+  box-shadow: 0 2px 8px oklch(24% 0.02 40 / 0.18);
   transition:
-    transform var(--itadaki-quick) cubic-bezier(0.2, 0, 0.2, 1),
+    transform var(--itadaki-quick) var(--itadaki-ease),
+    box-shadow var(--itadaki-smooth) var(--itadaki-ease),
     background var(--itadaki-quick) var(--itadaki-ease);
 }
 
-.card-add:active {
-  transform: scale(0.94);
+/* Se levanta apenas: dice que responde antes de que el dedo llegue. */
+@media (hover: hover) {
+  .card-add:hover:not(:disabled) {
+    background: var(--itadaki-ink-strong);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px oklch(24% 0.02 40 / 0.26);
+  }
+}
+
+/*
+ * Al presionar se hunde y pierde la sombra a la vez.
+ *
+ * Sólo achicarse se siente como un salto; que la sombra se achique con él es
+ * lo que hace leer el gesto como apoyar algo sobre la mesa.
+ */
+.card-add:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 1px 3px oklch(24% 0.02 40 / 0.2);
 }
 
 .card-add:disabled {

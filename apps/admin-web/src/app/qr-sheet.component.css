@@ -43,7 +43,7 @@
 
 .print,
 .ghost {
-  border-radius: var(--itadaki-radius-pill);
+  border-radius: var(--itadaki-radius-action);
   padding: 0.65rem 1.2rem;
   font-family: var(--itadaki-font-display);
   font-size: 0.875rem;

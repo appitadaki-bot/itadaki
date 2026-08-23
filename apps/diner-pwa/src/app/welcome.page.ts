@@ -22,10 +22,10 @@ import { SessionStore } from './session.store';
       <p class="table">
         @if (session.tableLabel(); as mesa) { mesa {{ mesa }} } @else { tu mesa }
       </p>
-      <h1 class="greeting">itadakimasu!</h1>
+      <h1 class="greeting">Itadakimasu!</h1>
       <p class="lede">bienvenido a ITADAKI. tu mesa ya está lista — armá tu pedido cuando quieras.</p>
 
-      <a class="cta" routerLink="/unirse">ver la carta →</a>
+      <a class="cta" routerLink="/unirse">Ver la carta →</a>
 
       <div class="dots" aria-hidden="true">
         <span class="dot d1"></span>

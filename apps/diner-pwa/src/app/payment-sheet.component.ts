@@ -40,7 +40,7 @@ const PAYMENT_OPTIONS: ReadonlyArray<{ method: PaymentMethod; label: string; hin
     <div class="backdrop" (click)="close.emit()"></div>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pay-title">
       <p class="title" id="pay-title">¿cómo van a pagar?</p>
-      <p class="note">le avisamos al mozo para que venga con lo que haga falta</p>
+      <p class="note">Le avisamos al mozo para que venga con lo que haga falta</p>
 
       @for (option of options; track option.method) {
         <button

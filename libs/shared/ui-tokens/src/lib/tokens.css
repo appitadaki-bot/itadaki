@@ -105,6 +105,18 @@
 
   /* Radii — pill-first; cards are generously rounded */
   --itadaki-radius-pill: 100px;
+  /*
+   * La píldora, pero para una herramienta de trabajo.
+   *
+   * El redondeo total se lee amigable, y eso está bien en el teléfono del
+   * comensal: es una carta, no un sistema. En el panel, la cocina y el salón
+   * lo mismo se lee infantil — quien lo usa está trabajando bajo presión y un
+   * botón de caramelo no transmite que la herramienta es seria.
+   *
+   * No es un radio distinto por gusto: es el mismo lenguaje ablandado donde
+   * hace falta que lo sea, y firme donde hace falta que lo sea.
+   */
+  --itadaki-radius-action: 12px;
   --itadaki-radius-card: 20px;
   --itadaki-radius-panel: 28px;
   --itadaki-radius-sheet: 18px;
