@@ -155,6 +155,17 @@ const ANALYSIS_WIDTH = 160;
           </label>
         </div>
 
+        @if (showingExisting()) {
+          <!--
+            Sin esto el botón quedaba gris sin motivo visible: la foto se podía
+            arrastrar y hacer zoom en pantalla, pero aplicar no hacía nada y
+            nada explicaba por qué.
+          -->
+          <p class="editor-nota">
+            Ésta es la foto guardada. Para recortarla de nuevo, subila otra vez.
+          </p>
+        }
+
         <div class="actions">
           <label class="ghost file-swap">
             {{ showingExisting() ? 'subir otra foto' : 'cambiar foto' }}

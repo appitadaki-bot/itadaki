@@ -20,7 +20,7 @@
   /* El gesto de arrastre lo maneja el componente: sin esto, el navegador se
      queda con el movimiento vertical para hacer scroll y el timbre no se mueve. */
   touch-action: none;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  transition: box-shadow var(--itadaki-quick) var(--itadaki-ease), transform var(--itadaki-quick) var(--itadaki-ease);
 }
 
 /* Una vez movido, la posición la fija el componente en línea. El borde se
@@ -163,13 +163,13 @@
 }
 
 .option-label {
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--itadaki-ink-strong);
 }
 
 .option-hint {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: var(--itadaki-ink-subtle);
 }
 
@@ -196,7 +196,7 @@
   background: none;
   padding: 0.6rem;
   font-family: inherit;
-  font-size: 0.83rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--itadaki-ink-subtle);
   cursor: pointer;

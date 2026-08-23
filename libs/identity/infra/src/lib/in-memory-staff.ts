@@ -1,0 +1,116 @@
+import { type StaffUser } from '@itadaki/identity/domain';
+import { type Result, err, ok } from '@itadaki/shared/domain';
+import { hashPassword } from './password';
+import { type StaffError, type StaffWithHash } from './postgres-staff';
+
+/**
+ * La misma que crea el seed, para que las instrucciones sirvan en los dos modos.
+ *
+ * Nunca sale de una máquina de desarrollo: este store sólo se usa con
+ * `USE_POSTGRES=false`, que en un servidor no se activa nunca.
+ */
+const DEMO_PASSWORD = 'Itadaki2026Demo';
+
+const DEMO_STAFF: ReadonlyArray<Omit<StaffWithHash, 'passwordHash'>> = [
+  {
+    tenantId: 'itadaki',
+    id: 'dueno',
+    email: 'dueno@itadaki.test',
+    displayName: 'dueño',
+    role: 'OWNER',
+    active: true,
+  },
+  {
+    tenantId: 'itadaki',
+    id: 'cocina',
+    email: 'cocina@itadaki.test',
+    displayName: 'cocina',
+    role: 'KITCHEN',
+    active: true,
+  },
+  {
+    tenantId: 'itadaki',
+    id: 'mozo',
+    email: 'mozo@itadaki.test',
+    displayName: 'mozo',
+    role: 'WAITER',
+    active: true,
+  },
+];
+
+/**
+ * El equipo, para `USE_POSTGRES=false`.
+ *
+ * El login siempre iba contra Postgres aunque el resto corriera en memoria, así
+ * que levantar el proyecto sin base dejaba el panel, la cocina y el salón
+ * inalcanzables: cualquier credencial devolvía "email o contraseña
+ * incorrectos", que hace buscar el error donde no está.
+ *
+ * Las contraseñas se cifran igual que en Postgres. Guardarlas en texto acá
+ * sería una puerta distinta a la de producción, y las puertas distintas se
+ * olvidan abiertas.
+ */
+export class InMemoryStaffStore {
+  private readonly rows = new Map<string, StaffWithHash>();
+  private listo: Promise<void> | null = null;
+
+  /** Cifrar es asíncrono, así que la siembra espera a la primera consulta. */
+  private async sembrar(): Promise<void> {
+    if (this.listo !== null) return this.listo;
+
+    this.listo = (async () => {
+      for (const user of DEMO_STAFF) {
+        const hash = await hashPassword(DEMO_PASSWORD);
+        this.rows.set(user.email.toLowerCase(), { ...user, passwordHash: hash });
+      }
+    })();
+
+    return this.listo;
+  }
+
+  async findByEmail(email: string): Promise<Result<StaffWithHash, StaffError>> {
+    await this.sembrar();
+    const found = this.rows.get(email.trim().toLowerCase());
+    return found === undefined ? err({ kind: 'NOT_FOUND', email }) : ok(found);
+  }
+
+  async create(user: StaffWithHash): Promise<Result<StaffUser, StaffError>> {
+    await this.sembrar();
+    this.rows.set(user.email.toLowerCase(), user);
+    const { passwordHash: _, ...sinHash } = user;
+    return ok(sinHash);
+  }
+
+  async isActive(tenantId: string, userId: string): Promise<boolean> {
+    await this.sembrar();
+    return [...this.rows.values()].some(
+      (u) => u.tenantId === tenantId && u.id === userId && u.active,
+    );
+  }
+
+  async setActive(
+    tenantId: string,
+    userId: string,
+    active: boolean,
+  ): Promise<Result<StaffUser, StaffError>> {
+    await this.sembrar();
+    const found = [...this.rows.values()].find(
+      (u) => u.tenantId === tenantId && u.id === userId,
+    );
+    if (found === undefined) return err({ kind: 'NOT_FOUND', email: userId });
+
+    const actualizado = { ...found, active };
+    this.rows.set(found.email.toLowerCase(), actualizado);
+    const { passwordHash: _, ...sinHash } = actualizado;
+    return ok(sinHash);
+  }
+
+  async listForTenant(tenantId: string): Promise<Result<readonly StaffUser[], StaffError>> {
+    await this.sembrar();
+    return ok(
+      [...this.rows.values()]
+        .filter((u) => u.tenantId === tenantId)
+        .map(({ passwordHash: _, ...user }) => user),
+    );
+  }
+}
