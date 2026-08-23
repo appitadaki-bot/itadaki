@@ -13,10 +13,10 @@ import { type PaymentMethod } from '@itadaki/ordering/domain';
  * acerca igual y lo resuelven ahí.
  */
 const PAYMENT_OPTIONS: ReadonlyArray<{ method: PaymentMethod; label: string; hint: string }> = [
-  { method: 'CARD', label: 'con tarjeta', hint: 'te llevan el posnet a la mesa' },
-  { method: 'CASH', label: 'en efectivo', hint: 'te llevan el cambio' },
-  { method: 'COUNTER', label: 'vamos a la caja', hint: 'pagan al salir, en el mostrador' },
-  { method: 'UNDECIDED', label: 'todavía no sabemos', hint: 'lo definen en la mesa' },
+  { method: 'CARD', label: 'Con tarjeta', hint: 'te llevan el posnet a la mesa' },
+  { method: 'CASH', label: 'En efectivo', hint: 'te llevan el cambio' },
+  { method: 'COUNTER', label: 'Vamos a la caja', hint: 'pagan al salir, en el mostrador' },
+  { method: 'UNDECIDED', label: 'Todavía no sabemos', hint: 'lo definen en la mesa' },
 ];
 
 /**

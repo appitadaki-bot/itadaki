@@ -107,8 +107,8 @@ export class OrderService {
           kind: 'failed',
           message:
             detail?.kind === 'PRODUCT_UNAVAILABLE'
-              ? 'uno de los platos se quedó sin stock'
-              : 'no pudimos enviar el pedido',
+              ? 'Uno de los platos se quedó sin stock'
+              : 'No pudimos enviar el pedido',
         });
         return;
       }
@@ -134,7 +134,7 @@ export class OrderService {
       await this.offline.enqueue('/orders', 'POST', payload, clientRequestId);
       this.state.set({ kind: 'queued' });
     } catch {
-      this.state.set({ kind: 'failed', message: 'no pudimos guardar el pedido' });
+      this.state.set({ kind: 'failed', message: 'No pudimos guardar el pedido' });
     }
   }
 
@@ -152,7 +152,7 @@ export class OrderService {
   needsTable(): void {
     this.state.set({
       kind: 'failed',
-      message: 'escaneá el QR de tu mesa para enviar el pedido',
+      message: 'Escaneá el QR de tu mesa para enviar el pedido',
     });
   }
 }

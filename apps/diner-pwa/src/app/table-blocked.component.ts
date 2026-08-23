@@ -72,7 +72,7 @@ import { SessionStore } from './session.store';
             La cuenta de esta mesa ya se cerró. Gracias por venir.
           </p>
           <button type="button" class="cta" (click)="startOver()">
-            empezar de nuevo
+            Empezar de nuevo
           </button>
         } @else {
           <span class="mark" aria-hidden="true">📷</span>
@@ -82,7 +82,7 @@ import { SessionStore } from './session.store';
             pidiendo — no perdés nada de lo que ya enviaste.
           </p>
           <button type="button" class="cta" (click)="startOver()">
-            volver al inicio
+            Volver al inicio
           </button>
         }
       </div>

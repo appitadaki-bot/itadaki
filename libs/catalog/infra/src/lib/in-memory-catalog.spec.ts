@@ -44,7 +44,7 @@ describe('in-memory catalog wiring', () => {
     const store = new InMemoryProductStore();
     const vegan = await store.list(TENANT_ID, { requireDiets: ['VEGAN'], onlyAvailable: true });
     if (vegan.isErr()) throw new Error('expected ok');
-    expect(vegan.value.map((p) => p.name)).toEqual(['limonada con menta']);
+    expect(vegan.value.map((p) => p.name)).toEqual(['Limonada con menta']);
   });
 
   it('sorts categories by sortOrder', async () => {

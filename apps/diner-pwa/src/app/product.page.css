@@ -276,3 +276,26 @@
   color: var(--itadaki-accent);
   font-weight: 600;
 }
+
+/*
+ * La pantalla entra en vez de aparecer.
+ *
+ * Va en el `:host` porque cada página es un componente que Angular crea de
+ * nuevo al navegar: la animación se dispara sola con el nodo, sin tener que
+ * tocar el router.
+ *
+ * Sólo la opacidad, y el desplazamiento aparte en el encabezado. Un
+ * `transform` en el `:host` haría que las barras `position: fixed` de adentro
+ * —la del total, la del pie— se posicionen respecto a la página en vez de la
+ * ventana: dejarían de estar pegadas abajo justo mientras dura la animación.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  :host {
+    animation: itadaki-appear var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
+
+  :host > header,
+  :host > main {
+    animation: itadaki-rise var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
+}

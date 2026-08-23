@@ -273,8 +273,8 @@ export class ProductPage {
     const labels: Record<string, string> = {
       GLUTEN: 'gluten',
       LACTOSE: 'lactosa',
-      NUTS: 'frutos secos',
-      PEANUTS: 'maní',
+      NUTS: 'Frutos secos',
+      PEANUTS: 'Maní',
       EGG: 'huevo',
       FISH: 'pescado',
       SHELLFISH: 'mariscos',

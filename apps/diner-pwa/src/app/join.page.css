@@ -7,7 +7,7 @@
 .input { width: 100%; border: 2px solid var(--itadaki-border); background: var(--itadaki-surface-raised); border-radius: var(--itadaki-radius-pill); padding: 0.95rem 1.2rem; font-family: var(--itadaki-font-display); font-size: 1rem; font-weight: 600; color: var(--itadaki-ink); text-align: center; }
 .input:focus { border-color: var(--itadaki-accent); }
 .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; }
-.chip { border: none; background: var(--itadaki-surface-raised); border-radius: var(--itadaki-radius-pill); padding: 0.45rem 0.85rem; font-family: inherit; font-size: 0.8rem; font-weight: 600; color: var(--itadaki-ink-muted); cursor: pointer; min-height: 34px; }
+.chip { border: 1px solid var(--itadaki-accent-line); background: var(--itadaki-accent-tint); border-radius: var(--itadaki-radius-pill); padding: 0.45rem 0.85rem; font-family: inherit; font-size: 0.8rem; font-weight: 600; color: var(--itadaki-accent-deep); cursor: pointer; min-height: 34px; transition: background var(--itadaki-quick) var(--itadaki-ease), transform var(--itadaki-quick) var(--itadaki-ease); }
 .chip:hover { color: var(--itadaki-accent); }
 .no-token {
   background: var(--itadaki-surface-sunken);
@@ -53,4 +53,14 @@
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+/* Se llena al pasar el dedo: el mismo color, un paso más presente. */
+.chip:hover {
+  background: var(--itadaki-accent-tint-strong);
+  color: var(--itadaki-accent-deep);
+}
+
+.chip:active {
+  transform: scale(0.95);
 }

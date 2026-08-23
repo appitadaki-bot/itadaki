@@ -179,7 +179,8 @@
   height: 30px;
   border-radius: 50%;
   border: none;
-  background: white;
+  background: var(--itadaki-accent-tint);
+  color: var(--itadaki-accent-deep);
   font-size: 1rem;
   cursor: pointer;
   line-height: 1;
@@ -345,4 +346,63 @@
   margin-top: 0.6rem;
   text-align: center;
   font-size: 0.8rem;
+}
+
+/*
+ * La pantalla entra en vez de aparecer.
+ *
+ * Va en el `:host` porque cada página es un componente que Angular crea de
+ * nuevo al navegar: la animación se dispara sola con el nodo, sin tener que
+ * tocar el router.
+ *
+ * Sólo la opacidad, y el desplazamiento aparte en el encabezado. Un
+ * `transform` en el `:host` haría que las barras `position: fixed` de adentro
+ * —la del total, la del pie— se posicionen respecto a la página en vez de la
+ * ventana: dejarían de estar pegadas abajo justo mientras dura la animación.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  :host {
+    animation: itadaki-appear var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
+
+  :host > header,
+  :host > main {
+    animation: itadaki-rise var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
+}
+
+/*
+ * Los botones de cantidad responden al dedo.
+ *
+ * No tenían ninguna transición: tocar "+" cambiaba el número de golpe y no
+ * había nada que confirmara que el toque había entrado. En un botón de 30px,
+ * donde el dedo tapa lo que está tocando, esa confirmación es lo único que
+ * dice que funcionó.
+ */
+.step {
+  display: grid;
+  place-items: center;
+  transition:
+    background var(--itadaki-quick) var(--itadaki-ease),
+    color var(--itadaki-quick) var(--itadaki-ease),
+    transform var(--itadaki-quick) var(--itadaki-ease);
+}
+
+@media (hover: hover) {
+  .step:hover:not(:disabled) {
+    background: var(--itadaki-accent);
+    color: white;
+  }
+}
+
+.step:active:not(:disabled) {
+  transform: scale(0.88);
+  background: var(--itadaki-accent);
+  color: white;
+}
+
+/* El número cambia con el botón, así se ve que uno causó el otro. */
+.qty {
+  font-variant-numeric: tabular-nums;
+  transition: transform var(--itadaki-quick) var(--itadaki-ease-out);
 }

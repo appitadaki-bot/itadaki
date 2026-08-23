@@ -31,7 +31,7 @@
 .stepper-row { display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin-top: 0.8rem; }
 .stepper-label { font-size: 0.8rem; color: var(--itadaki-ink-subtle); }
 .stepper { display: flex; align-items: center; gap: 0.5rem; background: var(--itadaki-surface-sunken); border-radius: var(--itadaki-radius-pill); padding: 0.3rem; }
-.step { width: 32px; height: 32px; border-radius: 50%; border: none; background: white; font-size: 1.05rem; cursor: pointer; line-height: 1; color: var(--itadaki-ink); }
+.step { width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--itadaki-accent-tint); font-size: 1.05rem; cursor: pointer; line-height: 1; color: var(--itadaki-accent-deep); }
 .qty { font-weight: 700; min-width: 20px; text-align: center; font-variant-numeric: tabular-nums; }
 .assign-hint { font-size: 0.75rem; color: var(--itadaki-ink-subtle); margin: 0.8rem 0 0.5rem; }
 .assign { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.5rem 0; border-top: 1px solid var(--itadaki-border); }
@@ -108,4 +108,27 @@
     background var(--itadaki-quick) var(--itadaki-ease),
     border-color var(--itadaki-quick) var(--itadaki-ease),
     color var(--itadaki-quick) var(--itadaki-ease);
+}
+
+/*
+ * La pantalla entra en vez de aparecer.
+ *
+ * Va en el `:host` porque cada página es un componente que Angular crea de
+ * nuevo al navegar: la animación se dispara sola con el nodo, sin tener que
+ * tocar el router.
+ *
+ * Sólo la opacidad, y el desplazamiento aparte en el encabezado. Un
+ * `transform` en el `:host` haría que las barras `position: fixed` de adentro
+ * —la del total, la del pie— se posicionen respecto a la página en vez de la
+ * ventana: dejarían de estar pegadas abajo justo mientras dura la animación.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  :host {
+    animation: itadaki-appear var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
+
+  :host > header,
+  :host > main {
+    animation: itadaki-rise var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
 }
