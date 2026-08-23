@@ -506,8 +506,18 @@
 
 /* Dos líneas como máximo: un nombre largo estiraba la fila y desalineaba la
    foto respecto del texto, que es lo que hacía ver la lista despareja. */
+/*
+ * El nombre del plato va en la tipografía de texto.
+ *
+ * La regla decía `display` desde el principio, pero Unbounded no se cargaba
+ * —faltaba el `<link>`— así que en la práctica los platos siempre se leyeron
+ * en la del sistema. Al empezar a cargarse, una display apareció donde nunca
+ * había estado: Unbounded es de titular, se luce en dos palabras y cansa en
+ * una lista de veinte nombres largos, que es justo lo que la persona vino a
+ * leer. La display queda para los títulos.
+ */
 .card-name {
-  font-family: var(--itadaki-font-display);
+  font-family: var(--itadaki-font-body);
   font-weight: 600;
   font-size: 1rem;
   color: var(--itadaki-ink-strong);
