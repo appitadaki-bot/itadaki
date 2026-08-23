@@ -395,6 +395,12 @@
   }
 }
 
+/*
+ * Acá el color se queda, y está bien: el botón es lo que el dedo está
+ * tocando, mide 30px y queda tapado por el propio dedo. El `:active` pegado
+ * del teléfono deja marcado el último que se tocó, que es información útil
+ * —cuál moví— y no un elemento pintado lejos de donde nadie tocó.
+ */
 .step:active:not(:disabled) {
   transform: scale(0.88);
   background: var(--itadaki-accent);
