@@ -7,7 +7,7 @@ import { SessionStore } from './session.store';
 const OPTIONS: ReadonlyArray<{ reason: CallReason; label: string; hint: string }> = [
   { reason: 'WAITER', label: 'Llamar al mozo', hint: 'Alguien se acerca a la mesa' },
   { reason: 'BILL', label: 'Pedir la cuenta', hint: 'La preparan y te la traen' },
-  { reason: 'QUESTION', label: 'Tengo una duda', hint: 'Sobre un plato o la carta' },
+  { reason: 'QUESTION', label: 'Tengo una duda', hint: 'Sobre algo de la carta' },
 ];
 
 

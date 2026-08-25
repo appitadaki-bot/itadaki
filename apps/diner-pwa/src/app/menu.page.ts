@@ -75,7 +75,7 @@ const DIET_LABELS: ReadonlyArray<{ tag: DietTag; label: string }> = [
           id="menu-search"
           type="search"
           class="search"
-          placeholder="Buscar plato…"
+          placeholder="Buscar en la carta…"
           [value]="search()"
           (input)="onSearch($event)"
         />
@@ -245,7 +245,7 @@ const DIET_LABELS: ReadonlyArray<{ tag: DietTag; label: string }> = [
         </section>
       } @empty {
         <p class="empty">
-          No hay platos que coincidan con esos filtros.
+          No hay nada que coincida con esos filtros.
           <button type="button" class="link" (click)="clearFilters()">Limpiar filtros</button>
         </p>
       }

@@ -107,7 +107,7 @@ export class OrderService {
           kind: 'failed',
           message:
             detail?.kind === 'PRODUCT_UNAVAILABLE'
-              ? 'Uno de los platos se quedó sin stock'
+              ? 'Algo de lo que pediste se quedó sin stock'
               : 'No pudimos enviar el pedido',
         });
         return;

@@ -15,7 +15,7 @@ const SPLIT_LABELS: ReadonlyArray<{ kind: SplitKind; label: string; hint: string
   { kind: 'SINGLE_PAYER', label: 'Paga una persona', hint: 'uno se hace cargo de todo' },
   { kind: 'BY_DINER', label: 'Cada uno lo suyo', hint: 'pagás lo que pediste' },
   { kind: 'EQUAL', label: 'Partes iguales', hint: 'el total dividido' },
-  { kind: 'BY_ITEM', label: 'Por plato', hint: 'elegís quién paga qué' },
+  { kind: 'BY_ITEM', label: 'Uno por uno', hint: 'elegís quién paga qué' },
 ];
 
 const TIP_OPTIONS: ReadonlyArray<{ label: string; choice: TipChoice }> = [
@@ -133,7 +133,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
                  La pantalla decía "tocá un nombre", en singular, así que
                  marcar dos se leía como que algo había salido mal. -->
             <p class="assign-hint">
-              Tocá quién paga cada plato. Si lo compartieron, marcá a todos y se
+              Tocá quién paga cada cosa. Si la compartieron, marcá a todos y se
               divide entre ellos.
             </p>
             @for (line of bill.lines; track line.id) {
@@ -161,7 +161,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
             @if (faltanAsignar() > 0) {
               <p class="assign-falta" role="status">
                 Falta{{ faltanAsignar() > 1 ? 'n' : '' }} {{ faltanAsignar() }}
-                plato{{ faltanAsignar() > 1 ? 's' : '' }} por asignar
+                sin asignar
               </p>
             }
           }
@@ -372,7 +372,7 @@ export class BillPage {
 
     return this.splitKind() === 'SINGLE_PAYER'
       ? 'Elegí quién paga para poder avisar'
-      : 'Asigná todos los platos para poder avisar';
+      : 'Asigná todo para poder avisar';
   });
 
   protected estaAsignado(lineId: string): boolean {

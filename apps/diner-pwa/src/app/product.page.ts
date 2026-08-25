@@ -116,7 +116,7 @@ import { MoneyPipe } from './money.pipe';
       </footer>
     } @else if (failed()) {
       <div class="loading">
-        <p>No pudimos cargar este plato.</p>
+        <p>No pudimos cargar esto.</p>
         <a class="back-link" routerLink="/carta">Volver a la carta</a>
       </div>
     } @else {
