@@ -214,3 +214,13 @@
 .table-view td:not(:first-child) {
   font-variant-numeric: tabular-nums;
 }
+
+/* Que no se confunda con "todavía cargando": son estados distintos y antes
+   se veían iguales. */
+.empty.error {
+  color: white;
+  background: var(--itadaki-accent);
+  border-radius: var(--itadaki-radius-chip);
+  padding: 0.75rem 0.9rem;
+  font-weight: 600;
+}
