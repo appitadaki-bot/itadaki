@@ -190,8 +190,19 @@ const ROLE_NAMES: Record<string, string> = {
 
 
 
+        <!-- Agrupado por categoría y en el orden de la carta, que es lo que
+             el comensal va a ver. Antes era una lista plana alfabética, así
+             que mover una categoría con las flechas de abajo no cambiaba nada
+             en esta pantalla: la única forma de comprobar el cambio era abrir
+             la app del comensal, y sin eso el botón parecía roto. -->
         <div class="products">
-          @for (product of products(); track product.id) {
+          @for (grupo of porCategoria(); track grupo.id) {
+            <h3 class="cat-heading">
+              {{ grupo.nombre }}
+              <span class="cat-heading-count">{{ grupo.productos.length }}</span>
+            </h3>
+
+          @for (product of grupo.productos; track product.id) {
             <!-- Dos accesos en la misma fila, cada uno a lo suyo: la foto se
                  toca sobre la foto, y el resto abre la ficha del plato. Antes
                  la foto salía de un botón dentro de la ficha, que quedaba
@@ -233,6 +244,7 @@ const ROLE_NAMES: Record<string, string> = {
                 <span class="product-abrir">Editar →</span>
               </button>
             </div>
+          }
           } @empty {
             <p class="muted">Cargando la carta…</p>
           }
@@ -981,6 +993,41 @@ export class AdminComponent {
 
   protected readonly products = signal<readonly MenuProduct[]>([]);
   protected readonly categories = signal<readonly MenuCategory[]>([]);
+  /**
+   * La carta como la va a ver el comensal: por sección y en ese orden.
+   *
+   * Los productos vienen ordenados por nombre y las categorías por su posición,
+   * así que agrupar acá es lo que hace visible el orden que se edita más abajo.
+   * Sin esto, mover una categoría no cambiaba nada en esta pantalla.
+   *
+   * Lo que quedó sin categoría —o con una que ya no existe— va al final y con
+   * nombre propio: esconderlo sería perder productos de vista sin decirlo.
+   */
+  protected readonly porCategoria = computed(() => {
+    const porId = new Map<string, MenuProduct[]>();
+    for (const product of this.products()) {
+      const grupo = porId.get(product.categoryId) ?? [];
+      grupo.push(product);
+      porId.set(product.categoryId, grupo);
+    }
+
+    const grupos = this.categories()
+      .map((category) => ({
+        id: category.id,
+        nombre: category.name,
+        productos: porId.get(category.id) ?? [],
+      }))
+      .filter((grupo) => grupo.productos.length > 0);
+
+    const conocidas = new Set(this.categories().map((category) => category.id));
+    const sueltos = this.products().filter((product) => !conocidas.has(product.categoryId));
+    if (sueltos.length > 0) {
+      grupos.push({ id: '__sin-categoria__', nombre: 'Sin categoría', productos: sueltos });
+    }
+
+    return grupos;
+  });
+
   protected readonly createError = signal<string | null>(null);
   protected readonly createdName = signal<string | null>(null);
   protected readonly tables = signal<readonly RestaurantTable[]>([]);
@@ -1764,6 +1811,8 @@ export class AdminComponent {
   }
 
   protected async renameCategory(categoryId: string, event: Event): Promise<void> {
+    this.catError.set(null);
+
     const name = (event.target as HTMLInputElement).value.trim();
     const current = this.categories().find((category) => category.id === categoryId);
     if (name === '' || current === undefined || name === current.name) return;
@@ -1782,6 +1831,8 @@ export class AdminComponent {
   }
 
   protected async moveCategory(categoryId: string, delta: number): Promise<void> {
+    this.catError.set(null);
+
     const order = this.categories().map((category) => category.id);
     const from = order.indexOf(categoryId);
     const to = from + delta;
@@ -1791,11 +1842,20 @@ export class AdminComponent {
     const [moved] = reordered.splice(from, 1);
     if (moved !== undefined) reordered.splice(to, 0, moved);
 
-    await this.auth.apiFetch(`${API}/menu/categories/reorder`, {
+    // Era la única de las cuatro que no miraba la respuesta: si el servidor
+    // rechazaba el orden, la pantalla recargaba igual y todo quedaba como
+    // estaba, sin una palabra. Mover algo y que no pase nada se lee como que
+    // el botón no anda.
+    const response = await this.auth.apiFetch(`${API}/menu/categories/reorder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
       body: JSON.stringify({ orderedIds: reordered }),
     });
+
+    if (!response.ok) {
+      this.catError.set('no pudimos cambiar el orden');
+      return;
+    }
     await this.load();
   }
 
@@ -1807,7 +1867,13 @@ export class AdminComponent {
       headers: this.auth.headers(),
     });
     if (!response.ok) {
-      this.catError.set('esa categoría todavía tiene productos');
+      // El motivo habitual es tener productos adentro, pero no es el único:
+      // decirlo sin mirar mandaba a vaciar una categoría ya vacía.
+      this.catError.set(
+        this.countIn(categoryId) > 0
+          ? 'esa categoría todavía tiene productos'
+          : 'no pudimos eliminar la categoría',
+      );
       return;
     }
     await this.load();
