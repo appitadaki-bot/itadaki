@@ -27,7 +27,7 @@ import { type TableAssignment, orphanedTables } from '@itadaki/ordering/domain';
 type AdminTab = 'carta' | 'local' | 'ventas' | 'resenas';
 
 const TABS: ReadonlyArray<{ id: AdminTab; label: string; hint: string }> = [
-  { id: 'carta', label: 'Tu carta', hint: 'platos y categorías' },
+  { id: 'carta', label: 'Tu carta', hint: 'todo lo que vendés' },
   { id: 'local', label: 'Tu local', hint: 'mesas y equipo' },
   // Las ventas salen de "Tu local": mirar los números es otra tarea, en otro
   // momento del día, y estaban al pie de una pantalla de configuración.
@@ -175,7 +175,7 @@ const ROLE_NAMES: Record<string, string> = {
         }
 
         <div class="panel-head">
-          <h2 class="panel-title">Tus platos</h2>
+          <h2 class="panel-title">Todo lo que vendés</h2>
           <!-- Crear abre su propia pantalla: pegado a la lista hacía
                dudar si el formulario editaba un plato o creaba otro. -->
           <div class="panel-actions">
@@ -184,7 +184,7 @@ const ROLE_NAMES: Record<string, string> = {
             <button type="button" class="secondary" (click)="openImport()">
               Traer mi carta
             </button>
-            <button type="button" class="create" (click)="openNew()">+ plato nuevo</button>
+            <button type="button" class="create" (click)="openNew()">+ Agregar a la carta</button>
           </div>
         </div>
 
@@ -230,7 +230,7 @@ const ROLE_NAMES: Record<string, string> = {
                 </span>
                 <!-- Una flecha sola no dice qué abre: había que tocarla para
                      descubrir que era la ficha del plato y no otra cosa. -->
-                <span class="product-abrir">Editar plato →</span>
+                <span class="product-abrir">Editar →</span>
               </button>
             </div>
           } @empty {
@@ -271,7 +271,7 @@ const ROLE_NAMES: Record<string, string> = {
                   type="button"
                   class="cat-del"
                   [disabled]="countIn(category.id) > 0"
-                  [attr.title]="countIn(category.id) > 0 ? 'primero movés sus platos' : 'eliminar'"
+                  [attr.title]="countIn(category.id) > 0 ? 'primero movés lo que tiene' : 'eliminar'"
                   aria-label="Eliminar categoría"
                   (click)="deleteCategory(category.id)"
                 >×</button>
@@ -621,7 +621,7 @@ const ROLE_NAMES: Record<string, string> = {
     @if (modal() === 'nuevo') {
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nuevo-title">
         <header class="modal-head">
-          <h2 class="modal-title" id="nuevo-title">Plato nuevo</h2>
+          <h2 class="modal-title" id="nuevo-title">Algo nuevo en la carta</h2>
           <button type="button" class="modal-close" (click)="closeModal()" aria-label="Cerrar">
             ✕
           </button>
@@ -666,7 +666,7 @@ const ROLE_NAMES: Record<string, string> = {
               </div>
             </fieldset>
 
-            <button type="submit" class="create">Crear plato</button>
+            <button type="submit" class="create">Agregar a la carta</button>
             @if (createError(); as error) {
               <p class="status error">{{ error }}</p>
             }
@@ -679,7 +679,7 @@ const ROLE_NAMES: Record<string, string> = {
          aparte obligaba a ir y volver para algo que se hace plato por plato,
          mirando la lista. -->
     @if (modal() === 'foto' && editing(); as dish) {
-      <div class="modal ancho" role="dialog" aria-modal="true" aria-label="La foto del plato">
+      <div class="modal ancho" role="dialog" aria-modal="true" aria-label="La foto">
         <header class="modal-head">
           <div>
             <p class="modal-eyebrow">La foto de</p>
@@ -805,7 +805,7 @@ const ROLE_NAMES: Record<string, string> = {
           <!-- Apagado hasta que se lo busca: sacar un plato es raro al lado de
                corregirle el precio, que es lo de todos los días. -->
           <button type="button" class="borrar" (click)="borrarPlato(dish)">
-          Borrar plato
+          Sacar de la carta
           </button>
           </div>
           </form>
@@ -827,7 +827,7 @@ const ROLE_NAMES: Record<string, string> = {
 
         <div class="modal-body import-body">
           <p class="import-hint">
-            Copiala de donde la tengas — un Word, un Excel, un mensaje. Una línea por plato
+            Copiala de donde la tengas — un Word, un Excel, un mensaje. Una línea por producto
             con el precio al final, y las secciones solas en su renglón.
           </p>
 
@@ -878,7 +878,7 @@ const ROLE_NAMES: Record<string, string> = {
                  ciegas, y corregir acá es más barato que después. -->
             <div class="preview">
               <p class="preview-count">
-                <strong>{{ parsed().dishes.length }}</strong> platos en
+                <strong>{{ parsed().dishes.length }}</strong> productos en
                 <strong>{{ parsed().categories.length }}</strong> secciones
                 @if (withPhoto() > 0) {
                   · <strong>{{ withPhoto() }}</strong> con foto
@@ -887,7 +887,7 @@ const ROLE_NAMES: Record<string, string> = {
 
               @if (parsed().dishes.length > maxDishes) {
                 <p class="status error">
-                  Entran {{ maxDishes }} platos por vez y hay
+                  Entran {{ maxDishes }} productos por vez y hay
                   {{ parsed().dishes.length }} — subí la carta en dos tandas.
                 </p>
               }
@@ -945,7 +945,7 @@ const ROLE_NAMES: Record<string, string> = {
               "
               (click)="confirmImport()"
             >
-              {{ importing() ? 'Cargando…' : 'Agregar ' + parsed().dishes.length + ' platos' }}
+              {{ importing() ? 'Cargando…' : 'Agregar ' + parsed().dishes.length + ' productos' }}
             </button>
             <button type="button" class="secondary" (click)="closeModal()">Cancelar</button>
           </div>
@@ -1264,12 +1264,12 @@ export class AdminComponent {
       await this.load();
       this.modal.set(null);
       this.createdName.set(
-        body.photos > 0 ? `${body.imported} platos, ${body.photos} con foto` : `${body.imported} platos`,
+        body.photos > 0 ? `${body.imported} productos, ${body.photos} con foto` : `${body.imported} productos`,
       );
       if (body.sinAlmacenamiento === true) {
         // La carta entró; las fotos no. Decirlo evita que alguien las busque.
         this.importResult.set(
-          'Los platos se cargaron sin las fotos: falta configurar dónde guardarlas.',
+          'La carta se cargó sin las fotos: falta configurar dónde guardarlas.',
         );
       }
       globalThis.setTimeout(() => this.createdName.set(null), 5000);
@@ -1344,7 +1344,7 @@ export class AdminComponent {
       this.editError.set(
         detail?.kind === 'CONFLICT'
           ? `${dish.name} está en un pedido sin cobrar. Cerrá esa mesa antes de borrarlo.`
-          : 'No se pudo borrar el plato. Probá de nuevo.',
+          : 'No se pudo sacar de la carta. Probá de nuevo.',
       );
       return;
     }
@@ -1807,7 +1807,7 @@ export class AdminComponent {
       headers: this.auth.headers(),
     });
     if (!response.ok) {
-      this.catError.set('esa categoría todavía tiene platos');
+      this.catError.set('esa categoría todavía tiene productos');
       return;
     }
     await this.load();
@@ -1912,12 +1912,12 @@ export class AdminComponent {
 
       this.createError.set(
         first === 'categoryId'
-          ? 'Elegí una categoría para el plato'
+          ? 'Elegí una categoría'
           : first === 'name'
-            ? 'Poné un nombre para el plato'
+            ? 'Poné un nombre'
             : first === 'priceMinor'
               ? 'Revisá el precio'
-              : 'No pudimos crear el plato',
+              : 'No pudimos agregarlo a la carta',
       );
       return;
     }
@@ -1937,7 +1937,7 @@ export class AdminComponent {
     // recién aparece: dejarlo abierto obligaba a cerrarlo a mano para
     // comprobar que el plato estaba, que es lo único que interesa saber.
     this.modal.set(null);
-    this.createdName.set(created.name ?? 'El plato');
+    this.createdName.set(created.name ?? 'Se agregó');
     globalThis.setTimeout(() => this.createdName.set(null), 4000);
   }
 
