@@ -119,7 +119,7 @@ export class BillStore {
       const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
       this.error.set(
         detail?.kind === 'UNASSIGNED_LINES'
-          ? 'Falta decir quién paga algún plato'
+          ? 'Falta decir quién paga algo'
           : detail?.kind === 'AMOUNTS_DO_NOT_MATCH'
             ? 'Los montos no suman el total'
             : 'No pudimos calcular la división',

@@ -356,7 +356,9 @@ export class CartPage {
     if (total === 0) return 'Agregá algo para enviar';
     // Decir "de la mesa" es lo que evita la sorpresa: quien toca el botón
     // está enviando también lo que los demás eligieron.
-    return total === 1 ? 'Enviar 1 plato a cocina →' : `Enviar los ${total} platos de la mesa →`;
+    return total === 1
+      ? 'Enviar el pedido a cocina →'
+      : `Enviar el pedido de la mesa · ${total} →`;
   }
 
   /**
