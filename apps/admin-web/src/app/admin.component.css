@@ -1917,3 +1917,36 @@
 .modal-title::first-letter {
   text-transform: uppercase;
 }
+
+/*
+ * El nombre de la sección, arriba de sus productos.
+ *
+ * La lista era plana y alfabética, así que el orden que se edita abajo no se
+ * veía por ningún lado: mover una categoría no cambiaba nada en pantalla y el
+ * botón parecía roto. Acá la carta se lee como la va a leer el comensal.
+ */
+.cat-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.4rem 0 0.15rem;
+  font-family: var(--itadaki-font-display);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--itadaki-ink-subtle);
+}
+
+.cat-heading:first-child { margin-top: 0; }
+
+.cat-heading-count {
+  font-family: var(--itadaki-font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--itadaki-ink-faint);
+  background: var(--itadaki-surface-sunken);
+  border-radius: var(--itadaki-radius-pill);
+  padding: 0.1rem 0.5rem;
+  letter-spacing: 0;
+}
