@@ -20,8 +20,7 @@ CREATE INDEX IF NOT EXISTS staff_verify_digest
   ON staff_users (verify_digest)
   WHERE verify_digest IS NOT NULL;
 
--- Las cuentas que ya existen quedan verificadas: se dieron de alta a mano,
--- hablando con cada restaurante, así que el mail ya está confirmado por otra
--- vía. Pedirles que verifiquen ahora sería trabarles el panel por un requisito
--- que no existía cuando se anotaron.
-UPDATE staff_users SET email_verified_at = now() WHERE email_verified_at IS NULL;
+-- Las cuentas que ya existen se marcan verificadas en la 023, que recorre los
+-- restaurantes uno por uno. Acá no se puede: con RLS en FORCE un UPDATE sin
+-- `app.tenant_id` en alcance no ve ninguna fila, y lo peor es que no falla —
+-- reporta cero filas y sigue, así que parece que funcionó.
