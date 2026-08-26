@@ -1019,3 +1019,20 @@ strong { color: var(--tinta); font-weight: 700; }
 .listo .btn {
   margin-top: 1rem;
 }
+
+/*
+ * El botón mientras falta completar algo.
+ *
+ * Apagado, no invisible: dice de un vistazo que todavía no está, sin esconder
+ * a dónde lleva. Se puede tocar igual —`aria-disabled` y no `disabled`— y al
+ * tocarlo el formulario marca en rojo lo que falta, que es más útil que un
+ * botón muerto que no explica nada.
+ */
+.btn.apagado {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.apagado:hover {
+  transform: none;
+}
