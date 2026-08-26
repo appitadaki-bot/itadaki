@@ -145,8 +145,32 @@ docker run -p 3000:3000 \
 
 Con `NODE_ENV=production` la API se niega a arrancar sin `AUTH_SECRET`, sin
 proveedor de correo o con Postgres caído, y avisa si las fotos quedan en disco
-local. Las migraciones se aplican con `npm run db:seed` apuntando a
-`DATABASE_ADMIN_URL`.
+local.
+
+Contra una base que ya tiene datos, el comando es `npm run db:migrate` con
+`DATABASE_ADMIN_URL` apuntando a ella: aplica el esquema y nada más. `db:seed`
+hace lo mismo pero después carga la carta de ejemplo, que en la base de un
+restaurante de verdad es basura que alguien tiene que ir a borrar.
+
+Cada migración se aplica **una sola vez** por base. La tabla
+`schema_migrations` guarda cuáles corrieron; las demás se saltean. Antes
+corrían todas en cada despliegue, y eso hacía que un archivo viejo se
+reaplicara sobre datos nacidos después — una restricción rechazando un valor
+que ella misma autorizó más adelante, una función cuyo tipo de retorno ya había
+cambiado, un UPDATE marcando verificadas cuentas que esperaban su mail.
+
+Dos consecuencias para el día a día:
+
+- **Editar una migración ya aplicada no hace nada.** Si el cambio tiene que
+  llegar a la base, va en un archivo nuevo. `db:migrate` avisa cuáles cambiaron
+  después de haberse aplicado, para que no sea un error mudo.
+- **La primera corrida sobre una base que ya existía las aplica todas una vez
+  más**, porque el registro arranca vacío. Es el comportamiento de siempre por
+  última vez; de ahí en adelante sólo corre lo nuevo.
+
+El rol `itadaki_app` no se crea al migrar: en la laptop lo crea
+`scripts/init-db.sql` al levantar Docker, y en una base hosteada la app se
+conecta con el usuario del proveedor.
 
 Las cuatro apps del navegador son estáticas: `npm run build:<app>` y servir
 `dist/<app>/browser` desde donde quieras. La URL de la API se lee en runtime

@@ -16,10 +16,11 @@ async function main(): Promise<void> {
   const client = new Client({ connectionString: withSslWhenRemote(ADMIN_URL) });
   await client.connect();
 
-  for (const file of await applyMigrations(client)) {
-    console.log(`  ${file}`);
+  const migraciones = await applyMigrations(client);
+  for (const archivo of migraciones.aplicadas) {
+    console.log(`  ${archivo}`);
   }
-  console.log('schema applied');
+  console.log(`schema applied · ${migraciones.salteadas.length} ya estaban`);
 
   // Set before any write: row level security applies to everyone who is not a
   // superuser, which on a hosted database is the only user there is. Scoping

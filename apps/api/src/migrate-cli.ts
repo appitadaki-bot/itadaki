@@ -22,10 +22,30 @@ async function main(): Promise<void> {
   await client.connect();
 
   try {
-    for (const file of await applyMigrations(client)) {
-      console.log(`  ${file}`);
+    const resultado = await applyMigrations(client);
+
+    for (const archivo of resultado.aplicadas) {
+      console.log(`  aplicada  ${archivo}`);
     }
-    console.log('esquema al día');
+
+    if (resultado.aplicadas.length === 0) {
+      console.log('  nada nuevo que aplicar');
+    }
+
+    // Se dice y no se aplica: una migración ya corrida no vuelve a correr, así
+    // que editarla no hace nada. Sin este aviso, "creí que lo había cambiado"
+    // es un error mudo.
+    if (resultado.modificadas.length > 0) {
+      console.log('');
+      console.log('  Estas cambiaron después de haberse aplicado y NO se volvieron a correr:');
+      for (const archivo of resultado.modificadas) {
+        console.log(`    ${archivo}`);
+      }
+      console.log('  Si el cambio tiene que llegar a la base, va en una migración nueva.');
+    }
+
+    console.log('');
+    console.log(`esquema al día · ${resultado.salteadas.length} ya estaban`);
   } finally {
     await client.end();
   }
