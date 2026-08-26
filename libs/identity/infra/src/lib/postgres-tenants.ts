@@ -7,6 +7,7 @@ import {
 } from '@itadaki/identity/domain';
 import { type Result, err, ok } from '@itadaki/shared/domain';
 import { type Database } from '@itadaki/shared/persistence';
+import { type PoolClient } from 'pg';
 
 export type TenantError =
   | { readonly kind: 'EMAIL_TAKEN'; readonly email: string }
@@ -214,22 +215,53 @@ export class PostgresTenantStore {
          * se fija el alcance en cada vuelta. El mail es único en toda la base,
          * de modo que a lo sumo una vuelta toca una fila.
          */
-        const locales = await client.query<{ id: string }>('SELECT id FROM tenants');
-
-        for (const local of locales.rows) {
-          await client.query('SELECT set_config($1, $2, false)', ['app.tenant_id', local.id]);
+        await this.porCadaLocal(client, async () => {
           const hecho = await client.query(
             `UPDATE staff_users
                 SET verify_digest = $2, verify_expires_at = $3
               WHERE lower(email) = lower($1)`,
             [email, digest, expiraEn],
           );
-          if ((hecho.rowCount ?? 0) > 0) return;
-        }
+          return (hecho.rowCount ?? 0) > 0 ? true : null;
+        });
       });
       return ok(undefined);
     } catch (error) {
       return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /**
+   * Recorre los restaurantes con el alcance puesto, y lo suelta al terminar.
+   *
+   * Tres consultas de este archivo necesitan lo mismo: buscar por mail o por
+   * token sin saber de qué restaurante es. El directorio de `tenants` no está
+   * filtrado, así que se camina y se fija `app.tenant_id` en cada vuelta.
+   *
+   * El `finally` es el punto. Estas consultas corren sin transacción, así que
+   * el alcance se fija en la conexión y no muere sola: sin soltarlo, la
+   * conexión vuelve al pool marcada con el último restaurante recorrido y la
+   * próxima petición que la reciba —si no fija el suyo— lee filas ajenas. Un
+   * `return` en medio del bucle, que es lo normal acá porque el mail es único,
+   * salteaba cualquier limpieza escrita después.
+   */
+  private async porCadaLocal<T>(
+    client: PoolClient,
+    paso: (local: string) => Promise<T | null>,
+  ): Promise<T | null> {
+    try {
+      const locales = await client.query<{ id: string }>('SELECT id FROM tenants');
+
+      for (const local of locales.rows) {
+        await client.query('SELECT set_config($1, $2, false)', ['app.tenant_id', local.id]);
+
+        const hallado = await paso(local.id);
+        if (hallado !== null) return hallado;
+      }
+
+      return null;
+    } finally {
+      await client.query('SELECT set_config($1, $2, false)', ['app.tenant_id', '']);
     }
   }
 
@@ -248,10 +280,7 @@ export class PostgresTenantStore {
       const tenantId = await this.db.unscoped(async (client) => {
         // Mismo recorrido: sin alcance, el UPDATE no encuentra la fila aunque
         // el token sea correcto.
-        const locales = await client.query<{ id: string }>('SELECT id FROM tenants');
-
-        for (const local of locales.rows) {
-          await client.query('SELECT set_config($1, $2, false)', ['app.tenant_id', local.id]);
+        return this.porCadaLocal(client, async () => {
           const result = await client.query<{ tenant_id: string }>(
             `UPDATE staff_users
                 SET email_verified_at = $2,
@@ -262,10 +291,8 @@ export class PostgresTenantStore {
               RETURNING tenant_id`,
             [digest, ahora],
           );
-          const fila = result.rows[0];
-          if (fila !== undefined) return fila.tenant_id;
-        }
-        return null;
+          return result.rows[0]?.tenant_id ?? null;
+        });
       });
       return ok(tenantId);
     } catch (error) {
@@ -277,21 +304,19 @@ export class PostgresTenantStore {
   async mailVerificado(email: string): Promise<Result<boolean, TenantError>> {
     try {
       const verificado = await this.db.unscoped(async (client) => {
-        const locales = await client.query<{ id: string }>('SELECT id FROM tenants');
-
-        for (const local of locales.rows) {
-          await client.query('SELECT set_config($1, $2, false)', ['app.tenant_id', local.id]);
+        const hallado = await this.porCadaLocal(client, async () => {
           const result = await client.query<{ email_verified_at: string | null }>(
             'SELECT email_verified_at FROM staff_users WHERE lower(email) = lower($1)',
             [email],
           );
           const fila = result.rows[0];
-          if (fila !== undefined) return fila.email_verified_at !== null;
-        }
+          return fila === undefined ? null : fila.email_verified_at !== null;
+        });
+
         // Un mail que no está en ninguna parte se trata como verificado: no
         // hay nada que reenviarle, y decir lo contrario haría que el endpoint
         // de reenvío revele qué direcciones existen.
-        return true;
+        return hallado ?? true;
       });
       return ok(verificado);
     } catch (error) {
