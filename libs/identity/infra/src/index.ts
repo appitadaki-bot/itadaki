@@ -23,3 +23,9 @@ export {
 } from './lib/google-token';
 export { ResendMailer } from './lib/resend-mailer';
 export { InMemoryStaffStore } from './lib/in-memory-staff';
+export {
+  VERIFY_TOKEN_HORAS,
+  digestDeVerificacion,
+  mailDeVerificacion,
+  nuevoTokenDeVerificacion,
+} from './lib/verificacion-mail';

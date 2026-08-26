@@ -449,6 +449,12 @@
       </label>
 
       <label class="campo">
+        <span>Repetí la contraseña</span>
+        <input name="password2" type="password" required autocomplete="new-password" />
+        <em class="error"></em>
+      </label>
+
+      <label class="campo">
         <span>WhatsApp</span>
         <input name="whatsapp" type="tel" required autocomplete="tel" placeholder="11 5555 5555" />
         <em class="error"></em>
@@ -458,11 +464,6 @@
         <span>Cuántas mesas tenés, más o menos</span>
         <input name="mesas" type="number" min="1" max="500" required />
         <em class="error"></em>
-      </label>
-
-      <label class="campo">
-        <span>Tu carta actual <i>(opcional)</i></span>
-        <input name="carta" type="text" placeholder="El link de tu web, o de tu Instagram" />
       </label>
 
       <button class="btn btn-acento ancho-total" type="submit" id="enviar">Crear mi cuenta</button>

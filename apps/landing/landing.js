@@ -223,11 +223,23 @@
     nombre: 'Poné tu nombre y apellido',
     email: 'Necesitamos tu mail para crear la cuenta',
     password: 'Elegí una contraseña de 8 caracteres o más',
+    password2: 'Repetí la misma contraseña',
     whatsapp: 'Necesitamos un WhatsApp para escribirte',
     mesas: 'Decinos cuántas mesas tenés, más o menos',
   };
 
-  const api = document.querySelector('meta[name="itadaki-api"]')?.content ?? '';
+  /*
+   * Dónde está la API.
+   *
+   * En localhost gana la de la máquina, no la del meta: probando la landing
+   * servida en el 4300, apuntar a producción hace que el navegador bloquee la
+   * llamada por CORS y se vea "sin conexión" — un error que no dice nada de
+   * lo que pasó. Es la misma regla que usan las cuatro apps.
+   */
+  const enLaMaquina = ['localhost', '127.0.0.1'].includes(globalThis.location?.hostname ?? '');
+  const api = enLaMaquina
+    ? `${globalThis.location.protocol}//${globalThis.location.hostname}:3000`
+    : (document.querySelector('meta[name="itadaki-api"]')?.content ?? '');
   const panel = document.querySelector('meta[name="itadaki-panel"]')?.content ?? '';
 
   function revisar(input) {
@@ -241,7 +253,9 @@
     // el servidor los rechaza igual, y enterarse recién ahí es peor.
     const malMail = input.type === 'email' && !vacio && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.value);
     const malClave = input.type === 'password' && !vacio && input.value.length < 8;
-    const mal = (input.required && vacio) || malNumero || malMail || malClave;
+    const otra = form?.querySelector('[name="password"]')?.value ?? '';
+    const noCoincide = input.name === 'password2' && !vacio && input.value !== otra;
+    const mal = (input.required && vacio) || malNumero || malMail || malClave || noCoincide;
 
     campo.classList.toggle('mal', mal);
     const error = campo.querySelector('.error');
@@ -251,7 +265,9 @@
           ? 'Poné un número entre 1 y 500'
           : malMail
             ? 'Ese mail no parece válido'
-            : (MENSAJES[input.name] ?? 'Falta completar esto')
+            : noCoincide
+              ? 'Las dos contraseñas tienen que ser iguales'
+              : (MENSAJES[input.name] ?? 'Falta completar esto')
         : '';
     }
     return !mal;

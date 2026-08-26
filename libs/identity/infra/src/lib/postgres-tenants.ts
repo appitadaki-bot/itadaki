@@ -187,6 +187,80 @@ export class PostgresTenantStore {
     }
   }
 
+  /**
+   * Deja pendiente la verificación del mail de alguien del personal.
+   *
+   * Se guarda el hash y no el token: una base filtrada no puede alcanzar para
+   * verificar la cuenta de otro, por el mismo motivo por el que las
+   * contraseñas tampoco se guardan en claro.
+   */
+  async pedirVerificacion(
+    email: string,
+    digest: string,
+    expiraEn: Date,
+  ): Promise<Result<void, TenantError>> {
+    try {
+      await this.db.unscoped(async (client) => {
+        await client.query(
+          `UPDATE staff
+              SET verify_digest = $2, verify_expires_at = $3
+            WHERE lower(email) = lower($1)`,
+          [email, digest, expiraEn],
+        );
+      });
+      return ok(undefined);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /**
+   * Marca el mail como verificado, si el token sirve.
+   *
+   * Devuelve el restaurante para poder mandar a la persona a su panel. El
+   * token se borra al usarlo: un link de verificación vale una sola vez, así
+   * que reenviarlo a otro no sirve de nada.
+   *
+   * La condición del vencimiento va en el SQL y no después: un token vencido
+   * no tiene que llegar a coincidir con nada.
+   */
+  async verificarMail(digest: string, ahora: Date): Promise<Result<string | null, TenantError>> {
+    try {
+      const tenantId = await this.db.unscoped(async (client) => {
+        const result = await client.query<{ tenant_id: string }>(
+          `UPDATE staff
+              SET email_verified_at = $2,
+                  verify_digest = NULL,
+                  verify_expires_at = NULL
+            WHERE verify_digest = $1
+              AND verify_expires_at > $2
+            RETURNING tenant_id`,
+          [digest, ahora],
+        );
+        return result.rows[0]?.tenant_id ?? null;
+      });
+      return ok(tenantId);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /** Si el mail de esta persona ya está confirmado. */
+  async mailVerificado(email: string): Promise<Result<boolean, TenantError>> {
+    try {
+      const verificado = await this.db.unscoped(async (client) => {
+        const result = await client.query<{ email_verified_at: string | null }>(
+          'SELECT email_verified_at FROM staff WHERE lower(email) = lower($1)',
+          [email],
+        );
+        return result.rows[0]?.email_verified_at !== null;
+      });
+      return ok(verificado);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   /** Slugs already in use, so signup can pick a free one. */
   async takenSlugs(prefix: string): Promise<Result<ReadonlySet<string>, TenantError>> {
     try {
