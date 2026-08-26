@@ -13,6 +13,7 @@ export const submitOrderSchema = z.object({
         productId: z.string().min(1).max(64),
         quantity: z.number().int().min(1).max(99),
         notes: z.string().max(280).default(''),
+        primero: z.boolean().default(false),
         modifierIds: z.array(z.string().min(1).max(64)).max(10).default([]),
       }),
     )
@@ -64,6 +65,7 @@ export interface OrderDto {
     readonly name: string;
     readonly quantity: number;
     readonly notes: string;
+    readonly primero: boolean;
     /** Where this dish is, which may be ahead of or behind the ticket. */
     readonly status: string;
     readonly unitPrice: MoneyDto;
@@ -90,6 +92,7 @@ export function toOrderDto(order: Order): OrderDto {
       name: item.product.name,
       quantity: item.quantity,
       notes: item.notes,
+      primero: item.primero,
       status: order.statusOf(item.id),
       unitPrice: toMoneyDto(item.product.unitPrice),
       modifiers: item.modifiers.map((modifier) => ({

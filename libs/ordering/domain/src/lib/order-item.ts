@@ -28,6 +28,18 @@ export class OrderItem {
   readonly modifiers: readonly ModifierSnapshot[];
   readonly quantity: number;
   readonly notes: string;
+  /**
+   * Que este plato salga antes que el resto del pedido.
+   *
+   * Es una señal para la cocina, no una regla: el plato no se retiene ni se
+   * separa en otro envío. La mesa dice "esto lo queremos de entrada" y la
+   * cocina sigue decidiendo el orden, que es lo que sabe hacer y lo que hace
+   * hoy sin sistema.
+   *
+   * Un campo propio y no una nota escrita: la nota hay que leerla entre otras
+   * cosas, y a las siete de la tarde con la cocina llena nadie lee.
+   */
+  readonly primero: boolean;
 
   private constructor(params: {
     id: string;
@@ -36,6 +48,7 @@ export class OrderItem {
     modifiers: readonly ModifierSnapshot[];
     quantity: number;
     notes: string;
+    primero: boolean;
   }) {
     this.id = params.id;
     this.dinerId = params.dinerId;
@@ -43,6 +56,7 @@ export class OrderItem {
     this.modifiers = Object.freeze([...params.modifiers]);
     this.quantity = params.quantity;
     this.notes = params.notes;
+    this.primero = params.primero;
     Object.freeze(this);
   }
 
@@ -53,6 +67,7 @@ export class OrderItem {
     modifiers?: readonly ModifierSnapshot[];
     quantity: number;
     notes?: string;
+    primero?: boolean;
   }): Result<OrderItem, OrderItemError> {
     if (!Number.isInteger(params.quantity) || params.quantity < 1) {
       return err({ kind: 'INVALID_QUANTITY', received: params.quantity });
@@ -65,6 +80,8 @@ export class OrderItem {
         modifiers: params.modifiers ?? [],
         quantity: params.quantity,
         notes: params.notes ?? '',
+        // Por defecto no: quien no lo pide expresamente come como siempre.
+        primero: params.primero ?? false,
       }),
     );
   }

@@ -172,6 +172,14 @@ export interface ChangeLineCommand {
   readonly dinerId: string;
   readonly lineId: string;
   readonly quantity: number;
+  /**
+   * Marcar el plato para que salga primero.
+   *
+   * Sin definir es "no tocar esto": el mismo endpoint sirve para cambiar la
+   * cantidad, y mandar sólo una cantidad no puede desmarcar lo que la mesa ya
+   * había pedido que saliera antes.
+   */
+  readonly primero?: boolean;
 }
 
 /** Only the diner who added a line may change it. */
@@ -193,10 +201,23 @@ export function changeSharedLine(deps: {
         return err({ kind: 'NOT_FOUND', id: command.lineId });
       }
 
-      const cart: Cart =
+      let cart: Cart =
         command.quantity <= 0
           ? removeLine(state.cart, command.lineId)
           : setQuantity(state.cart, command.lineId, command.quantity);
+
+      const primero = command.primero;
+      if (primero !== undefined) {
+        cart = {
+          ...cart,
+          lines: cart.lines.map((candidate) =>
+            candidate.id === command.lineId
+              ? { ...candidate, primero }
+              : candidate,
+          ),
+        };
+      }
+
       return ok({ ...state, cart });
     });
 

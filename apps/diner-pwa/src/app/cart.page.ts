@@ -61,6 +61,21 @@ import { TrackingStore } from './tracking.store';
                   @if (line.notes !== '') {
                     <p class="row-note">“{{ line.notes }}”</p>
                   }
+
+                  <!-- Sólo en los platos propios: marcar el plato de otro sería
+                       decidir por él cuándo come. -->
+                  @if (session.ownsLine(line)) {
+                    <label class="primero">
+                      <input
+                        type="checkbox"
+                        class="primero-check"
+                        [checked]="line.primero === true"
+                        (change)="cambiarPrimero(line, $event)"
+                      />
+                      <span class="primero-pista" aria-hidden="true"></span>
+                      <span class="primero-texto">Traer primero</span>
+                    </label>
+                  }
                 </div>
 
                 <div class="row-side">
@@ -319,6 +334,18 @@ export class CartPage {
   }
 
   /** Quantity zero removes the line; the API treats it as a delete. */
+  /**
+   * Marca que este plato salga antes que el resto.
+   *
+   * Es una señal para la cocina, no una regla: el plato no se retiene ni se
+   * manda aparte. La cocina sigue decidiendo el orden, que es lo que hace hoy
+   * sin sistema — esto sólo le dice qué quiere la mesa.
+   */
+  protected cambiarPrimero(line: SessionLine, evento: Event): void {
+    const marcado = (evento.target as HTMLInputElement).checked;
+    void this.session.marcarPrimero(line.id, marcado);
+  }
+
   protected remove(line: SessionLine): void {
     void this.session.changeLine(line.id, 0);
   }

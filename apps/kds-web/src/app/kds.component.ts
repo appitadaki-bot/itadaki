@@ -152,7 +152,15 @@ const SLA_LATE = 15;
                              nombre y de la nota: es un dato del plato, no una
                              acción. Al lado del nombre se leía como parte de él. -->
                         <span class="item-body">
-                          <span class="item-name">{{ item.name }}</span>
+                          <span class="item-name">
+                            {{ item.name }}
+                            <!-- Pegado al nombre y no al pie de la tarjeta: es
+                                 de este plato y no del pedido entero, y en una
+                                 comanda de cinco líneas hay que ver cuál. -->
+                            @if (item.primero) {
+                              <span class="item-primero">Primero</span>
+                            }
+                          </span>
                           @if (item.notes !== '') {
                             <span class="item-note">{{ item.notes }}</span>
                           }

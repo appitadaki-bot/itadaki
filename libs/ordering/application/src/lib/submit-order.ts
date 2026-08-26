@@ -19,6 +19,8 @@ export interface SubmitOrderLine {
   readonly quantity: number;
   readonly notes: string;
   readonly modifierIds: readonly string[];
+  /** Que salga antes que el resto. Señal para la cocina, no regla. */
+  readonly primero?: boolean;
 }
 
 export interface SubmitOrderCommand {
@@ -95,6 +97,7 @@ export function submitOrder(deps: {
         modifiers: priced.value.modifiers,
         quantity: line.quantity,
         notes: line.notes,
+        primero: line.primero ?? false,
       });
       if (item.isErr()) {
         return err(item.error);

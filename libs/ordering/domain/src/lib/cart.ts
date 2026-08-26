@@ -12,6 +12,8 @@ export interface CartLine {
   readonly modifiers: readonly ModifierSnapshot[];
   readonly quantity: number;
   readonly notes: string;
+  /** Que salga antes que el resto del pedido. Señal para la cocina, no regla. */
+  readonly primero?: boolean;
 }
 
 export interface Cart {

@@ -744,3 +744,30 @@ button {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
+
+/*
+ * "Primero": lo que la mesa pidió que salga antes.
+ *
+ * Del color de la marca y no rojo de alerta: no es un problema ni una demora,
+ * es una preferencia de la mesa. La cocina sigue decidiendo el orden — esto
+ * sólo le dice qué querían.
+ *
+ * Va pegado al nombre del plato porque es de ese plato: en una comanda de
+ * cinco líneas, al pie de la tarjeta no diría cuál.
+ */
+.item-primero {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--itadaki-radius-pill);
+  background: var(--itadaki-accent);
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  /* No se estira ni se parte: es una etiqueta corta y tiene que leerse de un
+     vistazo desde lejos, que es como se mira una pantalla de cocina. */
+  white-space: nowrap;
+}
