@@ -13,11 +13,24 @@ updates:
     # Un PR por semana con todo junto: veinte PR sueltos no los revisa nadie,
     # y lo que no se revisa se mergea sin mirar.
     open-pull-requests-limit: 3
+
+    # Los grupos llevan sólo menores y parches. Las mayores vienen sueltas.
+    #
+    # Agrupadas, una mayor que rompe la configuración deja el PR entero en rojo
+    # y con él las diez actualizaciones sanas que venían al lado: nadie puede
+    # mergear ninguna hasta que alguien arregle la que molesta, y mientras tanto
+    # el PR se queda abierto. Nos pasó con eslint 10 y jest 30 arriba de ocho
+    # subidas triviales.
+    #
+    # Sueltas, cada mayor se mira cuando corresponde y las menores entran en
+    # cinco minutos.
     groups:
       produccion:
         dependency-type: production
+        update-types: ['minor', 'patch']
       desarrollo:
         dependency-type: development
+        update-types: ['minor', 'patch']
 
     # Angular no sube de mayor por acá.
     #
