@@ -1,8 +1,11 @@
-/* La barra de total vive abajo: el timbre se corre por encima para no
-   taparla, que es donde el comensal mira el precio. */
-:host {
-  --itadaki-call-offset: 6.5rem;
-}
+/*
+ * El timbre se corre por encima del pie para no taparlo.
+ *
+ * El pie mide distinto según cuántos botones tenga —uno cuando no hay nada
+ * enviado, dos cuando la mesa ya pidió— así que un valor fijo tapa algo en uno
+ * de los dos casos. El componente lo mide y lo publica en esta variable; el
+ * valor de acá es sólo el punto de partida hasta la primera medición.
+ */
 
 :host {
   display: flex;
@@ -256,6 +259,37 @@
   font-size: 0.9rem;
   cursor: pointer;
   box-shadow: var(--itadaki-shadow-cta-accent);
+  /* Espacio para el timbre, que flota sobre la esquina derecha: sin esto el
+     texto pasa por debajo del botón cuando la mesa tiene un llamado abierto. */
+  padding-right: 4rem;
+}
+
+/*
+ * Seguir el pedido pesa menos que enviarlo.
+ *
+ * Dos botones rojos del mismo tamaño, pegados, hacen elegir entre dos cosas
+ * que no son comparables: enviar es la acción de esta pantalla, y seguir el
+ * pedido es una salida hacia otra. Con el mismo peso, el dedo va al que está
+ * más cerca.
+ */
+.cta.cta-link {
+  background: transparent;
+  color: var(--itadaki-accent-deep);
+  border: 1px solid var(--itadaki-accent-line);
+  box-shadow: none;
+  /* No hay timbre encima de este: recupera su espacio. */
+  padding-right: 1rem;
+}
+
+@media (hover: hover) {
+  .cta.cta-link:hover {
+    background: var(--itadaki-accent-tint);
+  }
+}
+
+/* Aire entre los dos: pegados se leen como un solo bloque partido al medio. */
+.foot .cta + .cta {
+  margin-top: 0.6rem;
 }
 
 .cta:disabled {

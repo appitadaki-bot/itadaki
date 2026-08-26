@@ -1,6 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  type ElementRef,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { type CartLine, lineTotal } from '@itadaki/ordering/domain';
+import { medirElPie } from './medir-el-pie';
 import { Money } from '@itadaki/shared/domain';
 import { BackLinkComponent } from './back-link.component';
 import { CartStore } from './cart.store';
@@ -108,7 +118,7 @@ import { TrackingStore } from './tracking.store';
         }
       </main>
 
-      <footer class="foot">
+      <footer class="foot" #pie>
         <!-- Lo que ya está en cocina no desaparece de la pantalla al enviar.
              Sin esta línea, la mesa que acababa de pedir veía "Total de la
              mesa $ 0" y parecía que se había perdido el pedido. -->
@@ -222,7 +232,7 @@ import { TrackingStore } from './tracking.store';
     </main>
 
     @if (cart.count() > 0) {
-      <footer class="foot">
+      <footer class="foot" #pie>
         <div class="totals">
           <span>Subtotal</span>
           <span>{{ cart.total() | money }}</span>
@@ -279,6 +289,10 @@ import { TrackingStore } from './tracking.store';
   `,
 })
 export class CartPage {
+  constructor() {
+    medirElPie(this.pie);
+  }
+
   protected readonly cart = inject(CartStore);
   protected readonly orders = inject(OrderService);
   protected readonly session = inject(SessionStore);
@@ -341,6 +355,8 @@ export class CartPage {
    * manda aparte. La cocina sigue decidiendo el orden, que es lo que hace hoy
    * sin sistema — esto sólo le dice qué quiere la mesa.
    */
+  private readonly pie = viewChild<ElementRef<HTMLElement>>('pie');
+
   protected cambiarPrimero(line: SessionLine, evento: Event): void {
     const marcado = (evento.target as HTMLInputElement).checked;
     void this.session.marcarPrimero(line.id, marcado);

@@ -1,4 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal,
+  type ElementRef,
+  viewChild,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { type PaymentMethod } from '@itadaki/ordering/domain';
 import { DINER_PALETTE } from '@itadaki/shared/ui-tokens';
@@ -7,6 +10,7 @@ import { PaymentSheetComponent } from './payment-sheet.component';
 import { CallStore } from './call.store';
 import { BillStore, type MoneyDto, type SplitKind, type TipChoice } from './bill.store';
 import { SessionStore } from './session.store';
+import { medirElPie } from './medir-el-pie';
 
 // Primera la de uno solo: es la forma más común de cerrar una mesa —el que
 // invita, el que junta el efectivo y pone la tarjeta— y era la única que no
@@ -211,7 +215,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
         }
       </main>
 
-      <footer class="foot">
+      <footer class="foot" #pie>
         @if (bill.status === 'SETTLED') {
           <p class="settled" role="status">Cuenta cerrada · gracias!</p>
         } @else if (told()) {
@@ -287,7 +291,11 @@ export class BillPage {
 
   protected readonly sessionId = computed(() => this.session.session()?.id ?? null);
 
+  private readonly pie = viewChild<ElementRef<HTMLElement>>('pie');
+
   constructor() {
+    medirElPie(this.pie);
+
     const id = this.session.session()?.id;
     if (id === undefined) return;
 
