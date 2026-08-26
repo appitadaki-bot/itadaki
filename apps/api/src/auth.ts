@@ -26,6 +26,7 @@ import {
 import { database } from './database';
 import { type Request } from 'express';
 import { urlFromEnv } from './config';
+import { log } from './logger';
 
 const DEV_SECRET = 'desarrollo-inseguro-cambiar-en-produccion';
 
@@ -151,20 +152,26 @@ export class AuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<AuthedRequest>();
+    // Sin el query string; puede llevar un token de mesa.
+    const path = request.url?.split('?')[0];
     const header = request.headers.authorization ?? '';
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
 
     if (token === '') {
+      // No se loguea: es el caso más común y el menos interesante — un
+      // visitante sin loguearse o el frontend antes de cargar el token.
       throw new UnauthorizedException({ kind: 'NO_SESSION' });
     }
 
     const payload = verifyToken(token, AUTH_SECRET, new Date());
     if (payload === null) {
+      log.warn('sesión inválida', { path });
       throw new UnauthorizedException({ kind: 'INVALID_SESSION' });
     }
 
     // Signed and unexpired is not the same as still working here.
     if (!(await stillEmployed(payload.tenantId, payload.userId))) {
+      log.warn('acceso revocado', { tenantId: payload.tenantId, userId: payload.userId, path });
       throw new UnauthorizedException({ kind: 'ACCESS_REVOKED' });
     }
 
@@ -177,6 +184,12 @@ export class AuthGuard implements CanActivate {
 
     const needed = this.reflector.getAllAndOverride<Permission>(PERMISSION, [handler, controller]);
     if (needed !== undefined && !can(payload.role, needed)) {
+      log.warn('permiso insuficiente', {
+        tenantId: payload.tenantId,
+        userId: payload.userId,
+        permission: needed,
+        path,
+      });
       throw new ForbiddenException({ kind: 'FORBIDDEN', permission: needed });
     }
 
@@ -310,6 +323,7 @@ export class TableScopeGuard implements CanActivate {
 
     const scope = await resolveDinerScope(request, tableToken, this.resolveTable);
     if (scope === null) {
+      log.warn('token de mesa inválido', { path: request.url?.split('?')[0] });
       throw new UnauthorizedException({ kind: 'INVALID_TABLE_TOKEN' });
     }
 
