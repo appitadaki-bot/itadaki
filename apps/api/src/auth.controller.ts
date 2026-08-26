@@ -12,7 +12,10 @@ import {
 } from '@itadaki/identity/domain';
 import {
   RESET_TOKEN_MINUTES,
+  digestDeVerificacion,
   digestOf,
+  mailDeVerificacion,
+  nuevoTokenDeVerificacion,
   hashPassword,
   isGoogleError,
   newResetToken,
@@ -98,6 +101,73 @@ export class AuthController {
    * have an account. It returns a session so signing up lands the owner
    * straight in the panel rather than at a login form.
    */
+  /**
+   * Manda el link de verificación.
+   *
+   * Separado del alta para que su fallo se pueda tragar sin arrastrarla: lo
+   * peor que puede pasar es una cuenta sin verificar, y para eso está el
+   * reenvío.
+   */
+  private async mandarVerificacion(email: string, restaurante: string): Promise<void> {
+    try {
+      const { token, digest, expiraEn } = nuevoTokenDeVerificacion();
+
+      const guardado = await this.tenants.store.pedirVerificacion(email, digest, expiraEn);
+      if (guardado.isErr()) {
+        // Sin token guardado el link no verificaría nada, así que no se manda.
+        // Pero queda dicho: una cuenta que nunca recibe su mail tiene que
+        // dejar rastro de por qué.
+        log.error('no se pudo guardar la verificación', { detail: guardado.error.kind });
+        return;
+      }
+
+      const base = ADMIN_APP_URL;
+      const { subject, body } = mailDeVerificacion(
+        restaurante,
+        `${base}/verificar?t=${encodeURIComponent(token)}`,
+      );
+
+      await this.resets.mailer.send({ to: email, subject, body });
+    } catch (error) {
+      // Que no se vea sólo en el log del proveedor: sin esto, una cuenta que
+      // nunca recibe su mail no deja rastro de por qué.
+      log.error('no se pudo mandar la verificación', { detail: String(error) });
+    }
+  }
+
+  /**
+   * Confirma un mail desde el link.
+   *
+   * Público porque lo abre alguien que quizás no tiene sesión: el link puede
+   * caer en otro navegador, o en el teléfono en vez de la computadora donde se
+   * anotó.
+   */
+  @Public()
+  @RateLimit('login')
+  @Post('verificar')
+  async verificar(@Body() body: unknown) {
+    const parsed = z.object({ token: z.string().min(1).max(200) }).safeParse(body);
+    if (!parsed.success) {
+      throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
+    }
+
+    const verificado = await this.tenants.store.verificarMail(
+      digestDeVerificacion(parsed.data.token),
+      new Date(),
+    );
+    if (verificado.isErr()) {
+      throw new HttpException(verificado.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    // Un token que no coincide y uno vencido dan la misma respuesta: decir
+    // cuál de los dos fue le confirma a quien prueba tokens que acertó uno.
+    if (verificado.value === null) {
+      throw new HttpException({ kind: 'TOKEN_INVALIDO' }, HttpStatus.BAD_REQUEST);
+    }
+
+    return { verificado: true };
+  }
+
   @Public()
   @RateLimit('signUp')
   @Post('signup')
@@ -152,6 +222,17 @@ export class AuthController {
     }
 
     const { tenant, owner } = created.value;
+
+    /*
+     * El mail de verificación sale acá, y su fallo no vuelca el alta.
+     *
+     * La cuenta ya está creada: si el proveedor de correo está caído, negarle
+     * la cuenta a alguien que hizo todo bien es peor que dejarla sin verificar
+     * — el mail se puede reenviar, y el alta no se puede rehacer con el mismo
+     * mail porque ya quedó tomado.
+     */
+    void this.mandarVerificacion(checked.value.email, tenant.name);
+
     const expiresAt = Date.now() + SESSION_HOURS * 3_600_000;
     const token = signToken(
       {

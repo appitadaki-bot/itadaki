@@ -1,7 +1,11 @@
 import {
   TRIAL_DAYS,
   WARN_WITHIN_DAYS,
+  arrancaElTrial,
   canEditConfiguration,
+  canTakeOrders,
+  graceDaysLeft,
+  GRACE_DAYS,
   daysUntil,
   describeSubscription,
   trialEndFor,
@@ -81,5 +85,104 @@ describe('daysUntil', () => {
   it('goes negative once past', () => {
     expect(daysUntil(new Date(NOW.getTime() - 3_600_000), NOW)).toBe(0);
     expect(daysUntil(inDays(-2), NOW)).toBe(-2);
+  });
+});
+
+describe('la semana de gracia', () => {
+  it('el panel se bloquea el día que vence, pero las mesas siguen', () => {
+    const vencido = describe_(inDays(-1), false);
+
+    expect(vencido.status).toBe('EXPIRED');
+    expect(canEditConfiguration(vencido)).toBe(false);
+    // Lo importante: nadie queda varado a mitad de un servicio.
+    expect(canTakeOrders(vencido)).toBe(true);
+  });
+
+  it('las mesas siguen todo el último día de gracia', () => {
+    const casi = describe_(inDays(-GRACE_DAYS + 1), false);
+
+    expect(canTakeOrders(casi)).toBe(true);
+  });
+
+  it('pasada la gracia se corta también el pedido', () => {
+    const suspendido = describe_(inDays(-GRACE_DAYS), false);
+
+    expect(suspendido.status).toBe('SUSPENDED');
+    expect(canTakeOrders(suspendido)).toBe(false);
+    expect(canEditConfiguration(suspendido)).toBe(false);
+  });
+
+  it('pagar reactiva todo, aunque haya estado suspendido', () => {
+    // El caso de quien vuelve: no puede quedar castigado por haber tardado.
+    const alDia = describe_(inDays(-30), true);
+
+    expect(alDia.status).toBe('ACTIVE');
+    expect(canTakeOrders(alDia)).toBe(true);
+    expect(canEditConfiguration(alDia)).toBe(true);
+  });
+
+  it('cuenta los días de gracia que quedan', () => {
+    expect(graceDaysLeft(describe_(inDays(-1), false))).toBe(GRACE_DAYS - 1);
+    expect(graceDaysLeft(describe_(inDays(-GRACE_DAYS), false))).toBe(0);
+  });
+
+  it('quien está al día no tiene cuenta regresiva', () => {
+    expect(graceDaysLeft(describe_(null, true))).toBe(GRACE_DAYS);
+  });
+});
+
+describe('el reloj arranca con el primer pedido', () => {
+  /** Una cuenta recién creada: existe, pero nadie pidió nada todavía. */
+  const sinEstrenar = describeSubscription(
+    { trialEndsAt: null, paid: false, estrenado: false },
+    NOW,
+  );
+
+  it('una cuenta que nadie usó no está en trial todavía', () => {
+    // Quien se anota un martes y recibe la carta el jueves no puede perder
+    // dos días de los treinta.
+    expect(sinEstrenar.status).toBe('SIN_ESTRENAR');
+    expect(sinEstrenar.daysLeft).toBeNull();
+  });
+
+  it('sin estrenar se puede usar todo', () => {
+    // Hay que poder cargar la carta y probar antes de que el reloj corra.
+    expect(canEditConfiguration(sinEstrenar)).toBe(true);
+    expect(canTakeOrders(sinEstrenar)).toBe(true);
+  });
+
+  it('el primer pedido es el que lo arranca', () => {
+    expect(arrancaElTrial(sinEstrenar)).toBe(true);
+  });
+
+  it('el segundo pedido ya no lo reinicia', () => {
+    // Con fecha puesta, el reloj ya corre: volver a arrancarlo regalaría un
+    // trial nuevo con cada pedido.
+    const corriendo = describeSubscription(
+      { trialEndsAt: inDays(20), paid: false, estrenado: true },
+      NOW,
+    );
+
+    expect(corriendo.status).toBe('TRIAL');
+    expect(arrancaElTrial(corriendo)).toBe(false);
+  });
+
+  it('una cuenta vieja sin el campo sigue activa', () => {
+    // `estrenado` no existía antes: una cuenta anterior a esto no puede
+    // quedar bloqueada porque le falte un dato.
+    const vieja = describeSubscription({ trialEndsAt: null, paid: false }, NOW);
+
+    expect(vieja.status).toBe('ACTIVE');
+    expect(arrancaElTrial(vieja)).toBe(false);
+  });
+
+  it('quien paga no vuelve a estar sin estrenar', () => {
+    const pago = describeSubscription(
+      { trialEndsAt: null, paid: true, estrenado: false },
+      NOW,
+    );
+
+    expect(pago.status).toBe('ACTIVE');
+    expect(arrancaElTrial(pago)).toBe(false);
   });
 });

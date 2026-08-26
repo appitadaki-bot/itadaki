@@ -865,3 +865,157 @@ strong { color: var(--tinta); font-weight: 700; }
 }
 
 .mini-barras i.pico { background: var(--acento); }
+
+/* ═══ PLANES ═══ */
+
+/*
+ * Dos tarjetas, y una manda.
+ *
+ * La de la prueba está primero porque es por donde todos entran, pero la que
+ * pesa es la de pago: es la decisión que la página vino a pedir. Sin esa
+ * diferencia las dos se leen como alternativas iguales, y la gratis gana
+ * siempre por ser gratis.
+ */
+.planes { margin-top: 2.5rem; align-items: start; }
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.75rem 1.5rem;
+}
+
+.plan.destacado {
+  position: relative;
+  background: var(--carta-alta);
+  border: 1px solid oklch(70% 0.15 45 / 0.35);
+}
+
+.plan .chapa {
+  align-self: flex-start;
+  margin: 0 0 0.5rem;
+}
+
+.plan-nombre {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+/*
+ * El precio, en una línea.
+ *
+ * El signo y el "por mes" van chicos y alineados abajo: lo que la persona
+ * busca es el número, y rodearlo de texto del mismo tamaño lo esconde.
+ */
+.plan-precio {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  margin: 0.15rem 0 0;
+  color: var(--tinta);
+}
+
+.plan-signo {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--tinta-media);
+}
+
+.plan-cifra {
+  font-family: var(--display);
+  font-size: clamp(2.2rem, 6vw, 2.9rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  /* Los dígitos de ancho fijo evitan que el número baile si algún día cambia. */
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.plan-mes {
+  margin-left: 0.15rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--tinta-suave);
+}
+
+.plan-plazo {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--tinta-media);
+}
+
+.plan-items {
+  margin: 1.25rem 0 1.5rem;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.6rem;
+  /* Empuja el botón al pie: con listas de largo distinto, los dos botones
+     quedaban a alturas distintas y la comparación se hacía difícil. */
+  flex-grow: 1;
+}
+
+.plan-items li {
+  position: relative;
+  padding-left: 1.4rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--tinta-media);
+}
+
+.plan-items li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--acento);
+  font-weight: 700;
+}
+
+.plan .plan-btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: auto;
+}
+
+.plan-nota {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  text-align: center;
+  color: var(--tinta-suave);
+}
+
+/* En el teléfono la destacada va primero: es la que la página recomienda, y
+   nadie hace scroll para comparar dos tarjetas apiladas. */
+@media (max-width: 699px) {
+  .planes { display: flex; flex-direction: column-reverse; }
+}
+
+/*
+ * Un error que no es de ningún campo: sin red, el mail ya usado.
+ *
+ * Va pegado arriba del botón y no al pie de la página: es donde está mirando
+ * quien acaba de tocar, y un aviso fuera de la vista es un aviso que no
+ * existe.
+ */
+.error-envio {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--r-chip, 10px);
+  background: oklch(70% 0.15 45 / 0.15);
+  border: 1px solid oklch(70% 0.15 45 / 0.4);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--tinta);
+}
+
+/* El botón del panel, dentro del mensaje de listo. */
+.listo .btn {
+  margin-top: 1rem;
+}

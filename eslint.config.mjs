@@ -42,6 +42,8 @@ export default tseslint.config(
         clearInterval: 'readonly',
         requestAnimationFrame: 'readonly',
         IntersectionObserver: 'readonly',
+        fetch: 'readonly',
+        FormData: 'readonly',
       },
     },
   },

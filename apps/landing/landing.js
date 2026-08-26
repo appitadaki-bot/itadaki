@@ -221,9 +221,26 @@
   const MENSAJES = {
     local: 'Poné el nombre de tu restaurante',
     nombre: 'Poné tu nombre y apellido',
+    email: 'Necesitamos tu mail para crear la cuenta',
+    password: 'Elegí una contraseña de 8 caracteres o más',
+    password2: 'Repetí la misma contraseña',
     whatsapp: 'Necesitamos un WhatsApp para escribirte',
     mesas: 'Decinos cuántas mesas tenés, más o menos',
   };
+
+  /*
+   * Dónde está la API.
+   *
+   * En localhost gana la de la máquina, no la del meta: probando la landing
+   * servida en el 4300, apuntar a producción hace que el navegador bloquee la
+   * llamada por CORS y se vea "sin conexión" — un error que no dice nada de
+   * lo que pasó. Es la misma regla que usan las cuatro apps.
+   */
+  const enLaMaquina = ['localhost', '127.0.0.1'].includes(globalThis.location?.hostname ?? '');
+  const api = enLaMaquina
+    ? `${globalThis.location.protocol}//${globalThis.location.hostname}:3000`
+    : (document.querySelector('meta[name="itadaki-api"]')?.content ?? '');
+  const panel = document.querySelector('meta[name="itadaki-panel"]')?.content ?? '';
 
   function revisar(input) {
     const campo = input.closest('.campo');
@@ -232,7 +249,13 @@
     const vacio = input.value.trim() === '';
     const malNumero =
       input.type === 'number' && !vacio && (Number(input.value) < 1 || Number(input.value) > 500);
-    const mal = input.required && (vacio || malNumero);
+    // Un mail sin arroba o una contraseña corta se rechazan acá y no después:
+    // el servidor los rechaza igual, y enterarse recién ahí es peor.
+    const malMail = input.type === 'email' && !vacio && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.value);
+    const malClave = input.type === 'password' && !vacio && input.value.length < 8;
+    const otra = form?.querySelector('[name="password"]')?.value ?? '';
+    const noCoincide = input.name === 'password2' && !vacio && input.value !== otra;
+    const mal = (input.required && vacio) || malNumero || malMail || malClave || noCoincide;
 
     campo.classList.toggle('mal', mal);
     const error = campo.querySelector('.error');
@@ -240,7 +263,11 @@
       error.textContent = mal
         ? malNumero
           ? 'Poné un número entre 1 y 500'
-          : (MENSAJES[input.name] ?? 'Falta completar esto')
+          : malMail
+            ? 'Ese mail no parece válido'
+            : noCoincide
+              ? 'Las dos contraseñas tienen que ser iguales'
+              : (MENSAJES[input.name] ?? 'Falta completar esto')
         : '';
     }
     return !mal;
@@ -256,7 +283,38 @@
     });
   }
 
-  form?.addEventListener('submit', (evento) => {
+  const boton = document.getElementById('enviar');
+
+  /*
+   * "Contratar ahora" pasa por el mismo formulario.
+   *
+   * El cobro necesita saber de qué restaurante es el pago, y ese restaurante
+   * tiene que existir antes: sin cuenta, llega la plata y no hay a quién
+   * acreditársela. Así que los dos botones crean la cuenta; lo que cambia es
+   * a dónde va después.
+   */
+  let vaAPagar = false;
+
+  for (const link of document.querySelectorAll('[data-contratar]')) {
+    link.addEventListener('click', () => {
+      vaAPagar = true;
+      if (boton !== null) boton.textContent = 'Crear cuenta y contratar';
+    });
+  }
+
+  /** Un error que no es de un campo puntual: sin red, el mail ya usado. */
+  function errorGeneral(texto) {
+    let aviso = form?.querySelector('.error-envio');
+    if (aviso === null || aviso === undefined) {
+      aviso = document.createElement('p');
+      aviso.className = 'error-envio';
+      aviso.setAttribute('role', 'alert');
+      boton?.insertAdjacentElement('beforebegin', aviso);
+    }
+    aviso.textContent = texto;
+  }
+
+  form?.addEventListener('submit', async (evento) => {
     evento.preventDefault();
 
     const inputs = [...form.querySelectorAll('input')];
@@ -267,12 +325,79 @@
       return;
     }
 
-    // Todavía no hay a dónde mandarlo. Se muestra el mismo mensaje que va a
-    // ver cuando el envío exista, así la pantalla no promete de más.
-    form.hidden = true;
-    if (listo !== null) {
-      listo.hidden = false;
-      listo.scrollIntoView({ behavior: quieto ? 'auto' : 'smooth', block: 'center' });
+    if (api === '') {
+      errorGeneral('No podemos crear la cuenta ahora. Escribinos por WhatsApp.');
+      return;
+    }
+
+    const datos = Object.fromEntries(new FormData(form));
+
+    // Bloqueado mientras se manda: dos toques seguidos son dos cuentas, y la
+    // segunda falla con "el mail ya está en uso" — que se lee como un error
+    // del usuario cuando en realidad hizo todo bien.
+    if (boton !== null) {
+      boton.disabled = true;
+      boton.textContent = 'Creando tu cuenta…';
+    }
+    form.querySelector('.error-envio')?.remove();
+
+    try {
+      const respuesta = await fetch(`${api}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          restaurant: datos.local,
+          email: datos.email,
+          password: datos.password,
+          displayName: datos.nombre,
+        }),
+      });
+
+      if (!respuesta.ok) {
+        const detalle = await respuesta.json().catch(() => null);
+        errorGeneral(
+          detalle?.kind === 'EMAIL_TAKEN'
+            ? 'Ese mail ya tiene una cuenta. Entrá al panel con él.'
+            : 'No pudimos crear la cuenta. Probá de nuevo en un momento.',
+        );
+        if (boton !== null) {
+          boton.disabled = false;
+          boton.textContent = 'Crear mi cuenta';
+        }
+        return;
+      }
+
+      /*
+       * Quien viene de "Contratar ahora" va derecho al pago.
+       *
+       * El alta devuelve la sesión, así que el panel lo recibe ya adentro y
+       * puede abrir el cobro sin pedirle que entre de nuevo. Sin panel
+       * configurado se cae al mensaje de siempre: la cuenta ya está creada, y
+       * eso es lo que importaba.
+       */
+      if (vaAPagar && panel !== '') {
+        globalThis.location.href = `${panel}/?contratar=1`;
+        return;
+      }
+
+      form.hidden = true;
+      if (listo !== null) {
+        // El botón al panel sólo si sabemos dónde está: mandar a una URL que
+        // no existe es peor que no ofrecer el botón.
+        const irAlPanel = document.getElementById('irAlPanel');
+        if (irAlPanel !== null) {
+          if (panel === '') irAlPanel.remove();
+          else irAlPanel.href = panel;
+        }
+        listo.hidden = false;
+        listo.scrollIntoView({ behavior: quieto ? 'auto' : 'smooth', block: 'center' });
+      }
+    } catch {
+      errorGeneral('Sin conexión. Fijate la red y probá de nuevo.');
+      if (boton !== null) {
+        boton.disabled = false;
+        boton.textContent = 'Crear mi cuenta';
+      }
     }
   });
 

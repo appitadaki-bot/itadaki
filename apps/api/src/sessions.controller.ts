@@ -31,6 +31,7 @@ import {
   TableScoped,
   TenantId,
   resolveTableToken,
+  TakesOrders,
 } from './auth';
 import { RateLimit } from './rate-limit.guard';
 import { database } from './database';
@@ -320,6 +321,7 @@ export class SessionsController {
   /** Joins the table's open session, creating it if this is the first diner. */
   @Public()
   @RateLimit('join')
+  @TakesOrders()
   @Post('join')
   async join(@Body() body: unknown) {
     const parsed = joinSchema.safeParse(body);
@@ -558,6 +560,7 @@ export class SessionsController {
   /** Prices the line from the catalog: the client never sends amounts. */
   @Public()
   @TableScoped()
+  @TakesOrders()
   @Post(':id/lines')
   async addLine(
     @Param('id') sessionId: string,

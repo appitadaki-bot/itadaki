@@ -13,7 +13,9 @@ import {
   type Role,
   type TrialInput,
   can,
+  arrancaElTrial,
   canEditConfiguration,
+  canTakeOrders,
   describeSubscription,
 } from '@itadaki/identity/domain';
 import { peekTableToken, verifyToken, verifyTableToken } from '@itadaki/identity/infra';
@@ -370,6 +372,82 @@ export class TrialGuard implements CanActivate {
     if (!canEditConfiguration(describeSubscription(trial, new Date()))) {
       throw new ForbiddenException({ kind: 'TRIAL_EXPIRED' });
     }
+    return true;
+  }
+}
+
+/**
+ * Declara que una ruta toma pedidos, y por lo tanto necesita servicio activo.
+ *
+ * Se marca a mano en vez de deducirlo del método HTTP: ver la carta y la
+ * cuenta también son POST en algunos casos, y esas tienen que seguir andando
+ * en un local suspendido — la mesa que ya comió tiene que poder pagar.
+ */
+export const TAKES_ORDERS = 'itadaki:takes-orders';
+export const TakesOrders = (): MethodDecorator => SetMetadata(TAKES_ORDERS, true);
+
+/**
+ * Corta los pedidos de un local suspendido.
+ *
+ * Es lo último que se corta y lo único que el comensal llega a notar. El panel
+ * se bloquea el día que vence el trial; las mesas siguen una semana más, para
+ * que el corte no agarre a nadie en mitad de un servicio.
+ */
+@Injectable()
+export class ServicioActivoGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
+  /** Se reemplaza en los tests, para correr sin base de datos. */
+  protected lookUp: (tenantId: string) => Promise<TrialInput | null> = async (tenantId) => {
+    const found = await new PostgresTenantStore(database).subscriptionFor(tenantId);
+    return found.isOk() ? found.value : null;
+  };
+
+  /** También se reemplaza en los tests. */
+  protected arrancarTrial: (tenantId: string, ahora: Date) => Promise<unknown> = async (
+    tenantId,
+    ahora,
+  ) => {
+    const hecho = await new PostgresTenantStore(database).estrenar(tenantId, ahora);
+    if (hecho.isOk() && hecho.value) {
+      log.info('arrancó el trial con el primer pedido', { tenantId });
+    }
+  };
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const gated = this.reflector.getAllAndOverride<boolean>(TAKES_ORDERS, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (gated !== true) return true;
+
+    const request = context.switchToHttp().getRequest<AuthedRequest>();
+    const tenantId = request.scope?.tenantId ?? request.auth?.tenantId;
+    if (tenantId === undefined) return true;
+
+    const trial = await this.lookUp(tenantId);
+    // Un fallo de lectura no puede dejar sin pedir a un local que está al día.
+    if (trial === null) return true;
+
+    const ahora = new Date();
+    const suscripcion = describeSubscription(trial, ahora);
+
+    if (!canTakeOrders(suscripcion)) {
+      throw new ForbiddenException({ kind: 'SERVICIO_SUSPENDIDO' });
+    }
+
+    /*
+     * El primer pedido arranca el reloj.
+     *
+     * Va acá y no en el alta porque es el único punto por el que pasa todo
+     * pedido, venga de donde venga. Se dispara y no se espera: el comensal no
+     * tiene por qué aguantar una escritura de facturación para mandar su
+     * plato, y si falla lo arranca el pedido siguiente.
+     */
+    if (arrancaElTrial(suscripcion)) {
+      void this.arrancarTrial(tenantId, ahora);
+    }
+
     return true;
   }
 }

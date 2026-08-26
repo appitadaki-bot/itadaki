@@ -6,6 +6,13 @@
 <title>Itadaki · Pedidos por QR para restaurantes</title>
 <meta name="description" content="El pedido llega a la cocina con un click. Tu cliente lo manda desde su celular, sin esperar a que pase el mozo. 30 días gratis, sin tarjeta." />
 <meta name="theme-color" content="#211a15" />
+<!-- Dónde vive la API, para el alta. Mismo nombre que usan las cuatro apps,
+     así hay un solo lugar que cambiar al mover el servidor. -->
+<meta name="itadaki-api" content="https://itadaki-api.onrender.com" />
+<!-- Dónde vive el panel del dueño, para mandarlo ahí después de crear la
+     cuenta. Sin esto el botón "Entrar al panel" no aparece: mejor no mostrarlo
+     que mandar a una URL que no existe. -->
+<meta name="itadaki-panel" content="" />
 <meta property="og:title" content="Itadaki · El pedido llega a la cocina con un click" />
 <meta property="og:description" content="Tu cliente lo manda desde su celular, sin esperar a que pase el mozo. 30 días gratis, sin tarjeta." />
 <meta property="og:type" content="website" />
@@ -321,12 +328,20 @@
         <span class="dia-n">Día 28</span>
         <p>Te avisamos que se termina. <strong>El corte nunca es sorpresa.</strong></p>
       </li>
-      <li class="dia final">
+      <li class="dia">
         <span class="dia-n">Día 31</span>
         <p>
-          Si no contratás, se suspende el servicio. <strong>Tus datos no se
-          borran</strong> — tu carta, tus fotos y tus números quedan guardados, y
-          en cuanto contratás vuelve todo tal cual lo dejaste.
+          Si no contratás, el panel queda en modo lectura: no podés editar la
+          carta. <strong>Las mesas siguen pidiendo una semana más</strong>, para
+          que el corte no te agarre en mitad de un servicio.
+        </p>
+      </li>
+      <li class="dia final">
+        <span class="dia-n">Día 38</span>
+        <p>
+          Ahí sí se suspende el servicio. <strong>Tus datos no se borran</strong>
+          — tu carta, tus fotos y tus números quedan guardados, y en cuanto
+          contratás vuelve todo tal cual lo dejaste.
         </p>
       </li>
     </ol>
@@ -335,10 +350,66 @@
   </div>
 </section>
 
-<!-- ═══ 05 · ALTA ═══ -->
+<!-- ═══ 05 · PRECIO ═══ -->
+<section class="seccion" id="precio">
+  <div class="ancho">
+    <p class="numero">05</p>
+    <h2 class="titulo centrado">Un plan, sin letra chica.</h2>
+    <p class="lede centrado">
+      Empezás gratis 30 días. Si te sirve, seguís; si no, no hacés nada.
+    </p>
+
+    <div class="tarjetas dos planes">
+      <div class="tarjeta plan">
+        <p class="plan-nombre">Prueba</p>
+        <p class="plan-precio"><span class="plan-cifra">Gratis</span></p>
+        <p class="plan-plazo">30 días · sin tarjeta</p>
+        <ul class="plan-items">
+          <li>Todo lo del plan Pro, sin límite</li>
+          <li>Te dejamos la carta cargada</li>
+          <li>QR listos para imprimir</li>
+          <li>No pedimos tarjeta: no se cobra solo</li>
+        </ul>
+        <a class="btn btn-borde plan-btn" href="#alta">Empezar la prueba</a>
+      </div>
+
+      <div class="tarjeta plan destacado">
+        <p class="chapa">El plan</p>
+        <p class="plan-nombre">Pro</p>
+        <p class="plan-precio">
+          <span class="plan-signo">$</span><span class="plan-cifra">35.000</span>
+          <span class="plan-mes">por mes</span>
+        </p>
+        <p class="plan-plazo">Sin contrato ni permanencia</p>
+        <ul class="plan-items">
+          <li>Mesas, cocina, salón y panel, sin límite de pedidos</li>
+          <li>Todos los QR que necesites</li>
+          <li>Métricas de venta al día</li>
+          <li>Soporte por WhatsApp</li>
+          <li>Te damos de baja cuando quieras, desde tu panel</li>
+        </ul>
+        <a class="btn btn-acento plan-btn" href="#alta">Empezar la prueba</a>
+        <!-- Para el que ya probó y vuelve decidido. Crea la cuenta igual —el
+             cobro necesita saber de qué restaurante es— y de ahí va al pago. -->
+        <a class="btn btn-borde plan-btn" href="#alta" data-contratar>Contratar ahora</a>
+        <p class="plan-nota">
+          Con la prueba no se cobra nada hasta tu día 31, y los 30 días
+          arrancan con tu primer pedido.
+        </p>
+      </div>
+    </div>
+
+    <p class="nota centrada">
+      Precio final, IVA incluido. Se paga con Mercado Pago —tarjeta, débito o
+      dinero en cuenta— y la baja la hacés vos, sin llamar a nadie.
+    </p>
+  </div>
+</section>
+
+<!-- ═══ 06 · ALTA ═══ -->
 <section class="seccion" id="alta">
   <div class="ancho angosto">
-    <p class="numero">05</p>
+    <p class="numero">06</p>
     <h2 class="titulo centrado">Dejanos tus datos y te escribimos.</h2>
     <p class="lede">
       Te contactamos por WhatsApp <strong>dentro de las 24 horas hábiles</strong>,
@@ -359,6 +430,31 @@
       </label>
 
       <label class="campo">
+        <span>Tu mail</span>
+        <input name="email" type="email" required autocomplete="email" />
+        <em class="error"></em>
+      </label>
+
+      <label class="campo">
+        <span>Una contraseña</span>
+        <input
+          name="password"
+          type="password"
+          required
+          minlength="8"
+          autocomplete="new-password"
+          placeholder="Mínimo 8 caracteres"
+        />
+        <em class="error"></em>
+      </label>
+
+      <label class="campo">
+        <span>Repetí la contraseña</span>
+        <input name="password2" type="password" required autocomplete="new-password" />
+        <em class="error"></em>
+      </label>
+
+      <label class="campo">
         <span>WhatsApp</span>
         <input name="whatsapp" type="tel" required autocomplete="tel" placeholder="11 5555 5555" />
         <em class="error"></em>
@@ -370,12 +466,7 @@
         <em class="error"></em>
       </label>
 
-      <label class="campo">
-        <span>Tu carta actual <i>(opcional)</i></span>
-        <input name="carta" type="text" placeholder="El link de tu web, o de tu Instagram" />
-      </label>
-
-      <button class="btn btn-acento ancho-total" type="submit" id="enviar">Quiero probarlo</button>
+      <button class="btn btn-acento ancho-total" type="submit" id="enviar">Crear mi cuenta</button>
 
       <p class="nota centrada">
         Al enviar aceptás los
@@ -404,26 +495,31 @@
     </div>
 
     <p class="listo" id="listo" hidden role="status">
-      <strong>Listo.</strong> Te escribimos por WhatsApp dentro de las 24 horas
-      hábiles, con tu carta ya cargada.
+      <strong>Tu cuenta está lista.</strong> Ya podés entrar al panel.
+      Te escribimos por WhatsApp dentro de las 24 horas hábiles con tu carta
+      cargada — <strong>los 30 días arrancan con tu primer pedido</strong>, no
+      ahora.
+      <a class="btn btn-acento ancho-total" id="irAlPanel" href="#">Entrar al panel</a>
     </p>
   </div>
 </section>
 
-<!-- ═══ 06 · PREGUNTAS ═══ -->
+<!-- ═══ 07 · PREGUNTAS ═══ -->
 <section class="seccion sunken">
   <div class="ancho angosto">
-    <p class="numero">06</p>
+    <p class="numero">07</p>
     <h2 class="titulo centrado">Preguntas antes de anotarte</h2>
 
     <details class="pregunta">
       <summary>¿Qué pasa si no pago después de los 30 días?</summary>
       <p>
-        Se suspende el servicio: los QR dejan de tomar pedidos y el panel queda
-        en modo lectura. Pero <strong>no se borra nada</strong> — tu carta, tus
-        fotos, tus mesas y tus números quedan guardados. El día que contratás,
-        volvés a encontrar todo tal cual lo dejaste. Te avisamos el día 28, así
-        no te agarra de sorpresa.
+        El día 31 el panel queda en modo lectura: no podés editar la carta ni
+        cargar personal. <strong>Las mesas siguen tomando pedidos una semana
+        más</strong>, así el corte no te agarra en mitad de un servicio. Recién
+        el día 38 se suspende del todo. Pero <strong>no se borra nada</strong> —
+        tu carta, tus fotos, tus mesas y tus números quedan guardados, y el día
+        que contratás volvés a encontrar todo tal cual lo dejaste. Te avisamos
+        el día 28, así no te agarra de sorpresa.
       </p>
     </details>
 

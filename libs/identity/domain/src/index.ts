@@ -34,5 +34,16 @@ export {
   daysUntil,
   trialEndFor,
   describeSubscription,
+  arrancaElTrial,
   canEditConfiguration,
+  canTakeOrders,
+  graceDaysLeft,
+  GRACE_DAYS,
 } from './lib/subscription';
+export {
+  type AvisoDePago,
+  type EfectoDelAviso,
+  type EstadoDePago,
+  efectoDe,
+  nuevoVencimiento,
+} from './lib/pago-recibido';
