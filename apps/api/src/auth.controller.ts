@@ -142,6 +142,43 @@ export class AuthController {
    * caer en otro navegador, o en el teléfono en vez de la computadora donde se
    * anotó.
    */
+  /**
+   * Vuelve a mandar el link de verificación.
+   *
+   * Contesta lo mismo exista o no la cuenta: si dijera "ese mail no está
+   * registrado", este endpoint se convierte en una forma de averiguar qué
+   * restaurantes usan Itadaki, probando direcciones de a una.
+   *
+   * Con el límite de intentos del login, que es lo que evita que se lo use
+   * para mandarle mails a alguien repetidamente.
+   */
+  @Public()
+  @RateLimit('login')
+  @Post('reenviar-verificacion')
+  async reenviarVerificacion(@Body() body: unknown) {
+    const parsed = z.object({ email: z.string().min(1).max(120) }).safeParse(body);
+    if (!parsed.success) {
+      throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
+    }
+
+    const email = parsed.data.email.trim().toLowerCase();
+    const yaEsta = await this.tenants.store.mailVerificado(email);
+
+    // Nada que reenviar si ya está confirmado: mandar otro link sólo agrega
+    // una credencial más dando vueltas en una casilla.
+    if (yaEsta.isOk() && !yaEsta.value) {
+      const quien = await this.staff.store.findByEmail(email);
+      if (quien.isOk()) {
+        // El id del restaurante es un slug —"manolo-san-telmo"— y quedaría así
+        // en el asunto del mail. El nombre que puso al registrarse se lee
+        // mejor, y es el que la persona reconoce.
+        await this.mandarVerificacion(email, quien.value.displayName);
+      }
+    }
+
+    return { enviado: true };
+  }
+
   @Public()
   @RateLimit('login')
   @Post('verificar')

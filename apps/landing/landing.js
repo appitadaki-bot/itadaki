@@ -357,6 +357,35 @@
     aviso.textContent = texto;
   }
 
+  /**
+   * El botón de reenviar el mail de verificación.
+   *
+   * Se apaga después de usarlo: el segundo link invalida al primero, así que
+   * tocarlo tres veces deja tres mails en la casilla de los cuales sólo el
+   * último sirve — y la persona probablemente abra el primero que ve.
+   */
+  function prepararReenvio(email) {
+    const reenviar = document.getElementById('reenviar');
+    if (reenviar === null) return;
+
+    reenviar.addEventListener('click', async () => {
+      reenviar.disabled = true;
+      reenviar.textContent = 'Enviando…';
+
+      try {
+        await fetch(`${api}/api/auth/reenviar-verificacion`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        reenviar.textContent = 'Listo, fijate de nuevo';
+      } catch {
+        reenviar.textContent = 'No pudimos reenviarlo';
+        reenviar.disabled = false;
+      }
+    });
+  }
+
   form?.addEventListener('submit', async (evento) => {
     evento.preventDefault();
 
@@ -427,6 +456,12 @@
 
       form.hidden = true;
       if (listo !== null) {
+        // La dirección a la vista: si se tipeó mal, este es el momento de
+        // darse cuenta, no tres días después cuando no llegó nada.
+        const donde = document.getElementById('mailEnviado');
+        if (donde !== null) donde.textContent = String(datos.email);
+        prepararReenvio(String(datos.email));
+
         // El botón al panel sólo si sabemos dónde está: mandar a una URL que
         // no existe es peor que no ofrecer el botón.
         const irAlPanel = document.getElementById('irAlPanel');
