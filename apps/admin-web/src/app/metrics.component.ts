@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
 import { AuthStore } from '@itadaki/shared/ui-auth';
 
 interface MoneyDto {
@@ -162,6 +170,8 @@ const WINDOWS: ReadonlyArray<{ days: number; label: string }> = [
             </table>
           </details>
         }
+      } @else if (error() !== null) {
+        <p class="empty error" role="alert">{{ error() }}</p>
       } @else {
         <p class="empty">Cargando…</p>
       }
@@ -174,8 +184,14 @@ export class MetricsComponent {
   private readonly auth = inject(AuthStore);
 
   protected readonly windows = WINDOWS;
-  protected readonly days = signal(30);
+  /**
+   * Siete días, que es lo que un restaurante mira para decidir algo: cómo
+   * viene la semana. Treinta sirve para ver una tendencia, y para eso se
+   * elige a mano.
+   */
+  protected readonly days = signal(7);
   protected readonly data = signal<MetricsDto | null>(null);
+  protected readonly error = signal<string | null>(null);
 
   /** Scales bars against the best seller, so the top bar always fills the track. */
   private readonly peak = computed(() =>
@@ -216,20 +232,43 @@ export class MetricsComponent {
   });
 
   constructor() {
-    void this.load();
+    // En el constructor las entradas todavía no llegaron: `apiUrl()` no tiene
+    // valor y la primera carga salía contra una dirección inventada. Fallaba,
+    // nadie miraba la respuesta, y la pantalla se quedaba en "Cargando…" para
+    // siempre — hasta que alguien tocaba un rango y disparaba una carga que
+    // esta vez sí tenía la dirección.
+    //
+    // Con un efecto la consulta se rehace sola cuando cambia la dirección o el
+    // rango, que son las dos únicas cosas de las que depende.
+    effect(() => {
+      const base = this.apiUrl();
+      const days = this.days();
+      void this.load(base, days);
+    });
   }
 
   protected setWindow(days: number): void {
     this.days.set(days);
-    void this.load();
   }
 
-  private async load(): Promise<void> {
-    const response = await this.auth.apiFetch(`${this.apiUrl()}/metrics?days=${this.days()}`, {
-      headers: this.auth.headers(),
-    });
-    if (response.ok) {
+  private async load(base: string, days: number): Promise<void> {
+    this.error.set(null);
+
+    try {
+      const response = await this.auth.apiFetch(`${base}/metrics?days=${days}`, {
+        headers: this.auth.headers(),
+      });
+
+      if (!response.ok) {
+        // Antes se descartaba en silencio: sin números y sin motivo, la
+        // pantalla no se distinguía de una que todavía está cargando.
+        this.error.set('No pudimos traer los números. Probá de nuevo.');
+        return;
+      }
+
       this.data.set((await response.json()) as MetricsDto);
+    } catch {
+      this.error.set('Sin conexión con el servidor.');
     }
   }
 

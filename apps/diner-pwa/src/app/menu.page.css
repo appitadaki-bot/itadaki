@@ -27,7 +27,7 @@
   font-size: 1.65rem;
   color: var(--itadaki-ink-strong);
   margin: 0;
-  letter-spacing: -0.5px;
+  letter-spacing: var(--itadaki-tracking-title);
   text-wrap: balance;
   min-width: 0;
 }
@@ -45,7 +45,7 @@
 
 .table-tag-name {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 1.5px;
   color: var(--itadaki-ink-faint);
@@ -65,12 +65,12 @@
 .avatar-more {
   background: var(--itadaki-surface-sunken);
   color: var(--itadaki-ink-muted);
-  font-size: 0.6rem;
+  font-size: 0.7rem;
 }
 
 .table-tag-count {
   margin: 0;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--itadaki-ink-subtle);
   white-space: nowrap;
@@ -81,7 +81,7 @@
   background: none;
   padding: 0;
   font-family: inherit;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--itadaki-accent);
   cursor: pointer;
@@ -150,7 +150,7 @@
 
 .diets-label {
   flex-shrink: 0;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -173,39 +173,39 @@
   position: relative;
   flex-shrink: 0;
   border: none;
-  border-radius: 0;
-  padding: 0.7rem 0.9rem;
+  /* Redondeado y con aire abajo: el fondo cuadrado llegaba hasta la línea del
+     borde y las dos marcas del mismo estado se pisaban. */
+  border-radius: var(--itadaki-radius-pill);
+  padding: 0.55rem 0.95rem;
+  margin-bottom: 0.35rem;
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   background: transparent;
   color: var(--itadaki-ink-subtle);
-  transition: color 0.2s ease;
-}
-
-/* La línea crece desde el centro al elegir la categoría. */
-.chip::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  right: 50%;
-  bottom: -1px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--itadaki-accent);
   transition:
-    left 0.22s cubic-bezier(0.2, 0, 0.2, 1),
-    right 0.22s cubic-bezier(0.2, 0, 0.2, 1);
+    color var(--itadaki-smooth) var(--itadaki-ease),
+    background var(--itadaki-quick) var(--itadaki-ease);
 }
 
+@media (hover: hover) {
+  .chip:hover {
+    background: var(--itadaki-accent-tint);
+    color: var(--itadaki-accent-deep);
+  }
+}
+
+/*
+ * La categoría elegida se marca con el fondo, y sólo con el fondo.
+ *
+ * Antes tenía además un subrayado pegado a la línea del borde: dos marcas
+ * para el mismo estado, una encima de la otra, que es lo que se leía tosco.
+ * La pastilla alcanza y deja la fila limpia.
+ */
 .chip[aria-pressed='true'] {
-  color: var(--itadaki-ink-strong);
-}
-
-.chip[aria-pressed='true']::after {
-  left: 0.7rem;
-  right: 0.7rem;
+  background: var(--itadaki-accent-tint);
+  color: var(--itadaki-accent-deep);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -225,12 +225,12 @@
   padding: 0.42rem 0.75rem 0.42rem 0.55rem;
   background: transparent;
   font-family: inherit;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--itadaki-ink-muted);
   cursor: pointer;
   min-height: 36px;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  transition: border-color var(--itadaki-quick) var(--itadaki-ease), background var(--itadaki-quick) var(--itadaki-ease), color var(--itadaki-quick) var(--itadaki-ease);
 }
 
 .diet-box {
@@ -242,7 +242,7 @@
   border: 1.5px solid var(--itadaki-border-dashed);
   border-radius: 4px;
   background: var(--itadaki-surface-raised);
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color var(--itadaki-quick) var(--itadaki-ease), background var(--itadaki-quick) var(--itadaki-ease);
 }
 
 .diet-tick {
@@ -257,7 +257,7 @@
      what makes an added filter feel additive. */
   stroke-dasharray: 14;
   stroke-dashoffset: 14;
-  transition: stroke-dashoffset 0.2s ease;
+  transition: stroke-dashoffset var(--itadaki-smooth) var(--itadaki-ease);
 }
 
 .chip-diet[aria-checked='true'] {
@@ -287,7 +287,7 @@
   background: none;
   padding: 0.42rem 0.5rem;
   font-family: inherit;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--itadaki-accent);
   cursor: pointer;
@@ -409,8 +409,8 @@
   border-radius: var(--itadaki-radius-card);
   box-shadow: var(--itadaki-shadow-card);
   transition:
-    box-shadow 0.2s cubic-bezier(0.2, 0, 0.2, 1),
-    transform 0.2s cubic-bezier(0.2, 0, 0.2, 1);
+    box-shadow var(--itadaki-smooth) cubic-bezier(0.2, 0, 0.2, 1),
+    transform var(--itadaki-smooth) cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 /* Se levanta apenas al tocarla: confirma que la fila entera es tocable. */
@@ -435,7 +435,7 @@
 
 @media (hover: hover) {
   .card:hover {
-    box-shadow: 0 6px 20px oklch(24% 0.02 40 / 0.12);
+    box-shadow: var(--itadaki-shadow-card);
     transform: translateY(-2px);
   }
 }
@@ -471,7 +471,8 @@
   justify-content: center;
   font-family: var(--itadaki-font-display);
   font-weight: 700;
-  font-size: 1.35rem;
+  font-size: 1.35rem
+  letter-spacing: var(--itadaki-tracking-title);;
   color: oklch(38% 0.06 33);
   background: repeating-linear-gradient(
     135deg,
@@ -505,13 +506,23 @@
 
 /* Dos líneas como máximo: un nombre largo estiraba la fila y desalineaba la
    foto respecto del texto, que es lo que hacía ver la lista despareja. */
+/*
+ * El nombre del plato va en la tipografía de texto.
+ *
+ * La regla decía `display` desde el principio, pero Unbounded no se cargaba
+ * —faltaba el `<link>`— así que en la práctica los platos siempre se leyeron
+ * en la del sistema. Al empezar a cargarse, una display apareció donde nunca
+ * había estado: Unbounded es de titular, se luce en dos palabras y cansa en
+ * una lista de veinte nombres largos, que es justo lo que la persona vino a
+ * leer. La display queda para los títulos.
+ */
 .card-name {
-  font-family: var(--itadaki-font-display);
+  font-family: var(--itadaki-font-body);
   font-weight: 600;
   font-size: 1rem;
   color: var(--itadaki-ink-strong);
   line-height: 1.25;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.015em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -548,7 +559,7 @@
 }
 
 .tag {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--itadaki-ink-subtle);
   background: transparent;
@@ -584,7 +595,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: white;
   flex-shrink: 0;
@@ -615,44 +626,104 @@
   padding: 0.95rem 1.4rem;
   font-family: var(--itadaki-font-display);
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   text-decoration: none;
   font-variant-numeric: tabular-nums;
+  box-shadow: var(--itadaki-shadow-cta);
+  transition:
+    transform var(--itadaki-quick) var(--itadaki-ease),
+    box-shadow var(--itadaki-smooth) var(--itadaki-ease),
+    background var(--itadaki-quick) var(--itadaki-ease);
 }
 
 /*
- * La acción principal de la tarjeta.
+ * Acá el negro sí manda: es la acción principal de la pantalla y hay una sola.
+ * Lo que cambia es que responde — se levanta al acercarse y se apoya al tocar.
+ */
+@media (hover: hover) {
+  .cta:hover {
+    background: var(--itadaki-ink-strong);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px oklch(24% 0.02 40 / 0.28);
+  }
+}
+
+.cta:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: 0 2px 8px oklch(24% 0.02 40 / 0.22);
+}
+
+/*
+ * Agregar: un contorno que se llena, no un bloque negro.
  *
- * Comparte fila con la indicación para la cocina, que pesa menos: la mayoría
- * pide el plato tal cual, y dos botones iguales obligan a elegir dos veces.
+ * El negro sólido es la decisión visual más fuerte que hay en la pantalla, y
+ * estaba puesta en un botón que se repite en cada tarjeta de la carta. Diez
+ * platos eran diez bloques negros compitiendo con las fotos y con los nombres,
+ * que es lo que la persona vino a leer. Agregar es una acción común, no una
+ * decisión grave: pesa como tal.
+ *
+ * En reposo es sólo un contorno tenue. El color aparece cuando el dedo se
+ * acerca y llena el botón cuando se toca — el peso está en el gesto y no en la
+ * pantalla en reposo.
  */
 .card-add {
   display: grid;
   place-items: center;
-  border: none;
+  border: 1px solid var(--itadaki-accent-line);
   border-radius: var(--itadaki-radius-pill);
-  background: var(--itadaki-ink);
-  color: white;
-  padding: 0.55rem 0.95rem;
+  background: var(--itadaki-accent-tint);
+  color: var(--itadaki-accent-deep);
+  padding: 0.55rem 1.1rem;
   font-family: var(--itadaki-font-display);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
   cursor: pointer;
   min-height: 44px;
   white-space: nowrap;
   text-align: center;
   text-decoration: none;
+  overflow: hidden;
   transition:
-    transform 0.15s cubic-bezier(0.2, 0, 0.2, 1),
-    background 0.15s ease;
+    color var(--itadaki-quick) var(--itadaki-ease),
+    background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease),
+    transform var(--itadaki-quick) var(--itadaki-ease),
+    box-shadow var(--itadaki-smooth) var(--itadaki-ease);
 }
 
-.card-add:active {
-  transform: scale(0.94);
+/*
+ * El color se pinta en el fondo del botón, sin capas.
+ *
+ * Antes esto era un `::before` con `z-index: -1` para que creciera desde el
+ * centro. Estaba mal: el texto del botón es un nodo de texto suelto, no un
+ * elemento, así que la regla que debía dejarlo por encima no aplicaba a nada
+ * y la capa se iba detrás de la tarjeta entera — el rojo terminaba pintando
+ * el fondo del plato en vez del botón. Un `background` directo no puede
+ * escaparse del elemento.
+ */
+@media (hover: hover) {
+  .card-add:hover:not(:disabled) {
+    background: var(--itadaki-accent-tint-strong);
+    border-color: var(--itadaki-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px oklch(50% 0.17 33 / 0.14);
+  }
 }
 
+/*
+ * Mientras se manda, y sólo ahí.
+ *
+ * La confirmación va acá y no en `:active`: en un teléfono `:active` no se
+ * suelta al levantar el dedo —queda puesto hasta que se toca otra cosa— así
+ * que el botón se quedaba rojo mucho después del toque, sin motivo visible.
+ * `:disabled` dura exactamente lo que dura el envío, que es lo que el color
+ * tiene que decir.
+ */
 .card-add:disabled {
-  opacity: 0.55;
+  background: var(--itadaki-accent);
+  border-color: var(--itadaki-accent);
+  color: white;
   cursor: default;
 }
 
@@ -697,9 +768,9 @@
   min-height: 44px;
   white-space: nowrap;
   transition:
-    border-color 0.18s ease,
-    color 0.18s ease,
-    transform 0.15s cubic-bezier(0.2, 0, 0.2, 1);
+    border-color var(--itadaki-quick) var(--itadaki-ease),
+    color var(--itadaki-quick) var(--itadaki-ease),
+    transform var(--itadaki-quick) cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 .card-note-btn:active {
@@ -729,7 +800,7 @@
   background: var(--itadaki-surface);
   padding: 0.65rem 0.8rem;
   font-family: inherit;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   color: var(--itadaki-ink-strong);
   min-height: 44px;
 }
@@ -746,7 +817,7 @@
   color: white;
   padding: 0.65rem 1rem;
   font-family: var(--itadaki-font-display);
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   min-height: 42px;
@@ -809,4 +880,48 @@
     box-shadow: var(--itadaki-shadow-card-hover, var(--itadaki-shadow-card));
     transform: translateY(-1px);
   }
+}
+
+/*
+ * La pantalla entra en vez de aparecer.
+ *
+ * Va en el `:host` porque cada página es un componente que Angular crea de
+ * nuevo al navegar: la animación se dispara sola con el nodo, sin tener que
+ * tocar el router.
+ *
+ * Sólo la opacidad, y el desplazamiento aparte en el encabezado. Un
+ * `transform` en el `:host` haría que las barras `position: fixed` de adentro
+ * —la del total, la del pie— se posicionen respecto a la página en vez de la
+ * ventana: dejarían de estar pegadas abajo justo mientras dura la animación.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  :host {
+    animation: itadaki-appear var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
+
+  :host > header,
+  :host > main {
+    animation: itadaki-rise var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
+}
+
+/*
+ * La tarjeta no se pinta al tocarla.
+ *
+ * Tuvo un `:active` teñido, y estaba mal por dos motivos. `:active` sube desde
+ * el hijo, así que tocar "Agregar" —que vive dentro de la tarjeta— teñía el
+ * plato entero: el color aparecía lejos del dedo, en algo que no se estaba
+ * tocando, y se leía como un error y no como una respuesta.
+ *
+ * Y en un teléfono `:active` no se suelta al levantar el dedo: queda puesto
+ * hasta que se toca otra cosa. Un plato quedaba pintado de rojo sin motivo
+ * visible mucho después del toque.
+ *
+ * Lo que confirma el toque es el botón, que es lo que se toca. La tarjeta se
+ * queda quieta.
+ */
+.card {
+  transition:
+    box-shadow var(--itadaki-smooth) var(--itadaki-ease),
+    transform var(--itadaki-smooth) var(--itadaki-ease);
 }

@@ -21,6 +21,7 @@ import {
   distributeTip,
   isSettled,
   equalSplit,
+  singlePayerSplit,
   tipAmount,
   totalWithTip,
   type Tip,
@@ -28,7 +29,7 @@ import {
 import { lineTotal as cartLineTotal } from '@itadaki/ordering/domain';
 import { Money, type CurrencyCode, type MoneyError, ok } from '@itadaki/shared/domain';
 import { z } from 'zod';
-import { PostgresTableStore } from '@itadaki/identity/infra';
+import { InMemoryTableStore, PostgresTableStore } from '@itadaki/identity/infra';
 import { type DinerScope, Public, RequirePermission, Scope, TableScoped } from './auth';
 import { database } from './database';
 import { BillsService } from './bills.service';
@@ -39,7 +40,8 @@ import { RealtimeGateway } from './realtime.gateway';
 import { toMoneyDto } from './contracts';
 
 const splitSchema = z.object({
-  kind: z.enum(['EQUAL', 'BY_DINER', 'BY_ITEM', 'CUSTOM_AMOUNT']),
+  kind: z.enum(['SINGLE_PAYER', 'EQUAL', 'BY_DINER', 'BY_ITEM', 'CUSTOM_AMOUNT']),
+  payerId: z.string().min(1).optional(),
   parts: z.number().int().min(1).max(20).optional(),
   assignments: z
     .array(z.object({ lineId: z.string().min(1), payerIds: z.array(z.string().min(1)).min(1) }))
@@ -62,6 +64,11 @@ function strategyFor(
   bill: Bill,
 ): SplitStrategy {
   switch (input.kind) {
+    case 'SINGLE_PAYER':
+      // Sin payerId no hay a quién cobrarle. El '' cae en NO_PAYERS, que es
+      // la respuesta correcta: falta elegir quién paga, no es un error de
+      // cálculo.
+      return singlePayerSplit(input.payerId ?? '');
     case 'EQUAL':
       return equalSplit(input.parts ?? bill.participants.length);
     case 'BY_DINER':
@@ -84,7 +91,14 @@ export class BillsController {
   ) {}
 
   /** Cobrar termina la mesa, y una mesa que termina estrena código. */
-  private readonly tables = new PostgresTableStore(database);
+  /*
+   * `USE_POSTGRES=false` levanta la app sin base de datos, y un store que no
+   * mira la bandera devuelve STORAGE_FAILURE en la primera llamada.
+   */
+  private readonly tables =
+    process.env['USE_POSTGRES'] !== 'false'
+      ? new PostgresTableStore(database)
+      : new InMemoryTableStore();
 
   /**
    * Confirms the session belongs to the caller's table.

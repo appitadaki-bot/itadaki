@@ -4,6 +4,7 @@ import { hashPassword } from '@itadaki/identity/infra';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Client } from 'pg';
+import { withSslWhenRemote } from './db-url';
 
 /**
  * Creates a staff account.
@@ -28,7 +29,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const client = new Client({ connectionString: ADMIN_URL });
+  const client = new Client({ connectionString: withSslWhenRemote(ADMIN_URL) });
   await client.connect();
 
   const migration = await readFile(

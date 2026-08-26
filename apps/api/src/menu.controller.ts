@@ -31,6 +31,7 @@ import { RealtimeGateway } from './realtime.gateway';
 import { Money } from '@itadaki/shared/domain';
 import { z } from 'zod';
 import { availabilitySchema, toMoneyDto } from './contracts';
+import { log } from './logger';
 
 /**
  * Cuántas fotos baja una importación.
@@ -75,6 +76,19 @@ export class MenuController {
     ]);
 
     if (categories.isErr() || products.isErr()) {
+      // El motivo va al log y no a la respuesta: la carta es pública, y un
+      // error de base de datos nombra tablas y roles a quien pregunte.
+      //
+      // Sin esto, "catalog unavailable" era todo lo que quedaba de una carta
+      // caída: ni en la respuesta ni en el log había con qué empezar a buscar.
+      log.error('no se pudo leer la carta', {
+        tenantId,
+        detalle: categories.isErr()
+          ? JSON.stringify(categories.error)
+          : products.isErr()
+            ? JSON.stringify(products.error)
+            : '',
+      });
       throw new HttpException('catalog unavailable', HttpStatus.BAD_GATEWAY);
     }
 

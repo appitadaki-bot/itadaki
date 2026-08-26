@@ -9,8 +9,8 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { PostgresTableStore, signTableToken } from '@itadaki/identity/infra';
-import { PostgresAssignmentStore } from '@itadaki/ordering/infra';
+import { InMemoryTableStore, PostgresTableStore, signTableToken } from '@itadaki/identity/infra';
+import { InMemoryAssignmentStore, PostgresAssignmentStore } from '@itadaki/ordering/infra';
 import { z } from 'zod';
 import { RequirePermission, TenantId } from './auth';
 import { database } from './database';
@@ -20,8 +20,21 @@ const DINER_APP_URL = urlFromEnv('DINER_APP_URL', 'http://localhost:4200');
 
 @Controller('tables')
 export class TablesController {
-  private readonly tables = new PostgresTableStore(database);
-  private readonly assignments = new PostgresAssignmentStore(database);
+  /*
+   * Este controller era el unico que instanciaba Postgres sin mirar
+   * `USE_POSTGRES`: con la bandera en `false` el resto de la app arrancaba
+   * pero `/api/tables` devolvia STORAGE_FAILURE, y sin mesas no hay QR ni
+   * forma de entrar a probar nada.
+   */
+  private readonly enPostgres = process.env['USE_POSTGRES'] !== 'false';
+
+  private readonly tables = this.enPostgres
+    ? new PostgresTableStore(database)
+    : new InMemoryTableStore();
+
+  private readonly assignments = this.enPostgres
+    ? new PostgresAssignmentStore(database)
+    : new InMemoryAssignmentStore();
 
   /** Lists tables with a freshly minted QR link for each. */
   @RequirePermission('menu:read')

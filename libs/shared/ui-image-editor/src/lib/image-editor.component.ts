@@ -74,7 +74,7 @@ const ANALYSIS_WIDTH = 160;
             [attr.aria-pressed]="mode() === 'frame'"
             (click)="setMode('frame')"
           >
-            encuadrar
+            Encuadrar
           </button>
           <button
             type="button"
@@ -82,32 +82,32 @@ const ANALYSIS_WIDTH = 160;
             [attr.aria-pressed]="mode() === 'focus'"
             (click)="setMode('focus')"
           >
-            punto de foco
+            Punto de foco
           </button>
         </div>
 
         @if (showingExisting()) {
           <p class="existing-note" role="status">
-            foto actual de este plato · elegí otra para reemplazarla
+            Foto actual de este plato · elegí otra para reemplazarla
           </p>
         } @else if (autoFramed()) {
-          <p class="auto-note" role="status">encuadre sugerido automáticamente · movelo si querés</p>
+          <p class="auto-note" role="status">Encuadre sugerido automáticamente · movelo si querés</p>
         }
         <p class="hint">
           @if (mode() === 'frame') {
             @if (canPan()) {
-              arrastrá la foto para encuadrarla · rueda o pellizco para zoom
+              Arrastrá la foto para encuadrarla · rueda o pellizco para zoom
             } @else {
-              hacé zoom para poder mover el encuadre
+              Hacé zoom para poder mover el encuadre
             }
           } @else {
-            tocá donde querés que quede nítido
+            Tocá donde querés que quede nítido
           }
         </p>
 
         <div class="controls">
           <label class="control">
-            <span class="control-label">zoom <b>{{ zoom().toFixed(2) }}×</b></span>
+            <span class="control-label">Zoom <b>{{ zoom().toFixed(2) }}×</b></span>
             <input
               type="range" min="1" max="4" step="0.01"
               [value]="zoom()" (input)="setZoom($event)"
@@ -115,7 +115,7 @@ const ANALYSIS_WIDTH = 160;
           </label>
 
           <label class="control">
-            <span class="control-label">radio de nitidez <b>{{ percent(sharpRadius()) }}%</b></span>
+            <span class="control-label">Radio de nitidez <b>{{ percent(sharpRadius()) }}%</b></span>
             <input
               type="range" min="0" max="1" step="0.01"
               [value]="sharpRadius()" (input)="setSharpRadius($event)"
@@ -123,7 +123,7 @@ const ANALYSIS_WIDTH = 160;
           </label>
 
           <label class="control">
-            <span class="control-label">desenfoque <b>{{ percent(blurIntensity()) }}%</b></span>
+            <span class="control-label">Desenfoque <b>{{ percent(blurIntensity()) }}%</b></span>
             <input
               type="range" min="0" max="1" step="0.01"
               [value]="blurIntensity()" (input)="setBlurIntensity($event)"
@@ -131,7 +131,7 @@ const ANALYSIS_WIDTH = 160;
           </label>
 
           <label class="control">
-            <span class="control-label">nitidez <b>{{ sharpen().toFixed(1) }}</b></span>
+            <span class="control-label">Nitidez <b>{{ sharpen().toFixed(1) }}</b></span>
             <input
               type="range" min="0" max="3" step="0.1"
               [value]="sharpen()" (input)="setSharpen($event)"
@@ -139,7 +139,7 @@ const ANALYSIS_WIDTH = 160;
           </label>
 
           <label class="control">
-            <span class="control-label">brillo <b>{{ brightness().toFixed(2) }}</b></span>
+            <span class="control-label">Brillo <b>{{ brightness().toFixed(2) }}</b></span>
             <input
               type="range" min="0.5" max="1.5" step="0.01"
               [value]="brightness()" (input)="setBrightness($event)"
@@ -147,7 +147,7 @@ const ANALYSIS_WIDTH = 160;
           </label>
 
           <label class="control">
-            <span class="control-label">saturación <b>{{ saturation().toFixed(2) }}</b></span>
+            <span class="control-label">Saturación <b>{{ saturation().toFixed(2) }}</b></span>
             <input
               type="range" min="0" max="2" step="0.01"
               [value]="saturation()" (input)="setSaturation($event)"
@@ -155,18 +155,29 @@ const ANALYSIS_WIDTH = 160;
           </label>
         </div>
 
+        @if (showingExisting()) {
+          <!--
+            Sin esto el botón quedaba gris sin motivo visible: la foto se podía
+            arrastrar y hacer zoom en pantalla, pero aplicar no hacía nada y
+            nada explicaba por qué.
+          -->
+          <p class="editor-nota">
+            Ésta es la foto guardada. Para recortarla de nuevo, subila otra vez.
+          </p>
+        }
+
         <div class="actions">
           <label class="ghost file-swap">
-            {{ showingExisting() ? 'subir otra foto' : 'cambiar foto' }}
+            {{ showingExisting() ? 'Subir otra foto' : 'Cambiar foto' }}
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp,image/avif"
               (change)="onFile($event)"
             />
           </label>
-          <button type="button" class="ghost" (click)="reset()">restablecer</button>
+          <button type="button" class="ghost" (click)="reset()">Restablecer</button>
           <button type="button" class="primary" [disabled]="showingExisting()" (click)="emit()">
-            aplicar recorte
+            Aplicar recorte
           </button>
         </div>
       } @else {

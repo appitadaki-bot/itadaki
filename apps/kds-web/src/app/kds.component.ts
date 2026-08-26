@@ -123,7 +123,7 @@ const SLA_LATE = 15;
               <article class="ticket" [attr.data-sla]="slaOf(ticket)">
                 <header class="ticket-head">
                   <span class="ticket-table">
-                    <span class="table-word">mesa</span>
+                    <span class="table-word">Mesa</span>
                     <span class="table-number">{{ tableNumber(ticket) }}</span>
                   </span>
                   <span class="ticket-time">{{ waited(ticket) }}</span>
@@ -208,7 +208,7 @@ const SLA_LATE = 15;
                 }
               </article>
             } @empty {
-              <p class="empty">sin pedidos</p>
+              <p class="empty">Sin pedidos</p>
             }
 
             <!-- Las que esperan atrás. Siguen a la vista — el cocinero ve
@@ -219,7 +219,7 @@ const SLA_LATE = 15;
                 <article class="ticket" [attr.data-sla]="slaOf(ticket)">
                   <header class="ticket-head">
                     <span class="ticket-table">
-                      <span class="table-word">mesa</span>
+                      <span class="table-word">Mesa</span>
                       <span class="table-number">{{ tableNumber(ticket) }}</span>
                     </span>
                     <button type="button" class="fold-btn" (click)="toggle(ticket.key)">
@@ -357,7 +357,7 @@ const SLA_LATE = 15;
             }
           </article>
         } @empty {
-          <p class="empty">sin pedidos</p>
+          <p class="empty">Sin pedidos</p>
         }
 
         <!-- Las que esperan atrás: una línea cada una, igual que en la
@@ -367,7 +367,7 @@ const SLA_LATE = 15;
             <article class="feed-card" [attr.data-sla]="slaOf(card)">
               <header class="feed-head">
                 <span class="feed-table">mesa {{ tableNumber(card) }}</span>
-                <button type="button" class="fold-btn" (click)="toggle(card.key)">plegar</button>
+                <button type="button" class="fold-btn" (click)="toggle(card.key)">Plegar</button>
               </header>
               <ul class="ticket-items">
                 @for (item of visibleItems(card); track item.orderId + item.id) {

@@ -41,7 +41,7 @@
 .table {
   font-family: var(--itadaki-font-display);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   letter-spacing: 2px;
   color: var(--itadaki-accent);
   text-transform: uppercase;
@@ -54,7 +54,7 @@
   font-size: 1.9rem;
   margin: 0;
   color: var(--itadaki-ink-strong);
-  letter-spacing: -0.5px;
+  letter-spacing: var(--itadaki-tracking-title);
 }
 
 .lede {

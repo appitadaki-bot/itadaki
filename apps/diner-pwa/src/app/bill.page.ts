@@ -8,14 +8,18 @@ import { CallStore } from './call.store';
 import { BillStore, type MoneyDto, type SplitKind, type TipChoice } from './bill.store';
 import { SessionStore } from './session.store';
 
+// Primera la de uno solo: es la forma más común de cerrar una mesa —el que
+// invita, el que junta el efectivo y pone la tarjeta— y era la única que no
+// se podía elegir. Después las que dividen, de la más simple a la más fina.
 const SPLIT_LABELS: ReadonlyArray<{ kind: SplitKind; label: string; hint: string }> = [
-  { kind: 'BY_DINER', label: 'cada uno lo suyo', hint: 'pagás lo que pediste' },
-  { kind: 'EQUAL', label: 'partes iguales', hint: 'el total dividido' },
-  { kind: 'BY_ITEM', label: 'por plato', hint: 'elegís quién paga qué' },
+  { kind: 'SINGLE_PAYER', label: 'Paga una persona', hint: 'uno se hace cargo de todo' },
+  { kind: 'BY_DINER', label: 'Cada uno lo suyo', hint: 'pagás lo que pediste' },
+  { kind: 'EQUAL', label: 'Partes iguales', hint: 'el total dividido' },
+  { kind: 'BY_ITEM', label: 'Uno por uno', hint: 'elegís quién paga qué' },
 ];
 
 const TIP_OPTIONS: ReadonlyArray<{ label: string; choice: TipChoice }> = [
-  { label: 'sin propina', choice: { kind: 'NONE' } },
+  { label: 'Sin propina', choice: { kind: 'NONE' } },
   { label: '5%', choice: { kind: 'PERCENTAGE', percent: 0.05 } },
   { label: '10%', choice: { kind: 'PERCENTAGE', percent: 0.1 } },
   { label: '15%', choice: { kind: 'PERCENTAGE', percent: 0.15 } },
@@ -33,11 +37,11 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
   styleUrl: './bill.page.css',
   template: `
     <header class="pad">
-      <itd-back to="/carta" label="la carta" />
+      <itd-back to="/carta" label="La carta" />
       <p class="eyebrow">
         @if (session.tableLabel(); as mesa) { mesa {{ mesa }} · }cuenta
       </p>
-      <h1 class="title">gochisousama!</h1>
+      <h1 class="title">Gochisousama!</h1>
     </header>
 
     @if (store.bill(); as bill) {
@@ -62,7 +66,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
         </section>
 
         <section class="card">
-          <h2 class="card-title">ver en</h2>
+          <h2 class="card-title">Ver en</h2>
           <div class="chips">
             @for (code of currencies; track code) {
               <button
@@ -78,7 +82,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
         </section>
 
         <section class="card">
-          <h2 class="card-title">cómo dividimos</h2>
+          <h2 class="card-title">Cómo dividimos</h2>
           <div class="options">
             @for (option of splitOptions; track option.kind) {
               <button
@@ -93,9 +97,27 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
             }
           </div>
 
+          @if (splitKind() === 'SINGLE_PAYER') {
+            <p class="assign-hint">¿Quién se hace cargo?</p>
+            <div class="assign-people quien-paga">
+              @for (person of bill.participants; track person.id) {
+                <button
+                  type="button"
+                  class="person"
+                  [style.background]="payerId() === person.id ? color(person.colorIndex) : 'transparent'"
+                  [style.color]="payerId() === person.id ? 'white' : 'inherit'"
+                  [attr.aria-pressed]="payerId() === person.id"
+                  (click)="choosePayer(person.id)"
+                >
+                  {{ person.nickname }}
+                </button>
+              }
+            </div>
+          }
+
           @if (splitKind() === 'EQUAL') {
             <div class="stepper-row">
-              <span class="stepper-label">entre</span>
+              <span class="stepper-label">Entre</span>
               <div class="stepper" role="group" aria-label="Cantidad de personas">
                 <button type="button" class="step" (click)="changeParts(-1)" aria-label="Menos personas">–</button>
                 <span class="qty">{{ parts() }}</span>
@@ -106,9 +128,16 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
           }
 
           @if (splitKind() === 'BY_ITEM') {
-            <p class="assign-hint">tocá un nombre para asignarle cada plato</p>
+            <!-- Que se pueda tocar más de uno no es un error: una picada entre
+                 dos se paga entre dos, y el plato se divide en partes iguales.
+                 La pantalla decía "tocá un nombre", en singular, así que
+                 marcar dos se leía como que algo había salido mal. -->
+            <p class="assign-hint">
+              Tocá quién paga cada cosa. Si la compartieron, marcá a todos y se
+              divide entre ellos.
+            </p>
             @for (line of bill.lines; track line.id) {
-              <div class="assign">
+              <div class="assign" [class.pendiente]="!estaAsignado(line.id)">
                 <span class="assign-name">{{ line.quantity }}× {{ line.name }}</span>
                 <div class="assign-people">
                   @for (person of bill.participants; track person.id) {
@@ -126,11 +155,20 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
                 </div>
               </div>
             }
+
+            <!-- Cuántos faltan, no sólo que falta alguno: en una mesa larga el
+                 comensal quedaba recorriendo la lista para encontrarlo. -->
+            @if (faltanAsignar() > 0) {
+              <p class="assign-falta" role="status">
+                Falta{{ faltanAsignar() > 1 ? 'n' : '' }} {{ faltanAsignar() }}
+                sin asignar
+              </p>
+            }
           }
         </section>
 
         <section class="card">
-          <h2 class="card-title">propina <em>(opcional)</em></h2>
+          <h2 class="card-title">Propina <em>(opcional)</em></h2>
           <div class="chips">
             @for (option of tipOptions; track option.label) {
               <button
@@ -151,7 +189,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
 
         @if (store.split(); as split) {
           <section class="card result">
-            <h2 class="card-title">quién paga qué</h2>
+            <h2 class="card-title">Quién paga qué</h2>
             @for (share of split.shares; track share.payerId) {
               <div class="share">
                 <span class="share-name">{{ share.label }}</span>
@@ -161,12 +199,12 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
 
             @if (split.tip.amountInMinorUnits > 0) {
               <div class="line sub">
-                <span>propina incluida</span>
+                <span>Propina incluida</span>
                 <span class="amount">{{ money(split.tip) }}</span>
               </div>
             }
             <div class="line total">
-              <span>total</span>
+              <span>Total</span>
               <span class="amount">{{ money(split.total) }}</span>
             </div>
           </section>
@@ -175,14 +213,28 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
 
       <footer class="foot">
         @if (bill.status === 'SETTLED') {
-          <p class="settled" role="status">cuenta cerrada · gracias!</p>
+          <p class="settled" role="status">Cuenta cerrada · gracias!</p>
         } @else if (told()) {
           <!-- Cerrar la cuenta lo hace el local. Desde acá sólo se avisa, y
                eso es lo que dice la pantalla: prometer "listo, cerrada" sería
                mentir sobre algo que todavía no pasó. -->
-          <p class="settled" role="status">le avisamos al mozo · ya se acerca</p>
+          <p class="settled" role="status">Le avisamos al mozo · ya se acerca</p>
         } @else {
-          <button type="button" class="cta" (click)="confirming.set(true)">pedir la cuenta</button>
+          <!-- Bloqueado mientras la división esté a medio hacer.
+               Antes el botón se podía tocar igual: la mesa elegía "por plato",
+               dejaba platos sin asignar y avisaba al mozo lo mismo, que llegaba
+               a cobrar una división que el servidor nunca calculó. -->
+          <button
+            type="button"
+            class="cta"
+            [disabled]="!listoParaPagar()"
+            (click)="confirming.set(true)"
+          >
+            Pedir la cuenta
+          </button>
+          @if (queFalta(); as falta) {
+            <p class="foot-falta">{{ falta }}</p>
+          }
         }
       </footer>
 
@@ -203,7 +255,7 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
     } @else {
       <main class="body empty">
         @if (store.busy()) {
-          <p>abriendo la cuenta…</p>
+          <p>Abriendo la cuenta…</p>
         } @else if (!session.isJoined()) {
           <p class="muted">Unite a la mesa para ver la cuenta.</p>
           <a class="link" routerLink="/unirse">Unirme a la mesa</a>
@@ -227,7 +279,7 @@ export class BillPage {
 
   protected readonly splitKind = signal<SplitKind>('BY_DINER');
   protected readonly parts = signal(2);
-  protected readonly tipLabel = signal('sin propina');
+  protected readonly tipLabel = signal('Sin propina');
   protected readonly displayCurrency = signal<string>('ARS');
   private readonly assignments = signal<ReadonlyMap<string, readonly string[]>>(new Map());
 
@@ -278,8 +330,73 @@ export class BillPage {
     this.recompute();
   }
 
+  /** Quién paga, cuando paga uno solo. */
+  protected readonly payerId = signal<string | null>(null);
+
+  /** Los platos que todavía no tienen a nadie asignado. */
+  protected readonly faltanAsignar = computed(() => {
+    const bill = this.store.bill();
+    if (bill === null || this.splitKind() !== 'BY_ITEM') return 0;
+
+    const asignados = this.assignments();
+    return bill.lines.filter((line) => (asignados.get(line.id) ?? []).length === 0).length;
+  });
+
+  /**
+   * Si se puede avisar al mozo.
+   *
+   * Una división a medio hacer no es una cuenta: el mozo llegaría a cobrar algo
+   * que el servidor nunca calculó. Las formas que no necesitan que nadie elija
+   * nada —partes iguales, cada uno lo suyo— están listas siempre.
+   */
+  protected readonly listoParaPagar = computed(() => {
+    switch (this.splitKind()) {
+      case 'SINGLE_PAYER': {
+        // Que siga en la mesa, no sólo que se haya elegido: si se fue después
+        // de que lo eligieran, el servidor rechaza el id y el botón quedaría
+        // habilitado prometiendo algo que no se puede calcular.
+        const elegido = this.payerId();
+        const participants = this.store.bill()?.participants ?? [];
+        return elegido !== null && participants.some((person) => person.id === elegido);
+      }
+      case 'BY_ITEM':
+        return this.faltanAsignar() === 0;
+      default:
+        return true;
+    }
+  });
+
+  /** Por qué el botón está apagado. Sin esto quedaba gris sin motivo. */
+  protected readonly queFalta = computed(() => {
+    if (this.listoParaPagar()) return null;
+
+    return this.splitKind() === 'SINGLE_PAYER'
+      ? 'Elegí quién paga para poder avisar'
+      : 'Asigná todo para poder avisar';
+  });
+
+  protected estaAsignado(lineId: string): boolean {
+    return (this.assignments().get(lineId) ?? []).length > 0;
+  }
+
+  protected choosePayer(id: string): void {
+    this.payerId.set(id);
+    this.recompute();
+  }
+
   protected chooseSplit(kind: SplitKind): void {
     this.splitKind.set(kind);
+
+    // Quien eligió "paga una persona" sin decir quién se queda mirando un
+    // botón apagado: si hay una sola persona en la mesa, no hay nada que
+    // preguntar. Con más de una, la elige el comensal.
+    if (kind === 'SINGLE_PAYER' && this.payerId() === null) {
+      const participants = this.store.bill()?.participants ?? [];
+      if (participants.length === 1) {
+        this.payerId.set(participants[0]?.id ?? null);
+      }
+    }
+
     this.recompute();
   }
 
@@ -323,6 +440,15 @@ export class BillPage {
     const id = this.sessionId();
     if (id === null || this.store.bill() === null) return;
 
+    // Sin todo elegido no se pide el cálculo: el servidor devolvería
+    // UNASSIGNED_LINES en cada toque y la pantalla se llenaría de un error
+    // rojo mientras el comensal todavía está asignando. Lo que falta ya lo
+    // dice, en gris, al lado de los platos.
+    if (!this.listoParaPagar()) {
+      this.store.clearSplit();
+      return;
+    }
+
     const assignments =
       this.splitKind() === 'BY_ITEM'
         ? [...this.assignments().entries()]
@@ -330,7 +456,14 @@ export class BillPage {
             .map(([lineId, payerIds]) => ({ lineId, payerIds }))
         : undefined;
 
-    void this.store.computeSplit(id, this.splitKind(), this.tip, this.parts(), assignments);
+    void this.store.computeSplit(
+      id,
+      this.splitKind(),
+      this.tip,
+      this.parts(),
+      assignments,
+      this.payerId() ?? undefined,
+    );
   }
 
   protected money(amount: MoneyDto): string {

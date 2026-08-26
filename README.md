@@ -160,6 +160,13 @@ vale para los cuatro — trae el rewrite que hace falta porque son SPA: entrar
 directo a `/bienvenida?t=...`, que es lo que hace un QR, tiene que servir el
 `index.html` en vez de buscar un archivo con ese nombre.
 
+Sólo `main` se despliega. Cada rama abierta construía las cuatro apps y
+publicaba una URL de previsualización que nadie miraba, así que un PR con tres
+commits gastaba doce builds. La regla apaga todas las ramas y vuelve a
+prender `main`: si una rama coincide con dos reglas y alguna es `true`, se
+despliega, y por eso no alcanza con nombrar sólo `main` — lo no especificado
+queda habilitado.
+
 Lo que cambia en cada proyecto va en la interfaz de Vercel, porque un solo
 archivo no puede describir cuatro apps:
 

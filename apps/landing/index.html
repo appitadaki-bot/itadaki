@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Itadaki · Pedidos por QR para restaurantes</title>
+<meta name="description" content="El pedido llega a la cocina con un click. Tu cliente lo manda desde su celular, sin esperar a que pase el mozo. 30 días gratis, sin tarjeta." />
+<meta name="theme-color" content="#211a15" />
+<meta property="og:title" content="Itadaki · El pedido llega a la cocina con un click" />
+<meta property="og:description" content="Tu cliente lo manda desde su celular, sin esperar a que pase el mozo. 30 días gratis, sin tarjeta." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./landing.css" />
+</head>
+<body>
+
+<a class="saltar" href="#alta">Ir al formulario</a>
+
+<header class="barra">
+  <span class="marca chica" aria-hidden="true">Itadaki</span>
+  <a class="btn btn-acento chico" href="#alta">Probar 30 días gratis</a>
+</header>
+
+<main>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="ancho hero-centro">
+    <!-- La marca es lo primero y lo más grande: en una esquina competía con
+         el botón y no la miraba nadie. -->
+    <h1 class="marca-hero">Itadaki</h1>
+
+    <!-- Las letras entran de a una. El texto vive completo en el HTML —el
+         script sólo lo envuelve— así que un buscador y un lector de pantalla
+         lo leen entero aunque el JavaScript no corra. -->
+    <p class="hero-titulo">
+      <span class="palabra">El</span>
+      <span class="palabra">pedido</span>
+      <span class="palabra">llega</span>
+      <span class="palabra">a</span>
+      <span class="palabra">la</span>
+      <span class="palabra">cocina</span>
+      <span class="palabra">con</span>
+      <span class="palabra">un</span>
+      <span class="palabra">click.</span>
+    </p>
+
+    <p class="hero-lede">
+      Tu cliente lo manda desde su celular. Sin esperar a que pase el mozo.
+    </p>
+
+    <div class="acciones centradas">
+      <a class="btn btn-acento" href="#alta">Probar 30 días gratis</a>
+      <a class="btn btn-borde" href="#piezas">Ver cómo funciona</a>
+    </div>
+
+    <p class="hero-pie">30 días gratis · sin tarjeta · te armamos la carta</p>
+  </div>
+
+  <!-- El producto entero en cinco segundos: el pedido sale del teléfono y
+       aparece del otro lado. Se dibuja en HTML, no es una foto. -->
+  <div class="ancho">
+    <div class="demo">
+      <button class="demo-pausa" type="button" id="pausa"
+              aria-label="Pausar la demostración">⏸</button>
+
+      <div class="demo-lado">
+        <p class="micro">Mesa 4 · celular</p>
+        <div class="demo-fila"><span>Milanesa napolitana</span><b>$8.400</b></div>
+        <div class="demo-fila"><span>Provoleta</span><b>$5.200</b></div>
+        <div class="demo-enviar" id="botonEnviar">Enviar a la cocina</div>
+      </div>
+
+      <div class="demo-hilo" aria-hidden="true"><span class="demo-punto" id="punto"></span></div>
+
+      <div class="demo-lado">
+        <p class="micro">Pantalla de cocina</p>
+        <div class="demo-ticket" id="ticket">
+          <p class="demo-ticket-cab">Mesa 4 · <span id="reloj">0:01</span></p>
+          <p>1 Milanesa napolitana</p>
+          <p>1 Provoleta</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 01 · TRES PANTALLAS ═══ -->
+<section class="seccion">
+  <div class="ancho">
+    <p class="numero">01</p>
+    <h2 class="titulo centrado">Cuatro pantallas, no una app.</h2>
+
+    <div class="tarjetas cuatro">
+      <article class="tarjeta pantalla-demo">
+        <!-- La pantalla dibujada, no descrita: se entiende antes de leer. -->
+        <div class="mini mini-carta" aria-hidden="true">
+          <div class="mini-fila"><span class="mini-foto"></span><span class="mini-txt"></span><b>$8.400</b></div>
+          <div class="mini-fila"><span class="mini-foto"></span><span class="mini-txt corto"></span><b>$5.200</b></div>
+          <div class="mini-cta">Enviar a la cocina</div>
+        </div>
+        <h3>Comensal</h3>
+        <p>Escanea, elige y pide. Sin descargar nada.</p>
+      </article>
+
+      <article class="tarjeta pantalla-demo">
+        <div class="mini mini-cocina" aria-hidden="true">
+          <div class="mini-ticket urgente"><b>Mesa 4</b><span>12:40</span></div>
+          <div class="mini-ticket"><b>Mesa 7</b><span>4:10</span></div>
+          <div class="mini-ticket"><b>Mesa 2</b><span>0:35</span></div>
+        </div>
+        <h3>Cocina</h3>
+        <p>Por antigüedad, no por mesa. Ve qué se atrasa.</p>
+      </article>
+
+      <article class="tarjeta pantalla-demo">
+        <div class="mini mini-salon" aria-hidden="true">
+          <div class="mini-mesa llama"><b>Mesa 3</b><span>pide la cuenta</span></div>
+          <div class="mini-mesa"><b>Mesa 9</b><span>2 platos listos</span></div>
+        </div>
+        <h3>Mozo</h3>
+        <p>Agrupado por mesa. Sabe a cuál ir primero.</p>
+      </article>
+
+      <article class="tarjeta pantalla-demo">
+        <div class="mini mini-panel" aria-hidden="true">
+          <div class="mini-dato"><b>$487.200</b><span>ventas de hoy</span></div>
+          <div class="mini-dato"><b>$12.821</b><span>ticket promedio</span></div>
+          <div class="mini-barras">
+            <i style="height: 30%"></i>
+            <i style="height: 55%"></i>
+            <i style="height: 45%"></i>
+            <i class="pico" style="height: 100%"></i>
+            <i style="height: 70%"></i>
+          </div>
+        </div>
+        <h3>Dueño</h3>
+        <p>La carta, las mesas y los números del turno.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 02 · LA CARTA ═══ -->
+<section class="seccion sunken">
+  <div class="ancho">
+    <div class="dos-col">
+      <div>
+        <p class="numero">02</p>
+        <h2 class="titulo">Traé tu carta como la tengas</h2>
+      </div>
+      <p class="lede-col">
+        Nos la mandás — una foto, un Word, un PDF, el link de tu web — y te la
+        dejamos cargada, con categorías y precios. Vos revisás antes de que se
+        publique.
+      </p>
+    </div>
+
+    <div class="tarjetas cuatro">
+      <article class="tarjeta chica">
+        <h3>Texto</h3>
+        <p>Pegás el texto de tu carta actual.</p>
+      </article>
+      <article class="tarjeta chica">
+        <h3>Excel / CSV</h3>
+        <p>Subís la planilla que ya usás.</p>
+      </article>
+      <article class="tarjeta chica">
+        <h3>Link de tu web</h3>
+        <p>Pasás la URL y entra sola.</p>
+      </article>
+      <article class="tarjeta chica">
+        <h3>Foto</h3>
+        <p>Nos la mandás por WhatsApp.</p>
+      </article>
+    </div>
+
+    <p class="nota">
+      Con vista previa para corregir antes de guardar. Esto convierte dos
+      semanas cargando platos en una tarde.
+    </p>
+  </div>
+</section>
+
+<!-- ═══ 03 · PIEZA POR PIEZA ═══ -->
+<section class="seccion" id="piezas">
+  <div class="ancho">
+    <p class="numero">03</p>
+    <h2 class="titulo centrado">Cosas que pasan todas las noches.</h2>
+
+    <!-- Seis mesas, seis frases. El detalle largo aburre a quien está
+         decidiendo si probarlo; lo que vende es reconocer el problema. -->
+    <div class="tarjetas tres">
+      <article class="tarjeta">
+        <p class="cifra">6 → 1</p>
+        <h3>Seis pidiendo, una comanda</h3>
+        <p>Cada uno desde su teléfono. A la cocina llega junto.</p>
+      </article>
+
+      <article class="tarjeta">
+        <p class="cifra">24 → 8</p>
+        <h3>Ocho viajes, no veinticuatro</h3>
+        <p>El mozo ve el salón por mesa, no pedidos sueltos.</p>
+      </article>
+
+      <article class="tarjeta">
+        <p class="cifra">0</p>
+        <h3>Discusiones por la cuenta</h3>
+        <p>Cada uno ve su parte y el total, en vivo.</p>
+      </article>
+    </div>
+
+    <!-- El timbre, tocable. Muestra la regla sin explicarla. -->
+    <div class="pieza">
+      <div class="pieza-texto">
+        <h3>El timbre en la mesa</h3>
+        <p>Llamar al mozo sin levantar la mano. Un llamado a la vez, para que al salón le llegue algo claro.</p>
+      </div>
+      <div class="pieza-demo">
+        <div class="timbre" id="timbre">
+          <button type="button" class="timbre-btn" data-motivo="mozo">
+            <span aria-hidden="true">🔔</span> Llamar al mozo
+          </button>
+          <button type="button" class="timbre-btn" data-motivo="cuenta">Pedir la cuenta</button>
+          <button type="button" class="timbre-btn" data-motivo="duda">Tengo una duda</button>
+        </div>
+        <p class="nota" id="timbreNota">Tocá uno: es el mismo botón que ve tu cliente.</p>
+      </div>
+    </div>
+
+    <!-- Antes y después, arrastrable. El beneficio se ve. -->
+    <div class="pieza invertida">
+      <div class="pieza-texto">
+        <h3>La cocina, con 20 mesas</h3>
+        <p>Se reorganiza sola para que entre todo de un golpe. Arrastrá para comparar.</p>
+      </div>
+      <div class="pieza-demo">
+        <div class="comparar" id="comparar">
+          <div class="comparar-cara antes">
+            <p class="micro acento">Antes: hay que scrollear</p>
+            <div class="barras densas">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+          </div>
+          <div class="comparar-cara despues" id="despues">
+            <p class="micro acento">Después: todo de un golpe</p>
+            <div class="barras sueltas"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+        <input class="comparar-slider" id="slider" type="range" min="0" max="100"
+               value="55" aria-label="Comparar antes y después" />
+      </div>
+    </div>
+
+    <!-- Los números, moviéndose. Es lo que el dueño quiere ver. -->
+    <div class="pieza sola">
+      <div class="pieza-texto ancho-texto centrado-txt">
+        <h3>Tus números, sin sacar una cuenta</h3>
+        <p class="nota">Un servicio real, actualizándose:</p>
+
+        <div class="numeros" id="numeros">
+          <div class="dato"><b id="ventas">$487.200</b><span class="micro">Ventas de hoy</span></div>
+          <div class="dato"><b id="mesas">38</b><span class="micro">Mesas atendidas</span></div>
+          <div class="dato"><b id="ticket">$12.821</b><span class="micro">Ticket promedio</span></div>
+          <div class="dato"><b>14 min</b><span class="micro">Cocina (mediana)</span></div>
+          <div class="dato"><b>21:30–22:30</b><span class="micro">Hora pico</span></div>
+          <div class="dato">
+            <b class="chico">Milanesa napolitana</b>
+            <span class="micro"><span id="vendidas">23</span> vendidas · más pedido</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lo que viene -->
+    <div class="viene">
+      <p class="micro">Lo que viene</p>
+      <div class="tarjetas dos">
+        <article class="tarjeta punteada">
+          <span class="chapa">En camino</span>
+          <h3>Reseñas de Google</h3>
+          <p>
+            Cuando la mesa termina de pagar, el mismo teléfono le ofrece dejar la
+            reseña. Es el único momento en que el cliente está satisfecho y con
+            el teléfono en la mano. Estamos terminando esto. Si entrás ahora, lo
+            tenés apenas salga y sin costo extra.
+          </p>
+        </article>
+        <article class="tarjeta punteada">
+          <span class="chapa">En camino</span>
+          <h3>Avisos por WhatsApp al mozo</h3>
+          <p>
+            Que el timbre de la mesa también le llegue al WhatsApp del mozo, sin
+            necesidad de tener la pantalla abierta.
+          </p>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 04 · LOS 30 DÍAS ═══ -->
+<section class="seccion sunken">
+  <div class="ancho">
+    <p class="numero">04</p>
+    <h2 class="titulo centrado">30 días gratis. Sin tarjeta.</h2>
+
+    <ol class="dias">
+      <li class="dia">
+        <span class="dia-n">Día 01</span>
+        <p><strong>Te dejamos la carta cargada</strong> y los QR listos para imprimir.</p>
+      </li>
+      <li class="dia">
+        <span class="dia-n">Día 07</span>
+        <p>Ya tenés la primera semana de números: qué se vende y a qué hora se llena.</p>
+      </li>
+      <li class="dia">
+        <span class="dia-n">Día 28</span>
+        <p>Te avisamos que se termina. <strong>El corte nunca es sorpresa.</strong></p>
+      </li>
+      <li class="dia final">
+        <span class="dia-n">Día 31</span>
+        <p>
+          Si no contratás, se suspende el servicio. <strong>Tus datos no se
+          borran</strong> — tu carta, tus fotos y tus números quedan guardados, y
+          en cuanto contratás vuelve todo tal cual lo dejaste.
+        </p>
+      </li>
+    </ol>
+
+    <p class="nota centrada">Sin contrato ni permanencia. Te das de baja cuando quieras.</p>
+  </div>
+</section>
+
+<!-- ═══ 05 · ALTA ═══ -->
+<section class="seccion" id="alta">
+  <div class="ancho angosto">
+    <p class="numero">05</p>
+    <h2 class="titulo centrado">Dejanos tus datos y te escribimos.</h2>
+    <p class="lede">
+      Te contactamos por WhatsApp <strong>dentro de las 24 horas hábiles</strong>,
+      con la carta ya cargada.
+    </p>
+
+    <form class="form" id="form" novalidate>
+      <label class="campo">
+        <span>Nombre del restaurante</span>
+        <input name="local" type="text" required autocomplete="organization" />
+        <em class="error"></em>
+      </label>
+
+      <label class="campo">
+        <span>Tu nombre y apellido</span>
+        <input name="nombre" type="text" required autocomplete="name" />
+        <em class="error"></em>
+      </label>
+
+      <label class="campo">
+        <span>WhatsApp</span>
+        <input name="whatsapp" type="tel" required autocomplete="tel" placeholder="11 5555 5555" />
+        <em class="error"></em>
+      </label>
+
+      <label class="campo">
+        <span>Cuántas mesas tenés, más o menos</span>
+        <input name="mesas" type="number" min="1" max="500" required />
+        <em class="error"></em>
+      </label>
+
+      <label class="campo">
+        <span>Tu carta actual <i>(opcional)</i></span>
+        <input name="carta" type="text" placeholder="El link de tu web, o de tu Instagram" />
+      </label>
+
+      <button class="btn btn-acento ancho-total" type="submit" id="enviar">Quiero probarlo</button>
+
+      <p class="nota centrada">
+        Al enviar aceptás los
+        <a href="/legal/terminos.html" target="_blank" rel="noopener">términos y condiciones</a>
+        y la
+        <a href="/legal/privacidad.html" target="_blank" rel="noopener">política de privacidad</a>.
+      </p>
+    </form>
+
+    <div class="o-bien">
+      <span class="o-bien-linea">o si preferís preguntar antes</span>
+      <a
+        class="wa-inline"
+        href="#alta"
+        data-wa="Hola! Tengo una consulta sobre Itadaki."
+        target="_blank"
+        rel="noopener"
+      >
+        <span aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.45 9.9-9.91C21.95 6.45 17.5 2 12.04 2zm5.8 14.13c-.24.68-1.42 1.32-1.95 1.37-.5.05-.98.24-3.3-.69-2.79-1.1-4.56-3.95-4.7-4.13-.14-.19-1.13-1.5-1.13-2.87 0-1.36.71-2.03.97-2.31.25-.28.55-.35.73-.35.18 0 .37 0 .53.01.17.01.4-.06.62.48.24.55.8 1.92.87 2.06.07.14.12.3.02.49-.09.19-.14.3-.28.47-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.94 1.95 1.23 2.23 1.37.28.14.44.12.6-.07.17-.19.7-.81.88-1.09.19-.28.37-.23.63-.14.25.09 1.62.76 1.9.9.28.14.46.21.53.32.07.12.07.66-.17 1.34z"/>
+          </svg>
+        </span>
+        Escribinos por WhatsApp
+      </a>
+    </div>
+
+    <p class="listo" id="listo" hidden role="status">
+      <strong>Listo.</strong> Te escribimos por WhatsApp dentro de las 24 horas
+      hábiles, con tu carta ya cargada.
+    </p>
+  </div>
+</section>
+
+<!-- ═══ 06 · PREGUNTAS ═══ -->
+<section class="seccion sunken">
+  <div class="ancho angosto">
+    <p class="numero">06</p>
+    <h2 class="titulo centrado">Preguntas antes de anotarte</h2>
+
+    <details class="pregunta">
+      <summary>¿Qué pasa si no pago después de los 30 días?</summary>
+      <p>
+        Se suspende el servicio: los QR dejan de tomar pedidos y el panel queda
+        en modo lectura. Pero <strong>no se borra nada</strong> — tu carta, tus
+        fotos, tus mesas y tus números quedan guardados. El día que contratás,
+        volvés a encontrar todo tal cual lo dejaste. Te avisamos el día 28, así
+        no te agarra de sorpresa.
+      </p>
+    </details>
+
+    <details class="pregunta">
+      <summary>¿Y si se cae internet en el medio del servicio?</summary>
+      <p>
+        El pedido que el cliente ya cargó no se pierde: queda guardado en su
+        teléfono y sale solo cuando vuelve la señal. La pantalla de cocina y la
+        del mozo siguen mostrando todo lo que ya había entrado. Si el corte es
+        largo, se sigue tomando en papel como siempre — nadie se queda sin comer.
+      </p>
+    </details>
+
+    <details class="pregunta">
+      <summary>Mis mozos no son de fierro con la tecnología. ¿Lo van a poder usar?</summary>
+      <p>
+        La app del mozo tiene tres cosas: qué mesa llamó, qué está listo para
+        llevar y cerrar la cuenta. Nada más. La mayoría lo entiende en un
+        servicio. Y lo importante: <strong>el mozo sigue atendiendo como
+        siempre</strong> — esto le saca los viajes al pedo, no le cambia el oficio.
+      </p>
+    </details>
+
+    <details class="pregunta">
+      <summary>¿Cuánto tarda desde que me anoto hasta que lo puedo usar?</summary>
+      <p>
+        Te escribimos dentro de las 24 horas hábiles. Nos mandás tu carta como la
+        tengas — foto, Word, PDF o el link de tu web — y te la dejamos cargada
+        nosotros. <strong>Normalmente en el mismo día ya tenés los QR para
+        imprimir.</strong>
+      </p>
+    </details>
+
+    <details class="pregunta">
+      <summary>¿Tengo que comprar tablets o algún aparato?</summary>
+      <p>
+        No. El cliente usa <strong>su</strong> celular, y la cocina y el mozo
+        abren la pantalla en cualquier celular, tablet o computadora que ya
+        tengas. Lo único que se imprime son los QR de las mesas, en papel común.
+      </p>
+    </details>
+
+    <details class="pregunta">
+      <summary>¿Reemplaza a mi sistema de facturación?</summary>
+      <p>
+        No, y es importante que quede claro: <strong>Itadaki no emite
+        facturas</strong>. Toma pedidos, los manda a la cocina y te arma la
+        cuenta de la mesa. La factura al comensal la seguís haciendo con el
+        sistema que usás hoy.
+      </p>
+    </details>
+
+    <details class="pregunta">
+      <summary>¿Puedo probarlo sin que mis clientes se den cuenta?</summary>
+      <p>
+        Sí. Muchos arrancan con dos o tres mesas del fondo un día de semana. Si
+        funciona, ponés el resto; si no, sacás los QR y listo.
+      </p>
+    </details>
+
+    <details class="pregunta">
+      <summary>¿Los datos de mi restaurante los ve alguien más?</summary>
+      <p>
+        No. Cada restaurante está separado del resto a nivel base de datos, no
+        por una configuración que se pueda tocar por error. Tus ventas, tu carta
+        y tus clientes son tuyos.
+      </p>
+    </details>
+
+    <details class="pregunta">
+      <summary>¿Puedo exportar mis datos si me voy?</summary>
+      <p>
+        Sí. Tu carta y tus ventas te las damos en un archivo que abrís en Excel.
+        No trabajamos secuestrando datos.
+      </p>
+    </details>
+
+    <p class="nota">
+      Todavía no tenemos facturación electrónica, Mercado Pago integrado ni app
+      nativa en las tiendas. Si eso te resuelve algo hoy, contanos por WhatsApp.
+    </p>
+  </div>
+</section>
+
+</main>
+
+<footer class="pie">
+  <div class="ancho">
+    <p class="pie-nota">Itadaki — pedidos por QR para restaurantes en Argentina.</p>
+    <nav class="pie-links">
+      <a href="/legal/terminos.html" target="_blank" rel="noopener">Términos y condiciones</a>
+      <a href="/legal/privacidad.html" target="_blank" rel="noopener">Privacidad</a>
+      <a
+        class="pie-wa"
+        href="#alta"
+        data-wa="Hola! Vi Itadaki y quiero probarlo en mi restaurante."
+        target="_blank"
+        rel="noopener"
+      >
+        Escribinos por WhatsApp
+      </a>
+    </nav>
+  </div>
+</footer>
+
+<!-- Siempre a mano: el que quiere preguntar algo no debería tener que buscar
+     dónde. Se abre en el chat con un mensaje ya escrito, para que del otro
+     lado se sepa de dónde viene sin preguntarlo. -->
+<a
+  class="wa-flota"
+  id="waFlota"
+  href="#alta"
+  data-wa="Hola! Vi Itadaki y quiero probarlo en mi restaurante."
+  target="_blank"
+  rel="noopener"
+>
+  <span class="wa-icono" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.45 9.9-9.91C21.95 6.45 17.5 2 12.04 2zm5.8 14.13c-.24.68-1.42 1.32-1.95 1.37-.5.05-.98.24-3.3-.69-2.79-1.1-4.56-3.95-4.7-4.13-.14-.19-1.13-1.5-1.13-2.87 0-1.36.71-2.03.97-2.31.25-.28.55-.35.73-.35.18 0 .37 0 .53.01.17.01.4-.06.62.48.24.55.8 1.92.87 2.06.07.14.12.3.02.49-.09.19-.14.3-.28.47-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.94 1.95 1.23 2.23 1.37.28.14.44.12.6-.07.17-.19.7-.81.88-1.09.19-.28.37-.23.63-.14.25.09 1.62.76 1.9.9.28.14.46.21.53.32.07.12.07.66-.17 1.34z"/>
+    </svg>
+  </span>
+  <span class="wa-texto">Escribinos</span>
+</a>
+
+<script src="./landing.js" defer></script>
+</body>
+</html>

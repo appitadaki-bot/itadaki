@@ -16,6 +16,7 @@ export {
   type SplitStrategy,
   type ItemAssignment,
   type CustomAmount,
+  singlePayerSplit,
   equalSplit,
   byDinerSplit,
   byItemSplit,

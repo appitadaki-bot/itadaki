@@ -13,10 +13,10 @@ import { type PaymentMethod } from '@itadaki/ordering/domain';
  * acerca igual y lo resuelven ahí.
  */
 const PAYMENT_OPTIONS: ReadonlyArray<{ method: PaymentMethod; label: string; hint: string }> = [
-  { method: 'CARD', label: 'con tarjeta', hint: 'te llevan el posnet a la mesa' },
-  { method: 'CASH', label: 'en efectivo', hint: 'te llevan el cambio' },
-  { method: 'COUNTER', label: 'vamos a la caja', hint: 'pagan al salir, en el mostrador' },
-  { method: 'UNDECIDED', label: 'todavía no sabemos', hint: 'lo definen en la mesa' },
+  { method: 'CARD', label: 'Con tarjeta', hint: 'te llevan el posnet a la mesa' },
+  { method: 'CASH', label: 'En efectivo', hint: 'te llevan el cambio' },
+  { method: 'COUNTER', label: 'Vamos a la caja', hint: 'pagan al salir, en el mostrador' },
+  { method: 'UNDECIDED', label: 'Todavía no sabemos', hint: 'lo definen en la mesa' },
 ];
 
 /**
@@ -40,7 +40,7 @@ const PAYMENT_OPTIONS: ReadonlyArray<{ method: PaymentMethod; label: string; hin
     <div class="backdrop" (click)="close.emit()"></div>
     <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pay-title">
       <p class="title" id="pay-title">¿cómo van a pagar?</p>
-      <p class="note">le avisamos al mozo para que venga con lo que haga falta</p>
+      <p class="note">Le avisamos al mozo para que venga con lo que haga falta</p>
 
       @for (option of options; track option.method) {
         <button

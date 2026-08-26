@@ -27,7 +27,7 @@ import { type TableAssignment, orphanedTables } from '@itadaki/ordering/domain';
 type AdminTab = 'carta' | 'local' | 'ventas' | 'resenas';
 
 const TABS: ReadonlyArray<{ id: AdminTab; label: string; hint: string }> = [
-  { id: 'carta', label: 'Tu carta', hint: 'platos y categorías' },
+  { id: 'carta', label: 'Tu carta', hint: 'todo lo que vendés' },
   { id: 'local', label: 'Tu local', hint: 'mesas y equipo' },
   // Las ventas salen de "Tu local": mirar los números es otra tarea, en otro
   // momento del día, y estaban al pie de una pantalla de configuración.
@@ -175,7 +175,7 @@ const ROLE_NAMES: Record<string, string> = {
         }
 
         <div class="panel-head">
-          <h2 class="panel-title">Tus platos</h2>
+          <h2 class="panel-title">Todo lo que vendés</h2>
           <!-- Crear abre su propia pantalla: pegado a la lista hacía
                dudar si el formulario editaba un plato o creaba otro. -->
           <div class="panel-actions">
@@ -184,14 +184,25 @@ const ROLE_NAMES: Record<string, string> = {
             <button type="button" class="secondary" (click)="openImport()">
               Traer mi carta
             </button>
-            <button type="button" class="create" (click)="openNew()">+ plato nuevo</button>
+            <button type="button" class="create" (click)="openNew()">+ Agregar a la carta</button>
           </div>
         </div>
 
 
 
+        <!-- Agrupado por categoría y en el orden de la carta, que es lo que
+             el comensal va a ver. Antes era una lista plana alfabética, así
+             que mover una categoría con las flechas de abajo no cambiaba nada
+             en esta pantalla: la única forma de comprobar el cambio era abrir
+             la app del comensal, y sin eso el botón parecía roto. -->
         <div class="products">
-          @for (product of products(); track product.id) {
+          @for (grupo of porCategoria(); track grupo.id) {
+            <h3 class="cat-heading">
+              {{ grupo.nombre }}
+              <span class="cat-heading-count">{{ grupo.productos.length }}</span>
+            </h3>
+
+          @for (product of grupo.productos; track product.id) {
             <!-- Dos accesos en la misma fila, cada uno a lo suyo: la foto se
                  toca sobre la foto, y el resto abre la ficha del plato. Antes
                  la foto salía de un botón dentro de la ficha, que quedaba
@@ -224,20 +235,24 @@ const ROLE_NAMES: Record<string, string> = {
                   <span class="product-meta">
                     <span class="product-price">{{ format(product.price) }}</span>
                     @if (!product.available) {
-                      <span class="badge out">sin stock</span>
+                      <span class="badge out">Sin stock</span>
                     }
                   </span>
                 </span>
+                <!-- Una flecha sola no dice qué abre: había que tocarla para
+                     descubrir que era la ficha del plato y no otra cosa. -->
+                <span class="product-abrir">Editar →</span>
               </button>
             </div>
+          }
           } @empty {
-            <p class="muted">cargando la carta…</p>
+            <p class="muted">Cargando la carta…</p>
           }
         </div>
 
 
         <details class="details manage-cats">
-          <summary>organizar categorías</summary>
+          <summary>Organizar categorías</summary>
 
           <div class="cat-list">
             @for (category of categories(); track category.id) {
@@ -268,7 +283,7 @@ const ROLE_NAMES: Record<string, string> = {
                   type="button"
                   class="cat-del"
                   [disabled]="countIn(category.id) > 0"
-                  [attr.title]="countIn(category.id) > 0 ? 'primero movés sus platos' : 'eliminar'"
+                  [attr.title]="countIn(category.id) > 0 ? 'primero movés lo que tiene' : 'eliminar'"
                   aria-label="Eliminar categoría"
                   (click)="deleteCategory(category.id)"
                 >×</button>
@@ -278,10 +293,10 @@ const ROLE_NAMES: Record<string, string> = {
 
           <form class="new-form" (submit)="createCategory($event)">
             <label class="field">
-              <span>nueva categoría</span>
-              <input name="name" required maxlength="40" placeholder="ej: parrilla, entradas, vinos" />
+              <span>Nueva categoría</span>
+              <input name="name" required maxlength="40" placeholder="Ej: parrilla, entradas, vinos" />
             </label>
-            <button type="submit" class="create">crear categoría</button>
+            <button type="submit" class="create">Crear categoría</button>
           </form>
 
           @if (catError(); as error) {
@@ -503,7 +518,7 @@ const ROLE_NAMES: Record<string, string> = {
                     </span>
                   </div>
                   @if (member.id === auth.profile()?.id) {
-                    <span class="staff-you">vos</span>
+                    <span class="staff-you">Vos</span>
                   } @else {
                     <button
                       type="button"
@@ -526,7 +541,7 @@ const ROLE_NAMES: Record<string, string> = {
               </label>
               <label class="field">
                 <span>Email</span>
-                <input name="email" type="email" required placeholder="nico@turestaurante.ar" />
+                <input name="email" type="email" required placeholder="Nico@turestaurante.ar" />
               </label>
               <label class="field">
                 <span>Contraseña inicial</span>
@@ -618,7 +633,7 @@ const ROLE_NAMES: Record<string, string> = {
     @if (modal() === 'nuevo') {
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nuevo-title">
         <header class="modal-head">
-          <h2 class="modal-title" id="nuevo-title">Plato nuevo</h2>
+          <h2 class="modal-title" id="nuevo-title">Algo nuevo en la carta</h2>
           <button type="button" class="modal-close" (click)="closeModal()" aria-label="Cerrar">
             ✕
           </button>
@@ -627,21 +642,21 @@ const ROLE_NAMES: Record<string, string> = {
 
                   <form class="new-form" (submit)="createProduct($event)">
             <label class="field">
-              <span>nombre</span>
-              <input name="name" required maxlength="60" placeholder="ej: gyoza de cerdo" />
+              <span>Nombre</span>
+              <input name="name" required maxlength="60" placeholder="Ej: gyoza de cerdo" />
             </label>
             <label class="field">
-              <span>descripción</span>
-              <input name="description" maxlength="140" placeholder="ej: seis unidades, salsa ponzu" />
+              <span>Descripción</span>
+              <input name="description" maxlength="140" placeholder="Ej: seis unidades, salsa ponzu" />
             </label>
             <label class="field">
-              <span>precio en pesos</span>
+              <span>Precio en pesos</span>
               <!-- step=1: a price is whatever the restaurant charges, not a
                    multiple of a hundred. -->
               <input name="price" type="number" min="0" step="1" required placeholder="4500" />
             </label>
             <label class="field">
-              <span>categoría</span>
+              <span>Categoría</span>
               <select name="categoryId">
                 @for (category of categories(); track category.id) {
                   <option [value]="category.id">{{ category.name }}</option>
@@ -652,7 +667,7 @@ const ROLE_NAMES: Record<string, string> = {
                  nace sin ellas es invisible para quien filtra la carta, y
                  nadie vuelve a editarlo para agregarlas. -->
             <fieldset class="field diets">
-              <legend>apto para</legend>
+              <legend>Apto para</legend>
               <div class="checks">
                 @for (diet of dietOptions; track diet.id) {
                   <label class="check">
@@ -663,7 +678,7 @@ const ROLE_NAMES: Record<string, string> = {
               </div>
             </fieldset>
 
-            <button type="submit" class="create">crear plato</button>
+            <button type="submit" class="create">Agregar a la carta</button>
             @if (createError(); as error) {
               <p class="status error">{{ error }}</p>
             }
@@ -676,10 +691,10 @@ const ROLE_NAMES: Record<string, string> = {
          aparte obligaba a ir y volver para algo que se hace plato por plato,
          mirando la lista. -->
     @if (modal() === 'foto' && editing(); as dish) {
-      <div class="modal ancho" role="dialog" aria-modal="true" aria-label="La foto del plato">
+      <div class="modal ancho" role="dialog" aria-modal="true" aria-label="La foto">
         <header class="modal-head">
           <div>
-            <p class="modal-eyebrow">la foto de</p>
+            <p class="modal-eyebrow">La foto de</p>
             <h2 class="modal-title">{{ dish.name }}</h2>
           </div>
           <button type="button" class="modal-close" (click)="cerrarFoto()" aria-label="Cerrar">
@@ -688,11 +703,20 @@ const ROLE_NAMES: Record<string, string> = {
         </header>
 
         <div class="modal-body">
-          <itd-image-editor
-            [subjectId]="dish.id"
-            [existingUrl]="currentPhoto()"
-            (applied)="upload($event)"
-          />
+          <!--
+            Una instancia por plato, no una reutilizada.
+            Angular conserva el componente al cambiar de plato, así que la foto
+            recién subida y su recorte quedaban colgados del siguiente: se abría
+            la "Provoleta" y se veía el bife. Con el id en el @if, el editor se
+            destruye y nace limpio.
+          -->
+          @if (modal() === 'foto' && selected(); as platoId) {
+            <itd-image-editor
+              [subjectId]="platoId"
+              [existingUrl]="currentPhoto()"
+              (applied)="upload($event)"
+            />
+          }
 
           @if (status(); as state) {
             <p class="status" [class.error]="state.startsWith('error')">{{ state }}</p>
@@ -731,11 +755,11 @@ const ROLE_NAMES: Record<string, string> = {
           <form class="edit-form" (submit)="saveDish($event, dish)">
           <div class="field-row">
           <label class="field">
-          <span>nombre</span>
+          <span>Nombre</span>
           <input name="name" [value]="dish.name" required maxlength="60" />
           </label>
           <label class="field narrow">
-          <span>precio</span>
+          <span>Precio</span>
           <input
           name="price"
           type="number"
@@ -748,12 +772,12 @@ const ROLE_NAMES: Record<string, string> = {
           </div>
 
           <label class="field">
-          <span>descripción</span>
+          <span>Descripción</span>
           <input name="description" [value]="dish.description" maxlength="140" />
           </label>
 
           <label class="field">
-          <span>categoría</span>
+          <span>Categoría</span>
           <select name="categoryId">
           @for (category of categories(); track category.id) {
           <option [value]="category.id" [selected]="category.id === dish.categoryId">
@@ -766,7 +790,7 @@ const ROLE_NAMES: Record<string, string> = {
           <!-- Los filtros de la carta leen esto: un plato sin dietas es
           invisible para quien busca vegano o sin gluten. -->
           <fieldset class="field diets">
-          <legend>apto para</legend>
+          <legend>Apto para</legend>
           <div class="checks">
           @for (diet of dietOptions; track diet.id) {
           <label class="check">
@@ -793,7 +817,7 @@ const ROLE_NAMES: Record<string, string> = {
           <!-- Apagado hasta que se lo busca: sacar un plato es raro al lado de
                corregirle el precio, que es lo de todos los días. -->
           <button type="button" class="borrar" (click)="borrarPlato(dish)">
-          Borrar plato
+          Sacar de la carta
           </button>
           </div>
           </form>
@@ -815,7 +839,7 @@ const ROLE_NAMES: Record<string, string> = {
 
         <div class="modal-body import-body">
           <p class="import-hint">
-            Copiala de donde la tengas — un Word, un Excel, un mensaje. Una línea por plato
+            Copiala de donde la tengas — un Word, un Excel, un mensaje. Una línea por producto
             con el precio al final, y las secciones solas en su renglón.
           </p>
 
@@ -827,7 +851,7 @@ const ROLE_NAMES: Record<string, string> = {
             <input
               type="url"
               class="import-url-input"
-              placeholder="https://mirestaurante.com/carta"
+              placeholder="Https://mirestaurante.com/carta"
               [value]="importUrl()"
               (input)="onImportUrl($event)"
             />
@@ -849,7 +873,7 @@ const ROLE_NAMES: Record<string, string> = {
               accept=".csv,.txt,.tsv,text/csv,text/plain"
               (change)="onImportFile($event)"
             />
-            <span>o subí un archivo (.csv o .txt)</span>
+            <span>O subí un archivo (.csv o .txt)</span>
           </label>
 
           <textarea
@@ -866,7 +890,7 @@ const ROLE_NAMES: Record<string, string> = {
                  ciegas, y corregir acá es más barato que después. -->
             <div class="preview">
               <p class="preview-count">
-                <strong>{{ parsed().dishes.length }}</strong> platos en
+                <strong>{{ parsed().dishes.length }}</strong> productos en
                 <strong>{{ parsed().categories.length }}</strong> secciones
                 @if (withPhoto() > 0) {
                   · <strong>{{ withPhoto() }}</strong> con foto
@@ -875,7 +899,7 @@ const ROLE_NAMES: Record<string, string> = {
 
               @if (parsed().dishes.length > maxDishes) {
                 <p class="status error">
-                  Entran {{ maxDishes }} platos por vez y hay
+                  Entran {{ maxDishes }} productos por vez y hay
                   {{ parsed().dishes.length }} — subí la carta en dos tandas.
                 </p>
               }
@@ -933,7 +957,7 @@ const ROLE_NAMES: Record<string, string> = {
               "
               (click)="confirmImport()"
             >
-              {{ importing() ? 'Cargando…' : 'Agregar ' + parsed().dishes.length + ' platos' }}
+              {{ importing() ? 'Cargando…' : 'Agregar ' + parsed().dishes.length + ' productos' }}
             </button>
             <button type="button" class="secondary" (click)="closeModal()">Cancelar</button>
           </div>
@@ -969,6 +993,41 @@ export class AdminComponent {
 
   protected readonly products = signal<readonly MenuProduct[]>([]);
   protected readonly categories = signal<readonly MenuCategory[]>([]);
+  /**
+   * La carta como la va a ver el comensal: por sección y en ese orden.
+   *
+   * Los productos vienen ordenados por nombre y las categorías por su posición,
+   * así que agrupar acá es lo que hace visible el orden que se edita más abajo.
+   * Sin esto, mover una categoría no cambiaba nada en esta pantalla.
+   *
+   * Lo que quedó sin categoría —o con una que ya no existe— va al final y con
+   * nombre propio: esconderlo sería perder productos de vista sin decirlo.
+   */
+  protected readonly porCategoria = computed(() => {
+    const porId = new Map<string, MenuProduct[]>();
+    for (const product of this.products()) {
+      const grupo = porId.get(product.categoryId) ?? [];
+      grupo.push(product);
+      porId.set(product.categoryId, grupo);
+    }
+
+    const grupos = this.categories()
+      .map((category) => ({
+        id: category.id,
+        nombre: category.name,
+        productos: porId.get(category.id) ?? [],
+      }))
+      .filter((grupo) => grupo.productos.length > 0);
+
+    const conocidas = new Set(this.categories().map((category) => category.id));
+    const sueltos = this.products().filter((product) => !conocidas.has(product.categoryId));
+    if (sueltos.length > 0) {
+      grupos.push({ id: '__sin-categoria__', nombre: 'Sin categoría', productos: sueltos });
+    }
+
+    return grupos;
+  });
+
   protected readonly createError = signal<string | null>(null);
   protected readonly createdName = signal<string | null>(null);
   protected readonly tables = signal<readonly RestaurantTable[]>([]);
@@ -1252,12 +1311,12 @@ export class AdminComponent {
       await this.load();
       this.modal.set(null);
       this.createdName.set(
-        body.photos > 0 ? `${body.imported} platos, ${body.photos} con foto` : `${body.imported} platos`,
+        body.photos > 0 ? `${body.imported} productos, ${body.photos} con foto` : `${body.imported} productos`,
       );
       if (body.sinAlmacenamiento === true) {
         // La carta entró; las fotos no. Decirlo evita que alguien las busque.
         this.importResult.set(
-          'Los platos se cargaron sin las fotos: falta configurar dónde guardarlas.',
+          'La carta se cargó sin las fotos: falta configurar dónde guardarlas.',
         );
       }
       globalThis.setTimeout(() => this.createdName.set(null), 5000);
@@ -1332,7 +1391,7 @@ export class AdminComponent {
       this.editError.set(
         detail?.kind === 'CONFLICT'
           ? `${dish.name} está en un pedido sin cobrar. Cerrá esa mesa antes de borrarlo.`
-          : 'No se pudo borrar el plato. Probá de nuevo.',
+          : 'No se pudo sacar de la carta. Probá de nuevo.',
       );
       return;
     }
@@ -1367,6 +1426,9 @@ export class AdminComponent {
   protected irALaFoto(id: string): void {
     this.selected.set(id);
     this.status.set(null);
+    // La vista previa del plato anterior también se va: quedaba abajo del
+    // editor nuevo y hacía creer que la foto ya estaba subida.
+    this.result.set(null);
     this.modal.set('foto');
   }
 
@@ -1749,6 +1811,8 @@ export class AdminComponent {
   }
 
   protected async renameCategory(categoryId: string, event: Event): Promise<void> {
+    this.catError.set(null);
+
     const name = (event.target as HTMLInputElement).value.trim();
     const current = this.categories().find((category) => category.id === categoryId);
     if (name === '' || current === undefined || name === current.name) return;
@@ -1767,6 +1831,8 @@ export class AdminComponent {
   }
 
   protected async moveCategory(categoryId: string, delta: number): Promise<void> {
+    this.catError.set(null);
+
     const order = this.categories().map((category) => category.id);
     const from = order.indexOf(categoryId);
     const to = from + delta;
@@ -1776,11 +1842,20 @@ export class AdminComponent {
     const [moved] = reordered.splice(from, 1);
     if (moved !== undefined) reordered.splice(to, 0, moved);
 
-    await this.auth.apiFetch(`${API}/menu/categories/reorder`, {
+    // Era la única de las cuatro que no miraba la respuesta: si el servidor
+    // rechazaba el orden, la pantalla recargaba igual y todo quedaba como
+    // estaba, sin una palabra. Mover algo y que no pase nada se lee como que
+    // el botón no anda.
+    const response = await this.auth.apiFetch(`${API}/menu/categories/reorder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
       body: JSON.stringify({ orderedIds: reordered }),
     });
+
+    if (!response.ok) {
+      this.catError.set('no pudimos cambiar el orden');
+      return;
+    }
     await this.load();
   }
 
@@ -1792,7 +1867,13 @@ export class AdminComponent {
       headers: this.auth.headers(),
     });
     if (!response.ok) {
-      this.catError.set('esa categoría todavía tiene platos');
+      // El motivo habitual es tener productos adentro, pero no es el único:
+      // decirlo sin mirar mandaba a vaciar una categoría ya vacía.
+      this.catError.set(
+        this.countIn(categoryId) > 0
+          ? 'esa categoría todavía tiene productos'
+          : 'no pudimos eliminar la categoría',
+      );
       return;
     }
     await this.load();
@@ -1897,12 +1978,12 @@ export class AdminComponent {
 
       this.createError.set(
         first === 'categoryId'
-          ? 'Elegí una categoría para el plato'
+          ? 'Elegí una categoría'
           : first === 'name'
-            ? 'Poné un nombre para el plato'
+            ? 'Poné un nombre'
             : first === 'priceMinor'
               ? 'Revisá el precio'
-              : 'No pudimos crear el plato',
+              : 'No pudimos agregarlo a la carta',
       );
       return;
     }
@@ -1922,7 +2003,7 @@ export class AdminComponent {
     // recién aparece: dejarlo abierto obligaba a cerrarlo a mano para
     // comprobar que el plato estaba, que es lo único que interesa saber.
     this.modal.set(null);
-    this.createdName.set(created.name ?? 'El plato');
+    this.createdName.set(created.name ?? 'Se agregó');
     globalThis.setTimeout(() => this.createdName.set(null), 4000);
   }
 

@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { CATEGORIES, MODIFIER_GROUPS, PRODUCTS, TENANT_ID } from '@itadaki/catalog/infra';
 import { Client } from 'pg';
 import { applyMigrations } from './migrate';
+import { withSslWhenRemote } from './db-url';
 
 /**
  * Applies the schema and loads the sample menu.
@@ -12,7 +13,7 @@ import { applyMigrations } from './migrate';
 const ADMIN_URL = process.env['DATABASE_ADMIN_URL'] ?? 'postgres://itadaki:itadaki@localhost:5433/itadaki';
 
 async function main(): Promise<void> {
-  const client = new Client({ connectionString: ADMIN_URL });
+  const client = new Client({ connectionString: withSslWhenRemote(ADMIN_URL) });
   await client.connect();
 
   for (const file of await applyMigrations(client)) {

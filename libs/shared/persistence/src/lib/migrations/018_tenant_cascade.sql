@@ -11,9 +11,13 @@
 -- Así que en vez de nombrar la que falta, esto recorre las que hay. Cualquier
 -- tabla con `tenant_id` queda atada, y una tabla nueva se ata sola la próxima
 -- vez que corran las migraciones.
+--
+-- La que ya tiene su clave declarada en el `CREATE TABLE` se deja como está:
+-- una segunda igual no cambia nada y hace verificar dos veces cada inserción.
 DO $$
 DECLARE
   target text;
+  ajena  text;
 BEGIN
   FOR target IN
     SELECT c.table_name
@@ -26,6 +30,28 @@ BEGIN
       AND t.table_type = 'BASE TABLE'
       AND c.table_name <> 'tenants'
   LOOP
+    -- La que ya tenga la tabla, puesta en su CREATE TABLE y con otro nombre.
+    -- Agregar la nuestra al lado no cambiaba el comportamiento pero dejaba dos
+    -- claves iguales: dos verificaciones en cada inserción, y un esquema donde
+    -- el que lee no sabe cuál manda.
+    SELECT conname INTO ajena
+    FROM pg_constraint
+    WHERE contype = 'f'
+      AND conrelid = format('public.%I', target)::regclass
+      AND confrelid = 'tenants'::regclass
+      AND confdeltype = 'c'
+      AND conname <> target || '_tenant_fk'
+    LIMIT 1;
+
+    IF ajena IS NOT NULL THEN
+      -- Sobra la nuestra: la de la tabla ya borra en cascada. Se suelta para
+      -- limpiar las bases donde esta migración ya corrió duplicando.
+      EXECUTE format(
+        'ALTER TABLE %I DROP CONSTRAINT IF EXISTS %I', target, target || '_tenant_fk'
+      );
+      CONTINUE;
+    END IF;
+
     -- Las huérfanas bloquearían la clave. Son filas de un restaurante que ya
     -- no existe: nadie puede leerlas, porque el aislamiento por tenant las
     -- filtra en cada consulta.
