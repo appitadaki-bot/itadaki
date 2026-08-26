@@ -22,7 +22,7 @@ import {
 } from '@nestjs/common';
 import { setProductAvailability } from '@itadaki/catalog/application';
 import { uploadImage } from '@itadaki/catalog/application/server';
-import { MAX_UPLOAD_BYTES, validateUpload } from '@itadaki/catalog/infra';
+import { MAX_PRODUCTS, MAX_UPLOAD_BYTES, validateUpload } from '@itadaki/catalog/infra';
 import { Public, RequirePermission, TenantId } from './auth';
 import { fetchImage, fetchPage } from './fetch-page';
 import { CatalogService } from './catalog.service';
@@ -90,6 +90,16 @@ export class MenuController {
             : '',
       });
       throw new HttpException('catalog unavailable', HttpStatus.BAD_GATEWAY);
+    }
+
+    // Llegar al tope no es un caso normal: son varias veces la carta más larga
+    // que existe. Se dice, porque una carta recortada en silencio se ve como
+    // platos que "desaparecieron" y manda a buscar el problema al editor.
+    if (products.value.length >= MAX_PRODUCTS) {
+      log.warn('la carta llegó al tope de productos y salió recortada', {
+        tenantId,
+        tope: MAX_PRODUCTS,
+      });
     }
 
     // Images are looked up per product; a product without one renders the

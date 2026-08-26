@@ -12,7 +12,7 @@ export {
 } from './lib/image-renderer';
 export { detectImageType, validateUpload, MAX_UPLOAD_BYTES, type IntakeError, type DetectedType } from './lib/image-intake';
 export { LocalImageStore, SharpImageRenderer } from './lib/local-image-store';
-export { PostgresProductStore, PostgresCategoryStore, PostgresPriceAudit } from './lib/postgres-catalog';
+export { MAX_PRODUCTS, PostgresCategoryStore, PostgresPriceAudit, PostgresProductStore } from './lib/postgres-catalog';
 export { PostgresImageStore } from './lib/postgres-images';
 export { type BlobStorage, DiskBlobStorage, S3BlobStorage } from './lib/blob-storage';
 export { PostgresModifierStore, type ModifierStoreError } from './lib/postgres-modifiers';

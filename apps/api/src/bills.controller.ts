@@ -38,6 +38,8 @@ import { OrdersService } from './orders.service';
 import { CallsService } from './calls.service';
 import { RealtimeGateway } from './realtime.gateway';
 import { toMoneyDto } from './contracts';
+import { log } from './logger';
+import { MAX_SESSION_ORDERS } from '@itadaki/ordering/infra';
 
 const splitSchema = z.object({
   kind: z.enum(['SINGLE_PAYER', 'EQUAL', 'BY_DINER', 'BY_ITEM', 'CUSTOM_AMOUNT']),
@@ -149,6 +151,18 @@ export class BillsController {
     const placed = await this.orders.store.listBySession(tenantId, sessionId);
     if (placed.isErr()) {
       throw new HttpException(placed.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    // Acá el tope sería plata: una cuenta armada sobre una lista recortada
+    // cobra de menos. Doscientos envíos en una sola mesa no pasa —ni un
+    // cumpleaños de veinte llega— así que si pasa hay que mirarlo, no
+    // redondearlo.
+    if (placed.value.length >= MAX_SESSION_ORDERS) {
+      log.error('la cuenta se armó sobre una lista de envíos recortada', {
+        tenantId,
+        sessionId,
+        tope: MAX_SESSION_ORDERS,
+      });
     }
 
     // Cancelled dishes were never served, so they are not owed for.

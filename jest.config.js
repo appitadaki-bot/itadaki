@@ -14,6 +14,7 @@ module.exports = {
     '^@itadaki/shared/i18n$': '<rootDir>/libs/shared/i18n/src/index.ts',
     '^@itadaki/catalog/domain$': '<rootDir>/libs/catalog/domain/src/index.ts',
     '^@itadaki/catalog/application$': '<rootDir>/libs/catalog/application/src/index.ts',
+    '^@itadaki/catalog/infra$': '<rootDir>/libs/catalog/infra/src/index.ts',
     '^@itadaki/ordering/domain$': '<rootDir>/libs/ordering/domain/src/index.ts',
     '^@itadaki/ordering/application$': '<rootDir>/libs/ordering/application/src/index.ts',
     '^@itadaki/ordering/infra$': '<rootDir>/libs/ordering/infra/src/index.ts',
