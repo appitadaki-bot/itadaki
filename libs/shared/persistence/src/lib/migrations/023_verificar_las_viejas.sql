@@ -11,6 +11,18 @@
 --
 -- Sin esto, las cuentas que se dieron de alta a mano quedan sin verificar por
 -- un requisito que no existía cuando se anotaron.
+--
+-- La condición del `verify_digest` es lo que hace que esto pase una sola vez.
+-- Las migraciones vuelven a correr enteras en cada despliegue, así que un
+-- UPDATE sobre "toda cuenta sin verificar" no marcaría las viejas: marcaría
+-- las que estén esperando el click en ese momento. Alguien se anota el martes,
+-- no abre el mail, se despliega el miércoles y su cuenta queda verificada
+-- sola — la verificación entera deja de servir y nada lo delata.
+--
+-- Una cuenta anotada con el sistema nuevo tiene su token esperando, así que
+-- tiene `verify_digest`. Las viejas no lo tienen: la columna no existía cuando
+-- se crearon. Esa diferencia separa exactamente los dos grupos, y al segundo
+-- despliegue ya no queda ninguna fila que tocar.
 
 DO $$
 DECLARE
@@ -21,6 +33,7 @@ BEGIN
 
     UPDATE staff_users
        SET email_verified_at = now()
-     WHERE email_verified_at IS NULL;
+     WHERE email_verified_at IS NULL
+       AND verify_digest IS NULL;
   END LOOP;
 END $$;
