@@ -201,12 +201,31 @@ export class PostgresTenantStore {
   ): Promise<Result<void, TenantError>> {
     try {
       await this.db.unscoped(async (client) => {
-        await client.query(
-          `UPDATE staff_users
-              SET verify_digest = $2, verify_expires_at = $3
-            WHERE lower(email) = lower($1)`,
-          [email, digest, expiraEn],
-        );
+        /*
+         * Recorrer los restaurantes, no un UPDATE suelto.
+         *
+         * Con RLS en FORCE la política alcanza también al dueño de la tabla,
+         * así que una consulta sin `app.tenant_id` en alcance no ve ninguna
+         * fila — y no falla: reporta cero filas y sigue. Eso es lo que hacía
+         * que el token no se guardara y el mail nunca saliera, sin dejar
+         * ningún error.
+         *
+         * El directorio de restaurantes no está filtrado, así que se camina y
+         * se fija el alcance en cada vuelta. El mail es único en toda la base,
+         * de modo que a lo sumo una vuelta toca una fila.
+         */
+        const locales = await client.query<{ id: string }>('SELECT id FROM tenants');
+
+        for (const local of locales.rows) {
+          await client.query('SELECT set_config($1, $2, false)', ['app.tenant_id', local.id]);
+          const hecho = await client.query(
+            `UPDATE staff_users
+                SET verify_digest = $2, verify_expires_at = $3
+              WHERE lower(email) = lower($1)`,
+            [email, digest, expiraEn],
+          );
+          if ((hecho.rowCount ?? 0) > 0) return;
+        }
       });
       return ok(undefined);
     } catch (error) {
@@ -227,17 +246,26 @@ export class PostgresTenantStore {
   async verificarMail(digest: string, ahora: Date): Promise<Result<string | null, TenantError>> {
     try {
       const tenantId = await this.db.unscoped(async (client) => {
-        const result = await client.query<{ tenant_id: string }>(
-          `UPDATE staff_users
-              SET email_verified_at = $2,
-                  verify_digest = NULL,
-                  verify_expires_at = NULL
-            WHERE verify_digest = $1
-              AND verify_expires_at > $2
-            RETURNING tenant_id`,
-          [digest, ahora],
-        );
-        return result.rows[0]?.tenant_id ?? null;
+        // Mismo recorrido: sin alcance, el UPDATE no encuentra la fila aunque
+        // el token sea correcto.
+        const locales = await client.query<{ id: string }>('SELECT id FROM tenants');
+
+        for (const local of locales.rows) {
+          await client.query('SELECT set_config($1, $2, false)', ['app.tenant_id', local.id]);
+          const result = await client.query<{ tenant_id: string }>(
+            `UPDATE staff_users
+                SET email_verified_at = $2,
+                    verify_digest = NULL,
+                    verify_expires_at = NULL
+              WHERE verify_digest = $1
+                AND verify_expires_at > $2
+              RETURNING tenant_id`,
+            [digest, ahora],
+          );
+          const fila = result.rows[0];
+          if (fila !== undefined) return fila.tenant_id;
+        }
+        return null;
       });
       return ok(tenantId);
     } catch (error) {
@@ -249,11 +277,21 @@ export class PostgresTenantStore {
   async mailVerificado(email: string): Promise<Result<boolean, TenantError>> {
     try {
       const verificado = await this.db.unscoped(async (client) => {
-        const result = await client.query<{ email_verified_at: string | null }>(
-          'SELECT email_verified_at FROM staff_users WHERE lower(email) = lower($1)',
-          [email],
-        );
-        return result.rows[0]?.email_verified_at !== null;
+        const locales = await client.query<{ id: string }>('SELECT id FROM tenants');
+
+        for (const local of locales.rows) {
+          await client.query('SELECT set_config($1, $2, false)', ['app.tenant_id', local.id]);
+          const result = await client.query<{ email_verified_at: string | null }>(
+            'SELECT email_verified_at FROM staff_users WHERE lower(email) = lower($1)',
+            [email],
+          );
+          const fila = result.rows[0];
+          if (fila !== undefined) return fila.email_verified_at !== null;
+        }
+        // Un mail que no está en ninguna parte se trata como verificado: no
+        // hay nada que reenviarle, y decir lo contrario haría que el endpoint
+        // de reenvío revele qué direcciones existen.
+        return true;
       });
       return ok(verificado);
     } catch (error) {
