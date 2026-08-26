@@ -103,18 +103,25 @@ export default tseslint.config(
           ],
         },
       ],
+      // `policies` y los selectores de entidad son lo que pide la v7. La regla
+      // sigue siendo `external` y no `dependencies`: la nueva quiere otra forma
+      // para nombrar paquetes externos que la documentación publicada no
+      // explica, y probar a ciegas una regla que protege la arquitectura es
+      // peor que convivir con su aviso de deprecación. Cuando la migremos, que
+      // sea leyendo la guía y verificando que siga fallando lo que tiene que
+      // fallar.
       'boundaries/external': [
         'error',
         {
           default: 'allow',
-          rules: [
+          policies: [
             {
-              from: 'domain',
+              from: [{ element: { type: 'domain' } }],
               disallow: ['@angular/*', '@nestjs/*', 'rxjs', 'pg', 'typeorm', 'sharp'],
               message: 'domain must not depend on frameworks or infrastructure libraries',
             },
             {
-              from: 'application',
+              from: [{ element: { type: 'application' } }],
               disallow: ['@angular/*', '@nestjs/*', 'pg', 'typeorm', 'sharp'],
               message: 'application depends on ports, not concrete infrastructure',
             },
