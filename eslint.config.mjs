@@ -44,6 +44,7 @@ export default tseslint.config(
         IntersectionObserver: 'readonly',
         fetch: 'readonly',
         FormData: 'readonly',
+        navigator: 'readonly',
       },
     },
   },

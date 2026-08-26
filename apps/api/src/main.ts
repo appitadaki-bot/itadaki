@@ -116,6 +116,25 @@ async function bootstrap(): Promise<void> {
   if (USING_DEV_SECRET) {
     log.warn('using the development signing key — set AUTH_SECRET before deploying');
   }
+
+  /*
+   * Un origen faltante en CORS no falla al arrancar: falla cuando alguien
+   * intenta usar esa página, y el navegador reporta el bloqueo como un
+   * problema de red. La landing quedó fuera de la lista por eso —empezó
+   * siendo estática y después pasó a crear cuentas— y el alta contestaba
+   * "sin conexión" con la red perfecta.
+   *
+   * Contarlos no prueba que sean los correctos, pero cinco es lo que hay que
+   * tener con las cuatro apps y la landing, y menos es una señal barata.
+   */
+  const ESPERADOS = 5;
+  if (process.env['NODE_ENV'] === 'production' && origins.length < ESPERADOS) {
+    log.warn('CORS_ORIGINS tiene menos orígenes de los esperados', {
+      configurados: origins.length,
+      esperados: ESPERADOS,
+      nota: 'las cuatro apps y la landing; a la que falte, el navegador le bloquea todo',
+    });
+  }
 }
 
 void bootstrap();

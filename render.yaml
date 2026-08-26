@@ -28,8 +28,14 @@ services:
           name: itadaki-db
           property: connectionString
 
-      # Los cuatro dominios de Vercel, separados por coma. Sin esto el
-      # navegador bloquea las llamadas: la app carga y no puede hacer nada.
+      # Los dominios que pueden llamar a esta API, separados por coma. Sin
+      # esto el navegador bloquea las llamadas: la página carga y no puede
+      # hacer nada, y el error que se ve dice "sin conexión" aunque la red
+      # esté perfecta.
+      #
+      # Son CINCO, no cuatro: las cuatro apps y la landing. La landing empezó
+      # siendo estática y por eso quedó afuera — ahora crea la cuenta del
+      # restaurante, así que también llama a la API.
       - key: CORS_ORIGINS
         sync: false
 
