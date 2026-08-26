@@ -7,7 +7,7 @@ import {
 import { type RepositoryError } from '@itadaki/catalog/application';
 import { type ImageEditParams, type ImageSet } from '@itadaki/catalog/domain';
 import { type Result, err, ok } from '@itadaki/shared/domain';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { type BlobStorage, DiskBlobStorage } from './blob-storage';
 import sharp from 'sharp';
@@ -92,6 +92,18 @@ export class LocalImageStore implements ImageReader, ImageWriter {
       return err({ kind: 'CONFLICT', detail: `could not persist record: ${String(error)}` });
     }
     return ok(image);
+  }
+
+  /** Borra la foto entera: acá la carpeta del producto es la foto entera. */
+  async remove(tenantId: string, imageId: string): Promise<Result<void, RepositoryError>> {
+    this.records.delete(this.key(tenantId, imageId));
+
+    try {
+      await rm(this.dirFor(tenantId, imageId), { recursive: true, force: true });
+      return ok(undefined);
+    } catch (error) {
+      return err({ kind: 'CONFLICT', detail: `could not remove image: ${String(error)}` });
+    }
   }
 
   async findById(tenantId: string, imageId: string): Promise<Result<StoredImage, RepositoryError>> {
