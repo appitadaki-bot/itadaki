@@ -1,8 +1,28 @@
 import { type RepositoryError } from '@itadaki/catalog/application';
 import { type ImageReader, type ImageWriter, type StoredImage } from '@itadaki/catalog/application/server';
 import { type Result, err, ok } from '@itadaki/shared/domain';
+import { VARIANT_FORMATS, VARIANT_WIDTHS } from '@itadaki/catalog/domain';
 import { type Database } from '@itadaki/shared/persistence';
 import { type BlobStorage, DiskBlobStorage } from './blob-storage';
+
+/**
+ * Todos los archivos de una foto: el original y sus doce variantes.
+ *
+ * Se calculan y no se leen del registro porque el registro guarda URLs
+ * públicas, no claves de almacenamiento — y una URL con su parámetro de
+ * restaurante no se puede convertir de vuelta en la clave sin adivinar.
+ */
+export function imageKeys(tenantId: string, imageId: string): readonly string[] {
+  const claves = [`${tenantId}/${imageId}/original`];
+
+  for (const width of VARIANT_WIDTHS) {
+    for (const format of VARIANT_FORMATS) {
+      claves.push(`${tenantId}/${imageId}/${width}.${format}`);
+    }
+  }
+
+  return claves;
+}
 
 interface ImageRow {
   id: string;
@@ -91,6 +111,29 @@ export class PostgresImageStore implements ImageReader, ImageWriter {
         );
       });
       return ok(image);
+    } catch (error) {
+      return err({ kind: 'CONFLICT', detail: String(error) });
+    }
+  }
+
+  /**
+   * Borra la foto entera: el registro y los bytes.
+   *
+   * Los bytes primero y sin cortar ante un fallo. Si alguno no se puede
+   * borrar, lo que queda es un archivo que nadie nombra —basura barata en el
+   * bucket—; si en cambio se cortara y quedara la fila, el plato siguiente
+   * que naciera con ese mismo id heredaría una foto ajena.
+   */
+  async remove(tenantId: string, imageId: string): Promise<Result<void, RepositoryError>> {
+    for (const key of imageKeys(tenantId, imageId)) {
+      await this.blobs.remove(key).catch(() => undefined);
+    }
+
+    try {
+      await this.db.withTenant(tenantId, async (client) => {
+        await client.query('DELETE FROM images WHERE id = $1', [imageId]);
+      });
+      return ok(undefined);
     } catch (error) {
       return err({ kind: 'CONFLICT', detail: String(error) });
     }

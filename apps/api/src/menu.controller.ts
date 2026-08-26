@@ -242,6 +242,24 @@ export class MenuController {
       const status = result.error.kind === 'NOT_FOUND' ? HttpStatus.NOT_FOUND : HttpStatus.CONFLICT;
       throw new HttpException(result.error, status);
     }
+
+    // La foto se guarda con el id del producto, así que sin esto queda sin
+    // dueño: la fila en `images` y los trece archivos siguen ahí, y un plato
+    // nuevo con el mismo id —que es el nombre convertido a slug, o sea que se
+    // repite al recrear "Flan"— nace con la foto del anterior puesta.
+    //
+    // Después de sacar el plato y no antes: si borrar la foto falla, el plato
+    // igual salió de la carta, que es lo que pidieron. Al revés dejaría un
+    // plato en la carta sin su foto.
+    const foto = await this.images.store.remove(tenantId, productId);
+    if (foto.isErr()) {
+      log.error('el plato salió de la carta pero su foto quedó', {
+        tenantId,
+        productId,
+        detalle: JSON.stringify(foto.error),
+      });
+    }
+
     return { id: productId, removed: true };
   }
 

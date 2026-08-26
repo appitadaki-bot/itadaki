@@ -15,9 +15,24 @@ const PAGINAS = [
   { md: 'apps/diner-pwa/src/legal/aviso-comensal.md', out: 'apps/diner-pwa/src/legal/privacidad.html', title: 'Cómo cuidamos tus datos' },
 ];
 
-/** El bloque de "pendiente de completar" no va a la página publicada. */
+/**
+ * El bloque de "pendiente de completar" no va a la página publicada.
+ *
+ * Se normalizan los finales de línea antes de mirar nada: en JavaScript `.` no
+ * matchea `\r` —el motor lo trata como terminador de línea— así que sobre un
+ * archivo con CRLF ninguna de las dos reglas encuentra nada y las notas
+ * internas terminan publicadas.
+ *
+ * Y CRLF es lo que hay en cualquier Windows, porque git convierte al
+ * descargar. O sea que el mismo repositorio publicaba distinto según qué
+ * máquina construyera, y la que fallaba era la de escritorio — justo donde
+ * alguien puede commitear el HTML generado sin mirarlo.
+ */
 function sinNotaInterna(md) {
-  return md.replace(/^> \*\*PENDIENTE[\s\S]*?\n\n---\n/m, '').replace(/^>.*\n/gm, '');
+  return md
+    .replace(/\r\n/g, '\n')
+    .replace(/^> \*\*PENDIENTE[\s\S]*?\n\n---\n/m, '')
+    .replace(/^>.*\n/gm, '');
 }
 
 const escapar = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

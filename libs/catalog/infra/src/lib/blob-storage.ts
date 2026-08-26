@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 /**
@@ -16,6 +16,15 @@ import { dirname, join } from 'node:path';
 export interface BlobStorage {
   put(key: string, data: Buffer): Promise<void>;
   get(key: string): Promise<Buffer>;
+
+  /**
+   * Borra un objeto, y no se queja si ya no estaba.
+   *
+   * Que borrar dos veces sea lo mismo que borrar una vez importa acá: quien
+   * llama borra la foto entera —el original y sus doce variantes— y no tiene
+   * forma de saber cuáles llegaron a escribirse.
+   */
+  remove(key: string): Promise<void>;
 }
 
 /** Bytes on the local filesystem. Fine for one instance; nothing beyond that. */
@@ -34,6 +43,12 @@ export class DiskBlobStorage implements BlobStorage {
 
   async get(key: string): Promise<Buffer> {
     return readFile(this.pathFor(key));
+  }
+
+  async remove(key: string): Promise<void> {
+    // `force` para que un archivo ausente no sea un error: en disco pasa con
+    // cualquier carpeta que alguien limpió a mano.
+    await rm(this.pathFor(key), { force: true });
   }
 }
 
@@ -123,8 +138,18 @@ export class S3BlobStorage implements BlobStorage {
     return Buffer.from(await response.arrayBuffer());
   }
 
+  async remove(key: string): Promise<void> {
+    const response = await this.signedFetch('DELETE', key);
+
+    // S3 contesta 204 al borrar y 404 si no estaba; las dos son el mismo
+    // final para quien llama, que sólo quiere que el objeto no exista.
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`s3 delete ${key} respondió ${response.status}`);
+    }
+  }
+
   private async signedFetch(
-    method: 'GET' | 'PUT',
+    method: 'GET' | 'PUT' | 'DELETE',
     key: string,
     body?: Buffer,
   ): Promise<Response> {
