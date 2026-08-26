@@ -30,13 +30,26 @@ updates:
     # Actualizar Angular de mayor es una migración con su propio trabajo —
     # TypeScript, las cuatro apps, el build— y se decide, no se mergea de paso
     # con otros dieciséis paquetes.
+    # TypeScript y zone.js no se mueven solos: los fija Angular.
+    #
+    # `@angular/build@19` acepta `typescript >=5.5 <5.9` y `zone.js ~0.15`. Una
+    # subida menor alcanza para salirse de ese rango, y ahí `npm ci` termina en
+    # ERESOLVE: no compila nadie, ni CI ni los cuatro despliegues. Ya pasó con
+    # 5.7 → 5.9, con la regla de mayores puesta y sin frenarlo.
+    #
+    # Se mueven el día que se mueva Angular, en la misma migración y probando
+    # las cuatro apps. Los parches siguen entrando: no cambian el rango.
     ignore:
       - dependency-name: '@angular/*'
         update-types: ['version-update:semver-major']
       - dependency-name: 'typescript'
-        update-types: ['version-update:semver-major']
+        update-types:
+          - 'version-update:semver-major'
+          - 'version-update:semver-minor'
       - dependency-name: 'zone.js'
-        update-types: ['version-update:semver-major']
+        update-types:
+          - 'version-update:semver-major'
+          - 'version-update:semver-minor'
 
   # Las acciones del CI también se quedan viejas, y corren con acceso al repo.
   - package-ecosystem: github-actions
