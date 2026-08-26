@@ -242,7 +242,17 @@
   const api = enLaMaquina
     ? `${globalThis.location.protocol}//${globalThis.location.hostname}:3000`
     : (document.querySelector('meta[name="itadaki-api"]')?.content ?? '');
-  const panel = document.querySelector('meta[name="itadaki-panel"]')?.content ?? '';
+  /*
+   * Dónde está el panel del dueño.
+   *
+   * En localhost, el de la máquina —igual que la API— para poder probar el
+   * camino entero sin publicar nada. En producción sale del meta, que hoy
+   * está vacío: sin él, el botón "Entrar al panel" simplemente no aparece, y
+   * eso es mejor que mandar a una URL que no existe.
+   */
+  const panel = enLaMaquina
+    ? `${globalThis.location.protocol}//${globalThis.location.hostname}:4400`
+    : (document.querySelector('meta[name="itadaki-panel"]')?.content ?? '');
 
   function revisar(input) {
     const campo = input.closest('.campo');
@@ -432,7 +442,11 @@
         errorGeneral(
           detalle?.kind === 'EMAIL_TAKEN'
             ? 'Ese mail ya tiene una cuenta. Entrá al panel con él.'
-            : 'No pudimos crear la cuenta. Probá de nuevo en un momento.',
+            : // 429: se probó varias veces seguidas. Decir "probá de nuevo"
+              // sin más invita justamente a lo que está bloqueado.
+              respuesta.status === 429
+              ? 'Probaste varias veces seguidas. Esperá un minuto y volvé a intentar.'
+              : 'No pudimos crear la cuenta. Probá de nuevo en un momento.',
         );
         if (boton !== null) {
           boton.disabled = false;
@@ -473,7 +487,20 @@
         listo.scrollIntoView({ behavior: quieto ? 'auto' : 'smooth', block: 'center' });
       }
     } catch {
-      errorGeneral('Sin conexión. Fijate la red y probá de nuevo.');
+      /*
+       * Un `fetch` que tira no siempre es falta de red.
+       *
+       * También tira cuando el navegador bloquea la llamada por CORS —el
+       * dominio de esta página no está en la lista que acepta la API— y ahí
+       * decir "fijate la red" manda a la persona a revisar su wifi por un
+       * problema nuestro. El texto no promete cuál de los dos fue, y ofrece
+       * la salida que funciona en los dos casos.
+       */
+      errorGeneral(
+        navigator.onLine === false
+          ? 'Sin conexión. Fijate la red y probá de nuevo.'
+          : 'No pudimos crear la cuenta ahora. Escribinos por WhatsApp y te damos de alta nosotros.',
+      );
       if (boton !== null) {
         boton.disabled = false;
         boton.textContent = 'Crear mi cuenta';
