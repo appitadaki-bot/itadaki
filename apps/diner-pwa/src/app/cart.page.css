@@ -1,8 +1,11 @@
-/* La barra de total vive abajo: el timbre se corre por encima para no
-   taparla, que es donde el comensal mira el precio. */
-:host {
-  --itadaki-call-offset: 6.5rem;
-}
+/*
+ * El timbre se corre por encima del pie para no taparlo.
+ *
+ * El pie mide distinto según cuántos botones tenga —uno cuando no hay nada
+ * enviado, dos cuando la mesa ya pidió— así que un valor fijo tapa algo en uno
+ * de los dos casos. El componente lo mide y lo publica en esta variable; el
+ * valor de acá es sólo el punto de partida hasta la primera medición.
+ */
 
 :host {
   display: flex;
@@ -256,6 +259,37 @@
   font-size: 0.9rem;
   cursor: pointer;
   box-shadow: var(--itadaki-shadow-cta-accent);
+  /* Espacio para el timbre, que flota sobre la esquina derecha: sin esto el
+     texto pasa por debajo del botón cuando la mesa tiene un llamado abierto. */
+  padding-right: 4rem;
+}
+
+/*
+ * Seguir el pedido pesa menos que enviarlo.
+ *
+ * Dos botones rojos del mismo tamaño, pegados, hacen elegir entre dos cosas
+ * que no son comparables: enviar es la acción de esta pantalla, y seguir el
+ * pedido es una salida hacia otra. Con el mismo peso, el dedo va al que está
+ * más cerca.
+ */
+.cta.cta-link {
+  background: transparent;
+  color: var(--itadaki-accent-deep);
+  border: 1px solid var(--itadaki-accent-line);
+  box-shadow: none;
+  /* No hay timbre encima de este: recupera su espacio. */
+  padding-right: 1rem;
+}
+
+@media (hover: hover) {
+  .cta.cta-link:hover {
+    background: var(--itadaki-accent-tint);
+  }
+}
+
+/* Aire entre los dos: pegados se leen como un solo bloque partido al medio. */
+.foot .cta + .cta {
+  margin-top: 0.6rem;
 }
 
 .cta:disabled {
@@ -411,4 +445,93 @@
 .qty {
   font-variant-numeric: tabular-nums;
   transition: transform var(--itadaki-quick) var(--itadaki-ease-out);
+}
+
+/*
+ * "Traer primero": un interruptor, no una casilla.
+ *
+ * La casilla del navegador se lee como un formulario —algo que hay que
+ * completar— y esto es opcional: la mayoría de las mesas no lo va a usar. Un
+ * interruptor se lee como una preferencia, algo que está apagado y se puede
+ * prender si querés.
+ */
+.primero {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  /* Zona táctil completa: en un teléfono el dedo no acierta a 20px. */
+  padding: 0.35rem 0;
+  min-height: 32px;
+}
+
+/* Se esconde el control real, pero sigue ahí: es lo que recibe el foco y lo
+   que anuncia el lector de pantalla. Dibujar uno propio y no usar `input`
+   dejaría fuera a quien navega con teclado. */
+.primero-check {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.primero-pista {
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  border-radius: var(--itadaki-radius-pill);
+  background: var(--itadaki-surface-sunken);
+  border: 1px solid var(--itadaki-border);
+  transition:
+    background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.primero-pista::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 3px oklch(24% 0.02 40 / 0.25);
+  transition: transform var(--itadaki-smooth) var(--itadaki-ease-out);
+}
+
+.primero-check:checked + .primero-pista {
+  background: var(--itadaki-accent);
+  border-color: var(--itadaki-accent);
+}
+
+.primero-check:checked + .primero-pista::after {
+  transform: translateX(14px);
+}
+
+/* El foco se dibuja sobre la pista, ya que el control real es invisible. */
+.primero-check:focus-visible + .primero-pista {
+  outline: 2px solid var(--itadaki-accent);
+  outline-offset: 2px;
+}
+
+.primero-texto {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--itadaki-ink-subtle);
+  transition: color var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.primero-check:checked ~ .primero-texto {
+  color: var(--itadaki-accent-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primero-pista,
+  .primero-pista::after,
+  .primero-texto {
+    transition: none;
+  }
 }

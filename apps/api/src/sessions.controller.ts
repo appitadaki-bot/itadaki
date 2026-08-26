@@ -94,12 +94,16 @@ const addSchema = z.object({
   productId: z.string().min(1).max(64),
   quantity: z.number().int().min(1).max(99),
   notes: z.string().max(280).default(''),
+  primero: z.boolean().default(false),
   modifierIds: z.array(z.string().min(1).max(64)).max(10).default([]),
 });
 
 const changeSchema = z.object({
   dinerId: z.string().min(1).max(64),
   quantity: z.number().int().min(0).max(99),
+  // Opcional a propósito: cambiar la cantidad no puede desmarcar lo que la
+  // mesa pidió que saliera primero.
+  primero: z.boolean().optional(),
 });
 
 function toSessionDto(state: SessionState, placed: readonly Order[] = []) {
@@ -123,6 +127,7 @@ function toSessionDto(state: SessionState, placed: readonly Order[] = []) {
       productId: line.product.productId,
       quantity: line.quantity,
       notes: line.notes,
+      primero: line.primero ?? false,
       unitPrice: toMoneyDto(line.product.unitPrice),
       modifiers: line.modifiers.map((modifier) => ({
         name: modifier.name,
@@ -579,6 +584,7 @@ export class SessionsController {
       productId: parsed.data.productId,
       quantity: parsed.data.quantity,
       notes: parsed.data.notes,
+      primero: parsed.data.primero,
       modifierIds: parsed.data.modifierIds,
     });
 
@@ -601,6 +607,7 @@ export class SessionsController {
         product: priced.value.product,
         modifiers: priced.value.modifiers,
         notes: parsed.data.notes,
+        primero: parsed.data.primero,
       },
       quantity: parsed.data.quantity,
     });
@@ -637,6 +644,7 @@ export class SessionsController {
       dinerId: parsed.data.dinerId,
       lineId,
       quantity: parsed.data.quantity,
+      ...(parsed.data.primero === undefined ? {} : { primero: parsed.data.primero }),
     });
 
     if (result.isErr()) {

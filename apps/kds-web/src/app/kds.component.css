@@ -744,3 +744,66 @@ button {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
+
+/*
+ * "Primero": lo que la mesa pidió que salga antes.
+ *
+ * No compite con las etiquetas de estación, que ya son cuatro pastilles
+ * pastel —una de ellas rojiza para la parrilla— y entre las que un quinto
+ * color se pierde. Éste se distingue por ser de otra especie: fondo sólido y
+ * oscuro en vez de pastel, y un símbolo adelante.
+ *
+ * Verde y no rojo: la pantalla de cocina ya usa el rojo para lo que va
+ * demorado. Esto no es un problema ni una alarma, es lo que la mesa quiere
+ * comer primero — y en una pantalla donde el rojo significa "llegás tarde",
+ * pintar de rojo una preferencia sería mentirle al cocinero.
+ */
+.item-primero {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: 0.45rem;
+  padding: 0.12rem 0.5rem 0.12rem 0.4rem;
+  border-radius: var(--itadaki-radius-pill);
+  background: oklch(52% 0.16 155);
+  color: white;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  /* Se lee de un vistazo desde lejos, que es como se mira una pantalla de
+     cocina: no se estira ni se parte. */
+  white-space: nowrap;
+  /* Un halo tenue lo despega de la tarjeta blanca sin agregar otro borde. */
+  box-shadow: 0 0 0 2px oklch(52% 0.16 155 / 0.18);
+}
+
+/* El símbolo antes del texto: se reconoce antes de leerlo. */
+.item-primero::before {
+  content: '↑';
+  font-size: 0.8em;
+  line-height: 1;
+}
+
+/*
+ * Un latido lento.
+ *
+ * En una pantalla que se mira de reojo, algo que se mueve gana el ojo sin
+ * gritar. Lento a propósito: rápido sería una alarma, y esto no lo es.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .item-primero {
+    animation: primero-late 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes primero-late {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px oklch(52% 0.16 155 / 0.18);
+  }
+  50% {
+    box-shadow: 0 0 0 5px oklch(52% 0.16 155 / 0.1);
+  }
+}

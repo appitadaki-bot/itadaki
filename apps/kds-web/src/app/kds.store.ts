@@ -27,6 +27,8 @@ export interface TicketDto {
     readonly quantity: number;
     readonly notes: string;
     readonly station: string;
+    /** La mesa pidió que este plato salga antes que el resto. */
+    readonly primero?: boolean;
   }>;
   readonly placedAt: string | null;
 }

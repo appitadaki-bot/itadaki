@@ -42,6 +42,8 @@ interface OrderRow {
     dinerId: string;
     quantity: number;
     notes: string;
+    /** Ausente en los pedidos anteriores a esto, que se leen como `false`. */
+    primero?: boolean;
     product: { productId: string; name: string; unitPrice: MoneyJson; capturedAt: string };
     modifiers: Array<{ modifierId: string; name: string; priceDelta: MoneyJson }>;
   }>;
@@ -92,6 +94,7 @@ export class PostgresOrderStore implements OrderReader, OrderWriter {
         dinerId: item.dinerId,
         quantity: item.quantity,
         notes: item.notes,
+        primero: item.primero ?? false,
         product: {
           productId: item.product.productId,
           name: item.product.name,
@@ -248,6 +251,7 @@ export class PostgresOrderStore implements OrderReader, OrderWriter {
                 dinerId: item.dinerId,
                 quantity: item.quantity,
                 notes: item.notes,
+                primero: item.primero,
                 product: {
                   productId: item.product.productId,
                   name: item.product.name,

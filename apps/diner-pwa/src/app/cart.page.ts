@@ -1,6 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  type ElementRef,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { type CartLine, lineTotal } from '@itadaki/ordering/domain';
+import { medirElPie } from './medir-el-pie';
 import { Money } from '@itadaki/shared/domain';
 import { BackLinkComponent } from './back-link.component';
 import { CartStore } from './cart.store';
@@ -61,6 +71,21 @@ import { TrackingStore } from './tracking.store';
                   @if (line.notes !== '') {
                     <p class="row-note">“{{ line.notes }}”</p>
                   }
+
+                  <!-- Sólo en los platos propios: marcar el plato de otro sería
+                       decidir por él cuándo come. -->
+                  @if (session.ownsLine(line)) {
+                    <label class="primero">
+                      <input
+                        type="checkbox"
+                        class="primero-check"
+                        [checked]="line.primero === true"
+                        (change)="cambiarPrimero(line, $event)"
+                      />
+                      <span class="primero-pista" aria-hidden="true"></span>
+                      <span class="primero-texto">Traer primero</span>
+                    </label>
+                  }
                 </div>
 
                 <div class="row-side">
@@ -93,7 +118,7 @@ import { TrackingStore } from './tracking.store';
         }
       </main>
 
-      <footer class="foot">
+      <footer class="foot" #pie>
         <!-- Lo que ya está en cocina no desaparece de la pantalla al enviar.
              Sin esta línea, la mesa que acababa de pedir veía "Total de la
              mesa $ 0" y parecía que se había perdido el pedido. -->
@@ -207,7 +232,7 @@ import { TrackingStore } from './tracking.store';
     </main>
 
     @if (cart.count() > 0) {
-      <footer class="foot">
+      <footer class="foot" #pie>
         <div class="totals">
           <span>Subtotal</span>
           <span>{{ cart.total() | money }}</span>
@@ -264,6 +289,10 @@ import { TrackingStore } from './tracking.store';
   `,
 })
 export class CartPage {
+  constructor() {
+    medirElPie(this.pie);
+  }
+
   protected readonly cart = inject(CartStore);
   protected readonly orders = inject(OrderService);
   protected readonly session = inject(SessionStore);
@@ -319,6 +348,20 @@ export class CartPage {
   }
 
   /** Quantity zero removes the line; the API treats it as a delete. */
+  /**
+   * Marca que este plato salga antes que el resto.
+   *
+   * Es una señal para la cocina, no una regla: el plato no se retiene ni se
+   * manda aparte. La cocina sigue decidiendo el orden, que es lo que hace hoy
+   * sin sistema — esto sólo le dice qué quiere la mesa.
+   */
+  private readonly pie = viewChild<ElementRef<HTMLElement>>('pie');
+
+  protected cambiarPrimero(line: SessionLine, evento: Event): void {
+    const marcado = (evento.target as HTMLInputElement).checked;
+    void this.session.marcarPrimero(line.id, marcado);
+  }
+
   protected remove(line: SessionLine): void {
     void this.session.changeLine(line.id, 0);
   }

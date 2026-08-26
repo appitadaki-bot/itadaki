@@ -20,6 +20,8 @@ export interface BoardTicket {
     readonly quantity: number;
     readonly notes: string;
     readonly station: string;
+    /** Lo que la mesa pidió que salga primero. */
+    readonly primero?: boolean;
   }>;
 }
 

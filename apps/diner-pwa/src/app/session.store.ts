@@ -17,6 +17,8 @@ export interface SessionLine {
   readonly name: string;
   readonly quantity: number;
   readonly notes: string;
+  /** Que la cocina lo saque antes que el resto del pedido. */
+  readonly primero?: boolean;
   readonly unitPrice: { amountInMinorUnits: number; currency: string };
   readonly modifiers: ReadonlyArray<{ name: string; priceDelta: { amountInMinorUnits: number } }>;
 }
@@ -359,6 +361,31 @@ export class SessionStore {
     if (!response.ok) return false;
     this.session.set((await response.json()) as SessionDto);
     return true;
+  }
+
+  /**
+   * Marca —o desmarca— que un plato salga antes que el resto.
+   *
+   * Va por el mismo endpoint que la cantidad porque es lo mismo: modificar una
+   * línea que ya está en la mesa. Manda la cantidad actual sin cambiarla, y el
+   * servidor sólo toca lo que viene declarado.
+   */
+  async marcarPrimero(lineId: string, primero: boolean): Promise<void> {
+    const current = this.session();
+    const dinerId = this.myDinerId();
+    if (current === null || dinerId === null) return;
+
+    const line = current.lines.find((candidate) => candidate.id === lineId);
+    if (line === undefined) return;
+
+    const response = await this.api.send(`/sessions/${current.id}/lines/${lineId}`, 'PATCH', {
+      dinerId,
+      quantity: line.quantity,
+      primero,
+    });
+    if (response.ok) {
+      this.session.set((await response.json()) as SessionDto);
+    }
   }
 
   async changeLine(lineId: string, quantity: number): Promise<void> {
