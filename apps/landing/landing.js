@@ -237,6 +237,8 @@
    * lo que pasó. Es la misma regla que usan las cuatro apps.
    */
   const enLaMaquina = ['localhost', '127.0.0.1'].includes(globalThis.location?.hostname ?? '');
+  const boton = document.getElementById('enviar');
+
   const api = enLaMaquina
     ? `${globalThis.location.protocol}//${globalThis.location.hostname}:3000`
     : (document.querySelector('meta[name="itadaki-api"]')?.content ?? '');
@@ -273,6 +275,44 @@
     return !mal;
   }
 
+  /**
+   * Si el formulario está listo para mandar.
+   *
+   * Mira los valores sin tocar la pantalla: `revisar` pinta el campo en rojo,
+   * y eso mientras alguien todavía está escribiendo es corregirlo a mitad de
+   * la frase. Acá sólo se pregunta.
+   */
+  function completo() {
+    if (form === null) return false;
+
+    const clave = form.querySelector('[name="password"]')?.value ?? '';
+
+    return [...form.querySelectorAll('input')].every((input) => {
+      const valor = input.value.trim();
+      if (input.required && valor === '') return false;
+      if (input.type === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(valor)) return false;
+      if (input.type === 'password' && valor.length < 8) return false;
+      if (input.name === 'password2' && input.value !== clave) return false;
+      if (input.type === 'number' && (Number(valor) < 1 || Number(valor) > 500)) return false;
+      return true;
+    });
+  }
+
+  /*
+   * El botón apagado hasta que esté todo.
+   *
+   * Dice de un vistazo que falta algo, sin tener que tocarlo para enterarse.
+   * `aria-disabled` y no `disabled`: un botón deshabilitado de verdad no
+   * recibe foco ni anuncia nada, así que quien navega con teclado o lector no
+   * se entera de que existe. Así se puede llegar a él, y al tocarlo el
+   * formulario marca en rojo lo que falta.
+   */
+  function refrescarBoton() {
+    const listoParaMandar = completo();
+    boton?.setAttribute('aria-disabled', String(!listoParaMandar));
+    boton?.classList.toggle('apagado', !listoParaMandar);
+  }
+
   // Al salir del campo, no mientras escribe: marcar en rojo lo que todavía se
   // está tipeando es corregir a alguien a mitad de la frase.
   for (const input of form?.querySelectorAll('input') ?? []) {
@@ -280,10 +320,13 @@
     input.addEventListener('input', () => {
       const campo = input.closest('.campo');
       if (campo?.classList.contains('mal')) revisar(input);
+      // El botón sí se actualiza mientras escribe: se prende solo al
+      // completar el último campo, que es la señal de que ya está.
+      refrescarBoton();
     });
   }
 
-  const boton = document.getElementById('enviar');
+  refrescarBoton();
 
   /*
    * "Contratar ahora" pasa por el mismo formulario.
@@ -314,6 +357,35 @@
     aviso.textContent = texto;
   }
 
+  /**
+   * El botón de reenviar el mail de verificación.
+   *
+   * Se apaga después de usarlo: el segundo link invalida al primero, así que
+   * tocarlo tres veces deja tres mails en la casilla de los cuales sólo el
+   * último sirve — y la persona probablemente abra el primero que ve.
+   */
+  function prepararReenvio(email) {
+    const reenviar = document.getElementById('reenviar');
+    if (reenviar === null) return;
+
+    reenviar.addEventListener('click', async () => {
+      reenviar.disabled = true;
+      reenviar.textContent = 'Enviando…';
+
+      try {
+        await fetch(`${api}/api/auth/reenviar-verificacion`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        reenviar.textContent = 'Listo, fijate de nuevo';
+      } catch {
+        reenviar.textContent = 'No pudimos reenviarlo';
+        reenviar.disabled = false;
+      }
+    });
+  }
+
   form?.addEventListener('submit', async (evento) => {
     evento.preventDefault();
 
@@ -321,6 +393,8 @@
     const todosBien = inputs.map((i) => revisar(i)).every(Boolean);
 
     if (!todosBien) {
+      // El botón está apagado pero se puede tocar: acá es donde se entera de
+      // qué le falta, marcado en el campo y con el foco puesto ahí.
       form.querySelector('.campo.mal input')?.focus();
       return;
     }
@@ -382,6 +456,12 @@
 
       form.hidden = true;
       if (listo !== null) {
+        // La dirección a la vista: si se tipeó mal, este es el momento de
+        // darse cuenta, no tres días después cuando no llegó nada.
+        const donde = document.getElementById('mailEnviado');
+        if (donde !== null) donde.textContent = String(datos.email);
+        prepararReenvio(String(datos.email));
+
         // El botón al panel sólo si sabemos dónde está: mandar a una URL que
         // no existe es peor que no ofrecer el botón.
         const irAlPanel = document.getElementById('irAlPanel');

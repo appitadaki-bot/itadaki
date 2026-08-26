@@ -202,7 +202,7 @@ export class PostgresTenantStore {
     try {
       await this.db.unscoped(async (client) => {
         await client.query(
-          `UPDATE staff
+          `UPDATE staff_users
               SET verify_digest = $2, verify_expires_at = $3
             WHERE lower(email) = lower($1)`,
           [email, digest, expiraEn],
@@ -228,7 +228,7 @@ export class PostgresTenantStore {
     try {
       const tenantId = await this.db.unscoped(async (client) => {
         const result = await client.query<{ tenant_id: string }>(
-          `UPDATE staff
+          `UPDATE staff_users
               SET email_verified_at = $2,
                   verify_digest = NULL,
                   verify_expires_at = NULL
@@ -250,7 +250,7 @@ export class PostgresTenantStore {
     try {
       const verificado = await this.db.unscoped(async (client) => {
         const result = await client.query<{ email_verified_at: string | null }>(
-          'SELECT email_verified_at FROM staff WHERE lower(email) = lower($1)',
+          'SELECT email_verified_at FROM staff_users WHERE lower(email) = lower($1)',
           [email],
         );
         return result.rows[0]?.email_verified_at !== null;
@@ -289,9 +289,9 @@ export class PostgresTenantStore {
         try {
           await client.query('BEGIN');
 
-          // The trial clock starts at signup, not at first use: otherwise a
-          // restaurant that registers and comes back in March gets a free month
-          // whenever it happens to start.
+          // Sin fecha: el reloj arranca con el primer pedido de una mesa, no
+          // acá. Quien se anota y recibe la carta cargada dos días después no
+          // puede perder esos dos días de los treinta.
           const tenant = await client.query<TenantRow>(
             `INSERT INTO tenants (id, name, slug, currency, trial_ends_at)
              VALUES ($1,$2,$3,$4,$5)

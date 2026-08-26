@@ -51,8 +51,28 @@ const DEMO_STAFF: ReadonlyArray<Omit<StaffWithHash, 'passwordHash'>> = [
  * olvidan abiertas.
  */
 export class InMemoryStaffStore {
-  private readonly rows = new Map<string, StaffWithHash>();
-  private listo: Promise<void> | null = null;
+  /*
+   * Las filas viven en el proceso, no en la instancia.
+   *
+   * El alta las escribe desde el store de restaurantes y el login las lee
+   * desde acá: si cada uno tuviera su propio mapa, quien acaba de crear su
+   * cuenta no podría entrar con ella.
+   */
+  static readonly compartidas = new Map<string, StaffWithHash>();
+
+  private get rows(): Map<string, StaffWithHash> {
+    return InMemoryStaffStore.compartidas;
+  }
+
+  private static sembrado: Promise<void> | null = null;
+
+  private get listo(): Promise<void> | null {
+    return InMemoryStaffStore.sembrado;
+  }
+
+  private set listo(valor: Promise<void> | null) {
+    InMemoryStaffStore.sembrado = valor;
+  }
 
   /** Cifrar es asíncrono, así que la siembra espera a la primera consulta. */
   private async sembrar(): Promise<void> {

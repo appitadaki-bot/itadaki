@@ -1019,3 +1019,59 @@ strong { color: var(--tinta); font-weight: 700; }
 .listo .btn {
   margin-top: 1rem;
 }
+
+/*
+ * El botón mientras falta completar algo.
+ *
+ * Apagado, no invisible: dice de un vistazo que todavía no está, sin esconder
+ * a dónde lleva. Se puede tocar igual —`aria-disabled` y no `disabled`— y al
+ * tocarlo el formulario marca en rojo lo que falta, que es más útil que un
+ * botón muerto que no explica nada.
+ */
+.btn.apagado {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.apagado:hover {
+  transform: none;
+}
+
+/* ═══ CONFIRMACIÓN DEL ALTA ═══ */
+
+.listo-titulo { margin: 0 0 0.6rem; font-size: 1.05rem; }
+
+.listo-mail {
+  margin: 0 0 0.75rem;
+  line-height: 1.55;
+}
+
+.listo-nota {
+  margin: 0 0 0.6rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--tinta-media);
+}
+
+/*
+ * Un botón que se lee como un enlace.
+ *
+ * Reenviar es una acción, así que es un `button` y no un `a` — pero dentro de
+ * un párrafo, con la forma de un botón, cortaría la frase en dos.
+ */
+.como-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--acento);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.como-link:disabled {
+  color: var(--tinta-suave);
+  text-decoration: none;
+  cursor: default;
+}

@@ -494,13 +494,27 @@
       </a>
     </div>
 
-    <p class="listo" id="listo" hidden role="status">
-      <strong>Tu cuenta está lista.</strong> Ya podés entrar al panel.
-      Te escribimos por WhatsApp dentro de las 24 horas hábiles con tu carta
-      cargada — <strong>los 30 días arrancan con tu primer pedido</strong>, no
-      ahora.
+    <!-- El mail de verificación es lo primero que dice, y con la dirección a
+         la vista: si se tipeó mal, este es el momento de darse cuenta — no
+         tres días después, cuando no llegó nada y ya no se sabe por qué. -->
+    <div class="listo" id="listo" hidden role="status">
+      <p class="listo-titulo"><strong>Tu cuenta está lista.</strong></p>
+      <p class="listo-mail">
+        Te mandamos un mail a <strong id="mailEnviado">tu casilla</strong> para
+        confirmar que es tuya. <strong>Confirmalo para poder recuperar tu
+        contraseña</strong> si alguna vez la perdés.
+      </p>
+      <p class="listo-nota">
+        ¿No te llegó? Fijate en spam, o
+        <button type="button" class="como-link" id="reenviar">reenviámelo</button>.
+      </p>
+      <p class="listo-nota">
+        Te escribimos por WhatsApp dentro de las 24 horas hábiles con tu carta
+        cargada. <strong>Los 30 días arrancan con tu primer pedido</strong>, no
+        ahora.
+      </p>
       <a class="btn btn-acento ancho-total" id="irAlPanel" href="#">Entrar al panel</a>
-    </p>
+    </div>
   </div>
 </section>
 
