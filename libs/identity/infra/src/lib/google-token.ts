@@ -90,7 +90,11 @@ export function verifyGoogleIdToken(
   verifier.update(`${headerPart}.${claimsPart}`);
   verifier.end();
 
-  let signatureOk = false;
+  // Sin valor inicial: el `catch` corta, así que después del bloque siempre
+  // tiene el resultado real de verificar. Arrancarla en `false` parecía más
+  // seguro y era al revés — escondía que la única salida sin verificar es
+  // volver, no seguir con un valor puesto a mano.
+  let signatureOk: boolean;
   try {
     signatureOk = verifier.verify(toPublicKey(key), Buffer.from(signaturePart, 'base64url'));
   } catch {
