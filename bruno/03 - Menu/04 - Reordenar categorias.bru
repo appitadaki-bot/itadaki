@@ -1,0 +1,27 @@
+meta {
+  name: 04 - Reordenar categorias
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/menu/categories/reorder
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "orderedIds": ["{{categoryId}}"]
+  }
+}
+
+docs {
+  En un restaurante recién creado sólo existe la categoría de "02 - Crear
+  categoria", así que la lista trae un solo id — igual es válida: define
+  el orden completo de categorías del tenant. 200 con `{ ok: true }`.
+}

@@ -70,6 +70,24 @@ describe('RateLimitGuard', () => {
     }
   });
 
+  it('logs a rejection with the limit name and ip, never the email', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const guard = new TestableGuard('login');
+    for (let i = 0; i < LIMITS.login.limit; i += 1) {
+      guard.canActivate(contextFor(from('1.2.3.4', 'ana@x.ar')));
+    }
+
+    expect(() => guard.canActivate(contextFor(from('1.2.3.4', 'ana@x.ar')))).toThrow(HttpException);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    const line = warn.mock.calls[0]?.[0] as string;
+    expect(line).toContain('"limit":"login"');
+    expect(line).toContain('"ip":"1.2.3.4"');
+    expect(line).not.toContain('ana@x.ar');
+
+    warn.mockRestore();
+  });
+
   it('does not lock out a colleague on the same connection', () => {
     const guard = new TestableGuard('login');
     for (let i = 0; i < LIMITS.login.limit; i += 1) {

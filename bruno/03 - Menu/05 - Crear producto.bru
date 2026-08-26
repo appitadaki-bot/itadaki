@@ -1,0 +1,42 @@
+meta {
+  name: 05 - Crear producto
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/menu/products
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "name": "Empanada de prueba",
+    "description": "Creada desde Bruno",
+    "priceMinor": 350000,
+    "categoryId": "{{categoryId}}",
+    "station": "COLD",
+    "prepMinutes": 8,
+    "diets": [],
+    "allergens": []
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setVar('productId', res.body.id);
+  }
+}
+
+docs {
+  Usa `categoryId` de "02 - Crear categoria". `priceMinor` está en
+  centavos (350000 = $3500,00 ARS). Guarda el id creado en `productId`:
+  el resto de la colección (sesiones, pedidos, imágenes) pide este plato.
+
+  200/201 con `{ id, name }`.
+}

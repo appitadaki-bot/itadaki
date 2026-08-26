@@ -1,0 +1,21 @@
+meta {
+  name: 09 - Codigos de mesa (staff)
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/sessions/codes
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Todas las mesas del restaurante con su código, estén ocupadas o no — lo
+  que el mozo necesita antes de sentar a nadie. 200 con un array de
+  `{ tableId, label, joinCode, diners }`.
+}

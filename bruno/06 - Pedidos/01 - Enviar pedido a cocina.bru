@@ -1,0 +1,57 @@
+meta {
+  name: 01 - Enviar pedido a cocina
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/orders
+  body: json
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+  Idempotency-Key: {{orderClientId}}
+}
+
+body:json {
+  {
+    "sessionId": "{{sessionId}}",
+    "dinerId": "{{dinerId}}",
+    "clientRequestId": "{{orderClientId}}",
+    "lines": [
+      {
+        "productId": "{{productId}}",
+        "quantity": 1,
+        "notes": "",
+        "modifierIds": []
+      }
+    ],
+    "lineIds": ["{{lineId}}"]
+  }
+}
+
+script:pre-request {
+  bru.setVar('orderClientId', `bruno-order-${Date.now()}`);
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setVar('orderId', res.body.id);
+  }
+}
+
+docs {
+  Manda la comanda a cocina. `lines` es lo que se factura — independiente
+  del carrito compartido — y `lineIds` (el `lineId` de "05 - Sesiones /
+  03 - Agregar plato al carrito") le dice al servidor qué línea del
+  carrito ya quedó reflejada acá, para vaciarla y que nadie la mande dos
+  veces.
+
+  El header `Idempotency-Key` pisa a `clientRequestId` del body: repetir
+  esta misma request con la misma key es un no-op, no un pedido
+  duplicado. Guarda `orderId` para "03 - Avanzar estado del pedido".
+
+  200/201 con el pedido creado (`OrderDto`).
+}

@@ -1,0 +1,22 @@
+meta {
+  name: 06 - Pedidos de la sesion
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/sessions/{{sessionId}}/orders
+  body: none
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+docs {
+  Tracking de pedidos para la pantalla del propio comensal — versión
+  liviana de "06 - Pedidos / 02 - Tablero de pedidos activos", sin precio
+  por ítem ni claves de idempotencia. Antes de correr "06 - Pedidos / 01
+  - Enviar pedido a cocina" da 200 con una lista vacía.
+}

@@ -1,0 +1,29 @@
+meta {
+  name: 07 - Cambiar disponibilidad de producto
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/menu/products/{{productId}}/availability
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "available": true
+  }
+}
+
+docs {
+  El "86" del plato: lo saca o lo devuelve a la carta y avisa por
+  websocket a las cartas abiertas. Este caso feliz lo deja disponible
+  (`true`), porque el resto de la colección lo necesita para pedir.
+
+  200 con `{ id, available }`.
+}

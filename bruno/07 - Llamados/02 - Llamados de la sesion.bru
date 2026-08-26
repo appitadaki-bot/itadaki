@@ -1,0 +1,20 @@
+meta {
+  name: 02 - Llamados de la sesion
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/calls/{{sessionId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+docs {
+  Lo que esta mesa está esperando, para su propia pantalla. 200 con un
+  array de llamados.
+}

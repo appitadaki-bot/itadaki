@@ -1,0 +1,28 @@
+meta {
+  name: 05 - Editar mesa
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/tables/{{tableId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "label": "Mesa Bruno 1 (ventana)",
+    "seats": 4
+  }
+}
+
+docs {
+  Cambia el nombre o la cantidad de lugares; el id no se toca, así que el
+  QR ya impreso sigue apuntando a la misma mesa. 200 con
+  `{ id, label, seats, url }`.
+}

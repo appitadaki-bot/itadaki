@@ -1,0 +1,38 @@
+meta {
+  name: 10 - Importar platos (carga masiva)
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/menu/import
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "dishes": [
+      {
+        "name": "Tarta de prueba",
+        "description": "Importada desde Bruno",
+        "priceMinor": 290000,
+        "category": "Postres Bruno"
+      }
+    ]
+  }
+}
+
+docs {
+  Carga varios platos de una — la categoría se crea si no existe (acá
+  "Postres Bruno" es nueva; si el nombre coincide con una existente, la
+  reusa sin duplicarla). Pensado para lo que ya interpretó y confirmó el
+  navegador (ver "09 - Importar carta desde una URL"), no para pegar
+  html crudo.
+
+  200 con `{ imported, photos, failed[], sinAlmacenamiento }`.
+}

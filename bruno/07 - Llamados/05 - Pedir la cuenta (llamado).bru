@@ -1,0 +1,38 @@
+meta {
+  name: 05 - Pedir la cuenta (llamado)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/calls/{{sessionId}}
+  body: json
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+body:json {
+  {
+    "reason": "BILL",
+    "paymentMethod": "CASH"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setVar('callBillId', res.body.id);
+  }
+}
+
+docs {
+  Pedir la cuenta es también un llamado, con `reason: "BILL"`. Requiere
+  que la mesa haya consumido algo — carrito con líneas o un pedido ya
+  enviado — así que necesita haber corrido antes "06 - Pedidos / 01 -
+  Enviar pedido a cocina"; si no, da 409 `{ kind: "NOTHING_ORDERED" }`.
+
+  200/201 con el llamado creado; guarda `callBillId` para "06 - Cancelar
+  llamado".
+}

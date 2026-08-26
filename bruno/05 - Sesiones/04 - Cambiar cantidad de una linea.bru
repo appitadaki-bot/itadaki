@@ -1,0 +1,27 @@
+meta {
+  name: 04 - Cambiar cantidad de una linea
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/sessions/{{sessionId}}/lines/{{lineId}}
+  body: json
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+body:json {
+  {
+    "dinerId": "{{dinerId}}",
+    "quantity": 3
+  }
+}
+
+docs {
+  Usa `lineId` de "03 - Agregar plato al carrito". Mandar `quantity: 0`
+  elimina la línea. 200 con la sesión actualizada.
+}

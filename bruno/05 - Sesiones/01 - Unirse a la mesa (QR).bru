@@ -1,0 +1,37 @@
+meta {
+  name: 01 - Unirse a la mesa (QR)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/sessions/join
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "tableToken": "{{tableToken}}",
+    "nickname": "Comensal Bruno"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setVar('sessionId', res.body.session.id);
+    bru.setVar('dinerId', res.body.dinerId);
+  }
+}
+
+docs {
+  Lo que pasa al escanear el QR de la mesa: usa `tableToken` de "04 -
+  Mesas / 01 - Crear mesa" y abre (o se suma a) la sesión de esa mesa.
+  Guarda `sessionId` y `dinerId` para el resto de la colección.
+
+  `REQUIRE_JOIN_CODE` está apagado por defecto, así que no hace falta
+  `joinCode` — si tu servidor lo tiene prendido, agregalo al body con el
+  código de 6 dígitos de la mesa.
+
+  200/201 con `{ dinerId, session }`.
+}

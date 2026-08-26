@@ -1,0 +1,20 @@
+meta {
+  name: 02 - Listar personal
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/staff
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Personal del restaurante logueado. Justo después de "01 - Registrar
+  restaurante" trae sólo al dueño. 200 con un array de cuentas de staff.
+}

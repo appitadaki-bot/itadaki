@@ -1,0 +1,23 @@
+meta {
+  name: 08 - Mesas sin cobrar (staff)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/sessions/unsettled
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Mesas que ya comieron todo y siguen sin pagar. En este punto de la
+  colección la mesa de prueba todavía no cerró la cuenta (ver "08 -
+  Cuenta"), así que puede aparecer acá si ya se corrió "06 - Pedidos / 01
+  - Enviar pedido a cocina". 200 con un array de
+  `{ sessionId, tableId, owed, since, diners }`.
+}

@@ -1,0 +1,20 @@
+meta {
+  name: 03 - Llamados pendientes (staff)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/calls
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Tablero del salón: todas las mesas esperando, más antiguas primero.
+  200 con un array de llamados pendientes de todo el restaurante.
+}

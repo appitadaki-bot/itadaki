@@ -1,0 +1,23 @@
+meta {
+  name: 02 - Leer sesion
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/sessions/{{sessionId}}
+  body: none
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+docs {
+  Estado completo de la mesa: comensales, carrito compartido y lo ya
+  enviado a cocina. Usa `sessionId` de "01 - Unirse a la mesa".
+
+  200 con `{ id, tableId, status, currency, diners, lines, subtotals,
+  placedTotal }`.
+}

@@ -1,0 +1,24 @@
+meta {
+  name: 10 - Rotar codigo de mesa (staff)
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/sessions/codes/{{tableId}}/rotate
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Le pone un código nuevo a la mesa a mano — para cuando el mozo sospecha
+  que se filtró. No afecta el `tableToken` firmado del QR (eso es
+  "12 - Limpieza / 02 - Rotar QR de una mesa"), así que el resto de la
+  colección sigue funcionando después de correr esto.
+
+  200 con `{ tableId, joinCode }`.
+}

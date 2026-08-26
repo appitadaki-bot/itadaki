@@ -58,6 +58,20 @@ describe('TableScopeGuard', () => {
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 
+  it('logs a rejected table token — the flip side of guessing a table code', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const guard = new TestableGuard(true, null);
+
+    await expect(
+      guard.canActivate(contextFor(requestWith({ 'x-table-token': 'forged' }))),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]?.[0] as string).toContain('token de mesa inválido');
+
+    warn.mockRestore();
+  });
+
   it('ignores a tenant query parameter — it is caller-supplied', async () => {
     const guard = new TestableGuard(true, TABLE);
     const request = {

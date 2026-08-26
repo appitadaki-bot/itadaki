@@ -1,0 +1,27 @@
+meta {
+  name: 01 - Liberar mesa manualmente (staff)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/sessions/{{sessionId}}/release
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Camino alternativo a "08 - Cuenta / 04 - Confirmar pago (settle)":
+  libera la mesa a mano para cuando alguien pagó en la caja y se fue sin
+  tocar el teléfono. Como esta colección ya corrió "settle" sobre esta
+  misma sesión, acá va a dar 409 (la sesión ya está cerrada) — es
+  esperado, y queda como plantilla.
+
+  Para probar el caso feliz de verdad: repetí "04 - Mesas / 01 - Crear
+  mesa" en adelante con una mesa nueva, pero sin llegar a "settle", y
+  corré esta request en su lugar. 200 con `{ released: true }`.
+}

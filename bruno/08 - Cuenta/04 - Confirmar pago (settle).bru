@@ -1,0 +1,26 @@
+meta {
+  name: 04 - Confirmar pago (settle)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/bills/{{sessionId}}/settle
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  El mozo confirma que la mesa pagó. Va detrás de un permiso de staff, no
+  del token de la mesa: nadie sentado ahí puede cerrar su propia cuenta
+  sin que el mozo lo confirme. Congela la cuenta (`status: "SETTLED"`),
+  libera la mesa y le pone un código nuevo — por eso esta request corre
+  al final del recorrido de "05 - Sesiones" / "06 - Pedidos" / "07 -
+  Llamados": después de esta, la sesión queda cerrada.
+
+  200 con la cuenta ya congelada.
+}

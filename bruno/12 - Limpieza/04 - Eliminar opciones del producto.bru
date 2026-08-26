@@ -1,0 +1,21 @@
+meta {
+  name: 04 - Eliminar opciones del producto
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/menu/options/{{modifierGroupId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Borra el grupo de modificadores de "03 - Menu / 08 - Guardar opciones
+  del producto" — corre antes de eliminar el producto que lo contiene.
+  200 con `{ removed: <id> }`.
+}

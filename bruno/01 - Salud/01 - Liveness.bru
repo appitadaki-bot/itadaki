@@ -1,5 +1,5 @@
 meta {
-  name: 01 - Health
+  name: 01 - Liveness
   type: http
   seq: 1
 }
@@ -17,5 +17,5 @@ docs {
   Con Postgres caído (`npm run db:down`): 503 y `database: false` — pero
   el controller arma esa respuesta a mano, sin lanzar una excepción, así
   que nunca pasa por el ErrorFilter y no dispara Sentry ni Axiom. Para
-  ver el flujo de observabilidad completo usar la request 03.
+  ver el flujo de observabilidad completo usar "03 - Provocar error".
 }

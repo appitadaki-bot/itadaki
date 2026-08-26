@@ -1,0 +1,35 @@
+meta {
+  name: 02 - Crear categoria
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/menu/categories
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "name": "Entradas Bruno"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setVar('categoryId', res.body.id);
+  }
+}
+
+docs {
+  Requiere el token de "02 - Auth / 01 - Registrar restaurante". Crea una
+  categoría en el restaurante recién dado de alta y guarda su id en
+  `categoryId` para el resto de la carpeta.
+
+  200/201 con `{ id, name, sortOrder }`.
+}

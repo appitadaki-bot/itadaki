@@ -1,0 +1,37 @@
+meta {
+  name: 01 - Llamar al mozo
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/calls/{{sessionId}}
+  body: json
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+body:json {
+  {
+    "reason": "WAITER",
+    "note": "Necesitamos otra silla"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 || res.status === 201) {
+    bru.setVar('callWaiterId', res.body.id);
+  }
+}
+
+docs {
+  Prende el timbre de la mesa para el salón. Sólo se puede tener un
+  llamado pendiente por motivo distinto a la vez, por eso este caso se
+  atiende en "04 - Atender llamado (staff)" antes de pedir la cuenta en
+  "05 - Pedir la cuenta".
+
+  200/201 con el llamado creado.
+}

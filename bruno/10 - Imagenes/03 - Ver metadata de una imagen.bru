@@ -1,0 +1,20 @@
+meta {
+  name: 03 - Ver metadata de una imagen
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/images/{{productId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Metadata guardada de la imagen (no el binario). 200 con
+  `{ id, imageSet, params }`.
+}

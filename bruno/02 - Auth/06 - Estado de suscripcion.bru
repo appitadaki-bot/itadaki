@@ -1,0 +1,21 @@
+meta {
+  name: 06 - Estado de suscripcion
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/auth/subscription
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Estado del trial/suscripción del restaurante logueado. El panel la
+  consulta aparte de "me" para explicar un 403 después de un intento de
+  escritura fallido. 200 con `{ status, trialEndsAt, daysLeft }`.
+}

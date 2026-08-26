@@ -1,0 +1,35 @@
+meta {
+  name: 04 - Iniciar sesion con Google (manual)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/auth/google
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "idToken": "{{googleIdToken}}",
+    "restaurant": "{{restaurantName}}"
+  }
+}
+
+docs {
+  No se puede automatizar de punta a punta: `idToken` tiene que ser un ID
+  token real emitido por Google (Sign-In) contra el `GOOGLE_CLIENT_ID`
+  configurado en el servidor. Para probarlo a mano:
+
+  1. Confirmá que "03 - Proveedores de login" devuelve `google` no nulo.
+  2. Conseguí un ID token real (por ejemplo iniciando sesión con Google
+     desde el panel admin y mirando la llamada de red).
+  3. Pegalo en la variable `googleIdToken` y corré esta request.
+
+  Si el email de esa cuenta de Google ya tiene un usuario acá, entra
+  directo (200) e ignora `restaurant`. Si es la primera vez, hace falta
+  `restaurant` para dar de alta el local — sin él da 409
+  `{ kind: "NEEDS_RESTAURANT" }`. Si Google no está configurado, 501
+  `{ kind: "GOOGLE_NOT_CONFIGURED" }`.
+}

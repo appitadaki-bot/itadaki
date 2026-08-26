@@ -1,0 +1,29 @@
+meta {
+  name: 07 - Olvide mi contraseña
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/auth/forgot-password
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{authEmail}}"
+  }
+}
+
+docs {
+  Usa el email creado en "01 - Registrar restaurante". Siempre devuelve
+  200 `{ sent: true }`, exista o no la dirección — distinguirlo dejaría
+  usar este endpoint para saber qué emails están registrados.
+
+  Si el mailer (`RESEND_API_KEY`/`MAIL_FROM`) no está configurado, el
+  envío falla puertas adentro pero la respuesta es igual: se loguea el
+  error y no se le avisa a quien pidió el link. El token de reseteo real
+  hay que sacarlo del log del servidor o del proveedor de mail para usar
+  en la siguiente request.
+}

@@ -1,0 +1,26 @@
+meta {
+  name: 03 - Renombrar categoria
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/menu/categories/{{categoryId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "name": "Entradas (Bruno)"
+  }
+}
+
+docs {
+  Usa `categoryId` de "02 - Crear categoria". El id de la categoría no
+  cambia, sólo el nombre. 200 con `{ id, name }`.
+}

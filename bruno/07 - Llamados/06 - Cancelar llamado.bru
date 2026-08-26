@@ -1,0 +1,21 @@
+meta {
+  name: 06 - Cancelar llamado
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/calls/{{sessionId}}/{{callBillId}}/cancel
+  body: none
+  auth: none
+}
+
+headers {
+  X-Table-Token: {{tableToken}}
+}
+
+docs {
+  La mesa se arrepiente de haber llamado — mismo efecto que "atender",
+  pero lo dispara el propio comensal. Usa `callBillId` de "05 - Pedir la
+  cuenta". 200 con `{ cancelled: <id> }`.
+}

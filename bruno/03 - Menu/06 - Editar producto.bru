@@ -1,0 +1,28 @@
+meta {
+  name: 06 - Editar producto
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/menu/products/{{productId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "description": "Editada desde Bruno",
+    "priceMinor": 380000
+  }
+}
+
+docs {
+  Todos los campos del body son opcionales; sólo se actualizan los que
+  se manden. Usa `productId` de "05 - Crear producto". 200 con el
+  producto actualizado.
+}

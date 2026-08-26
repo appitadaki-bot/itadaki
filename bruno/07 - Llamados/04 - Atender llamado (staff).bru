@@ -1,0 +1,23 @@
+meta {
+  name: 04 - Atender llamado (staff)
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/calls/{{callWaiterId}}/acknowledge
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  El mozo marca como atendido el llamado de "01 - Llamar al mozo", que lo
+  saca del tablero. Corre antes de "05 - Pedir la cuenta" porque una
+  mesa sólo puede tener un llamado pendiente por vez con motivo distinto.
+
+  200 con el llamado actualizado.
+}

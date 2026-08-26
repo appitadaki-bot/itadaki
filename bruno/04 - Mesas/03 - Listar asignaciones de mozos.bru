@@ -1,0 +1,21 @@
+meta {
+  name: 03 - Listar asignaciones de mozos
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/tables/assignments
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+docs {
+  Qué mozo atiende qué mesa. Pide `orders:read` (no `menu:write`): el
+  salón tiene que poder ver el reparto sin poder cambiarlo. Antes de
+  "04 - Asignar mozo a mesa" da 200 con una lista vacía.
+}

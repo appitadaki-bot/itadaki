@@ -10,6 +10,7 @@ import { Reflector } from '@nestjs/core';
 import { RateLimiter, type RateLimitRule } from '@itadaki/shared/domain';
 import { createHash } from 'node:crypto';
 import { type AuthedRequest } from './auth';
+import { log } from './logger';
 
 /**
  * Named limits, so a route says what it is protecting against rather than
@@ -78,6 +79,10 @@ export class RateLimitGuard implements CanActivate {
         setHeader?: (name: string, value: string) => void;
       }>();
       response.setHeader?.('Retry-After', String(decision.retryAfterSeconds));
+
+      // Sin el email ni el hash del token de mesa: alcanza con saber qué
+      // límite se disparó y desde dónde para notar fuerza bruta.
+      log.warn('rate limit exceeded', { limit: name, ip: request.ip ?? request.socket?.remoteAddress });
 
       throw new HttpException(
         { kind: 'TOO_MANY_REQUESTS', retryAfterSeconds: decision.retryAfterSeconds },
