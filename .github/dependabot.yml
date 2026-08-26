@@ -19,6 +19,25 @@ updates:
       desarrollo:
         dependency-type: development
 
+    # Angular no sube de mayor por acá.
+    #
+    # El salto a 22 entró dos veces y las dos rompió la instalación:
+    # `@angular/build@22` pide `typescript >=6.0 <6.1` y el proyecto usa la 5,
+    # así que `npm ci` termina en ERESOLVE y no corre ni un test. La segunda vez
+    # fue peor, porque el PR reaplicó exactamente lo que otro había revertido y
+    # nadie lo notó hasta ver CI en rojo.
+    #
+    # Actualizar Angular de mayor es una migración con su propio trabajo —
+    # TypeScript, las cuatro apps, el build— y se decide, no se mergea de paso
+    # con otros dieciséis paquetes.
+    ignore:
+      - dependency-name: '@angular/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'zone.js'
+        update-types: ['version-update:semver-major']
+
   # Las acciones del CI también se quedan viejas, y corren con acceso al repo.
   - package-ecosystem: github-actions
     directory: /
