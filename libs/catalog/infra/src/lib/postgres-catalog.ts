@@ -64,6 +64,18 @@ function toProduct(row: ProductRow): Product {
   };
 }
 
+/**
+ * Cuántos productos puede devolver la carta como mucho.
+ *
+ * Una importación entra de a trescientos, pero nada impide importar varias
+ * veces: sin tope, la carta pública crece sin límite y cada comensal que
+ * escanea el QR se descarga todo. Mil es varias veces la carta más larga que
+ * existe en un restaurante, así que llegar acá significa que hay basura
+ * acumulada — y por eso quien llama lo dice en el log en vez de recortar
+ * callado.
+ */
+export const MAX_PRODUCTS = 1000;
+
 export class PostgresProductStore implements ProductReader, ProductWriter {
   constructor(private readonly db: Database) {}
 
@@ -97,7 +109,8 @@ export class PostgresProductStore implements ProductReader, ProductWriter {
           `SELECT p.*, i.image_set
              FROM products p
              LEFT JOIN images i ON i.tenant_id = p.tenant_id AND i.id = p.id
-            ORDER BY p.name`,
+            ORDER BY p.name
+            LIMIT ${MAX_PRODUCTS}`,
         );
         return result.rows;
       });

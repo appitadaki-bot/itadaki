@@ -54,6 +54,34 @@ interface OrderRow {
  * those snapshots are the contract with the diner, so they are written once
  * and never recomputed from the catalog on read.
  */
+/**
+ * Cuántas filas puede devolver un listado como mucho.
+ *
+ * No son límites de negocio: son el techo de lo que una sola petición puede
+ * cargar en memoria. Sin ellos, una consulta barata de escribir —"dame los
+ * pedidos"— puede costar cientos de megabytes del lado del servidor el día que
+ * los datos crezcan de una forma que nadie previó.
+ *
+ * Cada número está por encima de lo que la realidad produce, así que llegar al
+ * tope significa que algo anda mal. Por eso quien llama compara la cantidad
+ * contra el tope y lo dice: truncar en silencio una cuenta o un informe de
+ * ventas sería peor que devolverlos lentos.
+ */
+
+/** Comandas sin entregar. Una cocina desbordada tiene decenas, no cientos. */
+export const MAX_ACTIVE_ORDERS = 300;
+
+/** Envíos de una misma mesa. Un cumpleaños de veinte pide muchas veces; no mil. */
+export const MAX_SESSION_ORDERS = 200;
+
+/**
+ * Pedidos de una ventana de tiempo, para las métricas.
+ *
+ * Los crudos se archivan a los sesenta días, así que esto acota el pico de un
+ * local muy movido dentro de esa ventana, no un historial infinito.
+ */
+export const MAX_ORDERS_IN_WINDOW = 20_000;
+
 export class PostgresOrderStore implements OrderReader, OrderWriter {
   constructor(private readonly db: Database) {}
 
@@ -122,7 +150,8 @@ export class PostgresOrderStore implements OrderReader, OrderWriter {
         const result = await client.query<OrderRow>(
           `SELECT * FROM orders
             WHERE status NOT IN ('DELIVERED','CANCELLED')
-            ORDER BY created_at`,
+            ORDER BY created_at
+            LIMIT ${MAX_ACTIVE_ORDERS}`,
         );
         return result.rows;
       });
@@ -139,7 +168,10 @@ export class PostgresOrderStore implements OrderReader, OrderWriter {
     try {
       const rows = await this.db.withTenant(tenantId, async (client) => {
         const result = await client.query<OrderRow>(
-          'SELECT * FROM orders WHERE session_id = $1 ORDER BY created_at',
+          `SELECT * FROM orders
+            WHERE session_id = $1
+            ORDER BY created_at
+            LIMIT ${MAX_SESSION_ORDERS}`,
           [sessionId],
         );
         return result.rows;
@@ -160,7 +192,8 @@ export class PostgresOrderStore implements OrderReader, OrderWriter {
         const result = await client.query<OrderRow>(
           `SELECT * FROM orders
             WHERE created_at >= $1 AND created_at < $2
-            ORDER BY created_at`,
+            ORDER BY created_at
+            LIMIT ${MAX_ORDERS_IN_WINDOW}`,
           [from, to],
         );
         return result.rows;

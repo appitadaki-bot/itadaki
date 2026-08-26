@@ -1,7 +1,13 @@
 export { InMemoryOrderStore } from './lib/in-memory-orders';
 export { CatalogLinePricer } from './lib/catalog-line-pricer';
 export { InMemorySessionStore } from './lib/in-memory-sessions';
-export { PostgresOrderStore, PostgresSessionStore } from './lib/postgres-orders';
+export {
+  MAX_ACTIVE_ORDERS,
+  MAX_ORDERS_IN_WINDOW,
+  MAX_SESSION_ORDERS,
+  PostgresOrderStore,
+  PostgresSessionStore,
+} from './lib/postgres-orders';
 export { PostgresCallStore, type CallError } from './lib/postgres-calls';
 export {
   PostgresInviteStore,

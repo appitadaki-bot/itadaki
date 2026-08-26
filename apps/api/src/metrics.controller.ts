@@ -13,6 +13,8 @@ import { PostgresSummaryStore } from '@itadaki/ordering/infra';
 import { database } from './database';
 import { OrdersService } from './orders.service';
 import { toMoneyDto } from './contracts';
+import { MAX_ORDERS_IN_WINDOW } from '@itadaki/ordering/infra';
+import { log } from './logger';
 
 @Controller('metrics')
 export class MetricsController {
@@ -44,6 +46,18 @@ export class MetricsController {
 
     const placed = await this.orders.store.listPlacedBetween(tenantId, from, to);
     const orders = placed.isOk() ? placed.value : [];
+
+    // Un informe de ventas recortado muestra una caída que no existió, y nadie
+    // sospecha del informe. Los pedidos crudos se archivan a los sesenta días,
+    // así que llegar a veinte mil dentro de la ventana es un local enorme o
+    // algo escribiendo de más.
+    if (orders.length >= MAX_ORDERS_IN_WINDOW) {
+      log.error('las métricas se calcularon sobre una lista recortada', {
+        tenantId,
+        dias: window,
+        tope: MAX_ORDERS_IN_WINDOW,
+      });
+    }
 
     /*
      * Los días viejos ya no tienen pedidos: se resumieron y se borraron.
