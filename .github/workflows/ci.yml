@@ -53,8 +53,26 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Vulnerabilidades conocidas
+      # Lo que corre en el servidor. Falla el build: la API no sale con una
+      # falla conocida adentro.
+      - name: Vulnerabilidades en producción
         run: npm audit --omit=dev --audit-level=high
+
+      # Lo que se descarga al teléfono del comensal.
+      #
+      # Angular está declarado en devDependencies —es lo normal, porque el
+      # build produce archivos estáticos— así que el chequeo de arriba no lo
+      # mira. Sin esto, una falla de sanitización en el compilador de Angular
+      # pasaba por "cero vulnerabilidades en producción" mientras viajaba en
+      # cada bundle.
+      #
+      # No corta el build: hoy la única salida a las de Angular es una
+      # migración de mayor, y bloquear cada PR por una decisión que no se toma
+      # en un PR sólo enseña a saltear el chequeo. Queda a la vista en el log,
+      # que es lo que hoy no pasaba.
+      - name: Vulnerabilidades en todo lo demás
+        continue-on-error: true
+        run: npm audit --audit-level=high
 
   # The API has to start from `dependencies` alone. Catching this in CI is the
   # point: a runtime package left in devDependencies installs fine here and
