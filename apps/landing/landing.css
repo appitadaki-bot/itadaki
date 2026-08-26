@@ -996,3 +996,26 @@ strong { color: var(--tinta); font-weight: 700; }
 @media (max-width: 699px) {
   .planes { display: flex; flex-direction: column-reverse; }
 }
+
+/*
+ * Un error que no es de ningún campo: sin red, el mail ya usado.
+ *
+ * Va pegado arriba del botón y no al pie de la página: es donde está mirando
+ * quien acaba de tocar, y un aviso fuera de la vista es un aviso que no
+ * existe.
+ */
+.error-envio {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--r-chip, 10px);
+  background: oklch(70% 0.15 45 / 0.15);
+  border: 1px solid oklch(70% 0.15 45 / 0.4);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--tinta);
+}
+
+/* El botón del panel, dentro del mensaje de listo. */
+.listo .btn {
+  margin-top: 1rem;
+}

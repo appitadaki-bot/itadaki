@@ -24,6 +24,8 @@ export const WARN_WITHIN_DAYS = 7;
 export const GRACE_DAYS = 7;
 
 export type SubscriptionStatus =
+  /** La cuenta existe pero nadie pidió todavía: el reloj no arrancó. */
+  | 'SIN_ESTRENAR'
   /** Inside the free trial, nothing restricted. */
   | 'TRIAL'
   /** Trial is nearly over; the panel warns but still works. */
@@ -46,6 +48,15 @@ export interface Subscription {
 export interface TrialInput {
   readonly trialEndsAt: Date | null;
   readonly paid: boolean;
+  /**
+   * Si el restaurante ya usó el sistema alguna vez.
+   *
+   * El trial arranca con el primer pedido de una mesa, no al crear la cuenta:
+   * quien se anota un martes y recibe la carta cargada el jueves perdía dos
+   * días de los treinta, y el que más esperaba era justamente el que más
+   * ganas tenía. Mide uso, no calendario.
+   */
+  readonly estrenado?: boolean;
 }
 
 const DAY = 86_400_000;
@@ -66,10 +77,24 @@ export function describeSubscription(input: TrialInput, now: Date): Subscription
     return { status: 'ACTIVE', trialEndsAt: null, daysLeft: null };
   }
 
-  // No deadline recorded — a restaurant created before trials existed. Treated
-  // as active rather than locked out: never punish someone for our migration.
   if (input.trialEndsAt === null) {
-    return { status: 'ACTIVE', trialEndsAt: null, daysLeft: null };
+    /*
+     * Sin fecha, dos casos distintos.
+     *
+     * Una cuenta nueva que nadie estrenó todavía: el reloj no arrancó y no
+     * hay nada que restringir. Y un restaurante creado antes de que
+     * existieran los trials, que se trata como activo — nunca castigar a
+     * alguien por una migración nuestra.
+     *
+     * `estrenado` viene sin definir en el segundo caso, y por eso el default
+     * es el permisivo: una cuenta vieja no puede quedar bloqueada porque le
+     * falte un campo.
+     */
+    return {
+      status: input.estrenado === false ? 'SIN_ESTRENAR' : 'ACTIVE',
+      trialEndsAt: null,
+      daysLeft: null,
+    };
   }
 
   const daysLeft = daysUntil(input.trialEndsAt, now);
@@ -97,6 +122,16 @@ export function describeSubscription(input: TrialInput, now: Date): Subscription
  */
 export function canTakeOrders(subscription: Subscription): boolean {
   return subscription.status !== 'SUSPENDED';
+}
+
+/**
+ * Si este pedido es el que arranca el reloj.
+ *
+ * Lo pregunta quien toma el primer pedido de una mesa: hasta ese momento la
+ * cuenta existe pero el trial no empezó.
+ */
+export function arrancaElTrial(subscription: Subscription): boolean {
+  return subscription.status === 'SIN_ESTRENAR';
 }
 
 /** Cuántos días quedan de gracia; 0 o menos significa suspendido. */

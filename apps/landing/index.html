@@ -6,6 +6,13 @@
 <title>Itadaki · Pedidos por QR para restaurantes</title>
 <meta name="description" content="El pedido llega a la cocina con un click. Tu cliente lo manda desde su celular, sin esperar a que pase el mozo. 30 días gratis, sin tarjeta." />
 <meta name="theme-color" content="#211a15" />
+<!-- Dónde vive la API, para el alta. Mismo nombre que usan las cuatro apps,
+     así hay un solo lugar que cambiar al mover el servidor. -->
+<meta name="itadaki-api" content="https://itadaki-api.onrender.com" />
+<!-- Dónde vive el panel del dueño, para mandarlo ahí después de crear la
+     cuenta. Sin esto el botón "Entrar al panel" no aparece: mejor no mostrarlo
+     que mandar a una URL que no existe. -->
+<meta name="itadaki-panel" content="" />
 <meta property="og:title" content="Itadaki · El pedido llega a la cocina con un click" />
 <meta property="og:description" content="Tu cliente lo manda desde su celular, sin esperar a que pase el mozo. 30 días gratis, sin tarjeta." />
 <meta property="og:type" content="website" />
@@ -382,7 +389,13 @@
           <li>Te damos de baja cuando quieras, desde tu panel</li>
         </ul>
         <a class="btn btn-acento plan-btn" href="#alta">Empezar la prueba</a>
-        <p class="plan-nota">Se cobra recién al día 31, si decidís seguir.</p>
+        <!-- Para el que ya probó y vuelve decidido. Crea la cuenta igual —el
+             cobro necesita saber de qué restaurante es— y de ahí va al pago. -->
+        <a class="btn btn-borde plan-btn" href="#alta" data-contratar>Contratar ahora</a>
+        <p class="plan-nota">
+          Con la prueba no se cobra nada hasta tu día 31, y los 30 días
+          arrancan con tu primer pedido.
+        </p>
       </div>
     </div>
 
@@ -417,6 +430,25 @@
       </label>
 
       <label class="campo">
+        <span>Tu mail</span>
+        <input name="email" type="email" required autocomplete="email" />
+        <em class="error"></em>
+      </label>
+
+      <label class="campo">
+        <span>Una contraseña</span>
+        <input
+          name="password"
+          type="password"
+          required
+          minlength="8"
+          autocomplete="new-password"
+          placeholder="Mínimo 8 caracteres"
+        />
+        <em class="error"></em>
+      </label>
+
+      <label class="campo">
         <span>WhatsApp</span>
         <input name="whatsapp" type="tel" required autocomplete="tel" placeholder="11 5555 5555" />
         <em class="error"></em>
@@ -433,7 +465,7 @@
         <input name="carta" type="text" placeholder="El link de tu web, o de tu Instagram" />
       </label>
 
-      <button class="btn btn-acento ancho-total" type="submit" id="enviar">Quiero probarlo</button>
+      <button class="btn btn-acento ancho-total" type="submit" id="enviar">Crear mi cuenta</button>
 
       <p class="nota centrada">
         Al enviar aceptás los
@@ -462,8 +494,11 @@
     </div>
 
     <p class="listo" id="listo" hidden role="status">
-      <strong>Listo.</strong> Te escribimos por WhatsApp dentro de las 24 horas
-      hábiles, con tu carta ya cargada.
+      <strong>Tu cuenta está lista.</strong> Ya podés entrar al panel.
+      Te escribimos por WhatsApp dentro de las 24 horas hábiles con tu carta
+      cargada — <strong>los 30 días arrancan con tu primer pedido</strong>, no
+      ahora.
+      <a class="btn btn-acento ancho-total" id="irAlPanel" href="#">Entrar al panel</a>
     </p>
   </div>
 </section>

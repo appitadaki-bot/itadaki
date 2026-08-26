@@ -34,6 +34,7 @@ export {
   daysUntil,
   trialEndFor,
   describeSubscription,
+  arrancaElTrial,
   canEditConfiguration,
   canTakeOrders,
   graceDaysLeft,

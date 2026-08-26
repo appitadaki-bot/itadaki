@@ -49,7 +49,10 @@ export class PostgresTenantStore {
           trial_ends_at: string | null;
           paid: boolean;
           paid_until: string | null;
-        }>('SELECT trial_ends_at, paid, paid_until FROM tenants WHERE id = $1', [tenantId]);
+          estrenado: boolean;
+        }>('SELECT trial_ends_at, paid, paid_until, estrenado FROM tenants WHERE id = $1', [
+          tenantId,
+        ]);
         return result.rows;
       });
 
@@ -73,6 +76,7 @@ export class PostgresTenantStore {
       return ok({
         trialEndsAt: row.trial_ends_at === null ? null : new Date(row.trial_ends_at),
         paid: alDia,
+        estrenado: row.estrenado,
       });
     } catch (error) {
       return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
@@ -156,6 +160,33 @@ export class PostgresTenantStore {
     }
   }
 
+  /**
+   * Arranca el trial, la primera vez y sólo la primera.
+   *
+   * El `WHERE estrenado = false` es lo que lo hace seguro de llamar en cada
+   * pedido: dos mesas pidiendo al mismo tiempo intentan las dos, y la segunda
+   * no encuentra fila que actualizar. Sin esa condición, cada pedido correría
+   * la fecha treinta días hacia adelante y el trial no se terminaría nunca.
+   */
+  async estrenar(tenantId: string, ahora: Date): Promise<Result<boolean, TenantError>> {
+    try {
+      const arrancado = await this.db.unscoped(async (client) => {
+        const result = await client.query(
+          `UPDATE tenants
+              SET estrenado = true,
+                  estrenado_at = $2,
+                  trial_ends_at = $3
+            WHERE id = $1 AND estrenado = false`,
+          [tenantId, ahora, trialEndFor(ahora)],
+        );
+        return (result.rowCount ?? 0) > 0;
+      });
+      return ok(arrancado);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   /** Slugs already in use, so signup can pick a free one. */
   async takenSlugs(prefix: string): Promise<Result<ReadonlySet<string>, TenantError>> {
     try {
@@ -191,7 +222,7 @@ export class PostgresTenantStore {
             `INSERT INTO tenants (id, name, slug, currency, trial_ends_at)
              VALUES ($1,$2,$3,$4,$5)
              RETURNING id, name, slug, currency, timezone, active`,
-            [input.tenantId, input.name, input.slug, input.currency, trialEndFor(new Date())],
+            [input.tenantId, input.name, input.slug, input.currency, null],
           );
 
           // RLS is on staff_users, so the insert needs the tenant in scope.

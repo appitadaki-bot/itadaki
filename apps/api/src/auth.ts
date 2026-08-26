@@ -13,6 +13,7 @@ import {
   type Role,
   type TrialInput,
   can,
+  arrancaElTrial,
   canEditConfiguration,
   canTakeOrders,
   describeSubscription,
@@ -402,6 +403,17 @@ export class ServicioActivoGuard implements CanActivate {
     return found.isOk() ? found.value : null;
   };
 
+  /** También se reemplaza en los tests. */
+  protected arrancarTrial: (tenantId: string, ahora: Date) => Promise<unknown> = async (
+    tenantId,
+    ahora,
+  ) => {
+    const hecho = await new PostgresTenantStore(database).estrenar(tenantId, ahora);
+    if (hecho.isOk() && hecho.value) {
+      log.info('arrancó el trial con el primer pedido', { tenantId });
+    }
+  };
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const gated = this.reflector.getAllAndOverride<boolean>(TAKES_ORDERS, [
       context.getHandler(),
@@ -417,9 +429,25 @@ export class ServicioActivoGuard implements CanActivate {
     // Un fallo de lectura no puede dejar sin pedir a un local que está al día.
     if (trial === null) return true;
 
-    if (!canTakeOrders(describeSubscription(trial, new Date()))) {
+    const ahora = new Date();
+    const suscripcion = describeSubscription(trial, ahora);
+
+    if (!canTakeOrders(suscripcion)) {
       throw new ForbiddenException({ kind: 'SERVICIO_SUSPENDIDO' });
     }
+
+    /*
+     * El primer pedido arranca el reloj.
+     *
+     * Va acá y no en el alta porque es el único punto por el que pasa todo
+     * pedido, venga de donde venga. Se dispara y no se espera: el comensal no
+     * tiene por qué aguantar una escritura de facturación para mandar su
+     * plato, y si falla lo arranca el pedido siguiente.
+     */
+    if (arrancaElTrial(suscripcion)) {
+      void this.arrancarTrial(tenantId, ahora);
+    }
+
     return true;
   }
 }

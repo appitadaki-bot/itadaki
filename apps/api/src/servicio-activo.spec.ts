@@ -19,9 +19,15 @@ const NOW = new Date();
 const inDays = (days: number): Date => new Date(NOW.getTime() + days * 86_400_000);
 
 class GuardDePrueba extends ServicioActivoGuard {
+  /** Qué restaurantes se mandaron a arrancar, para poder mirarlo. */
+  readonly arrancados: string[] = [];
+
   constructor(marcada: boolean, trial: TrialInput | null) {
     super({ getAllAndOverride: () => marcada } as unknown as Reflector);
     this.lookUp = async () => trial;
+    this.arrancarTrial = async (tenantId) => {
+      this.arrancados.push(tenantId);
+    };
   }
 }
 
@@ -79,5 +85,42 @@ describe('cortar los pedidos de un local suspendido', () => {
     // para el otro lado es un restaurante parado sin motivo.
     const guard = new GuardDePrueba(true, null);
     await expect(guard.canActivate(contextoDe(enUnaMesa()))).resolves.toBe(true);
+  });
+});
+
+describe('el primer pedido arranca el reloj', () => {
+  const sinEstrenar: TrialInput = { trialEndsAt: null, paid: false, estrenado: false };
+  const corriendo: TrialInput = { trialEndsAt: inDays(20), paid: false, estrenado: true };
+
+  it('deja pedir y arranca el trial', async () => {
+    const guard = new GuardDePrueba(true, sinEstrenar);
+    await expect(guard.canActivate(contextoDe(enUnaMesa()))).resolves.toBe(true);
+
+    expect(guard.arrancados).toEqual(['t1']);
+  });
+
+  it('un pedido posterior no lo vuelve a arrancar', async () => {
+    // Si lo reiniciara, cada pedido correría la fecha treinta días y el trial
+    // no se terminaría nunca.
+    const guard = new GuardDePrueba(true, corriendo);
+    await guard.canActivate(contextoDe(enUnaMesa()));
+
+    expect(guard.arrancados).toEqual([]);
+  });
+
+  it('una cuenta vieja sin el campo no arranca nada', async () => {
+    const guard = new GuardDePrueba(true, { trialEndsAt: null, paid: false });
+    await guard.canActivate(contextoDe(enUnaMesa()));
+
+    expect(guard.arrancados).toEqual([]);
+  });
+
+  it('ver la carta no arranca el reloj', async () => {
+    // Sólo las rutas marcadas como pedido. Mirar la carta no es usar el
+    // sistema, y arrancar el trial ahí sería cobrarle a alguien por curiosear.
+    const guard = new GuardDePrueba(false, sinEstrenar);
+    await guard.canActivate(contextoDe(enUnaMesa()));
+
+    expect(guard.arrancados).toEqual([]);
   });
 });
