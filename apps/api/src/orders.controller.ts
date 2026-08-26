@@ -10,7 +10,15 @@ import {
   Post,
 } from '@nestjs/common';
 import { advanceOrder, clearSubmittedLines, submitOrder } from '@itadaki/ordering/application';
-import { type DinerScope, Public, RequirePermission, Scope, TableScoped, TenantId } from './auth';
+import {
+  type DinerScope,
+  Public,
+  RequirePermission,
+  Scope,
+  TableScoped,
+  TakesOrders,
+  TenantId,
+} from './auth';
 import { RateLimit } from './rate-limit.guard';
 import { CatalogService } from './catalog.service';
 import { OrdersService } from './orders.service';
@@ -78,6 +86,7 @@ export class OrdersController {
   @Public()
   @RateLimit('diner')
   @TableScoped()
+  @TakesOrders()
   @Post()
   async submit(
     @Body() body: unknown,

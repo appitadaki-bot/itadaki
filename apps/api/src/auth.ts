@@ -14,6 +14,7 @@ import {
   type TrialInput,
   can,
   canEditConfiguration,
+  canTakeOrders,
   describeSubscription,
 } from '@itadaki/identity/domain';
 import { peekTableToken, verifyToken, verifyTableToken } from '@itadaki/identity/infra';
@@ -369,6 +370,55 @@ export class TrialGuard implements CanActivate {
 
     if (!canEditConfiguration(describeSubscription(trial, new Date()))) {
       throw new ForbiddenException({ kind: 'TRIAL_EXPIRED' });
+    }
+    return true;
+  }
+}
+
+/**
+ * Declara que una ruta toma pedidos, y por lo tanto necesita servicio activo.
+ *
+ * Se marca a mano en vez de deducirlo del método HTTP: ver la carta y la
+ * cuenta también son POST en algunos casos, y esas tienen que seguir andando
+ * en un local suspendido — la mesa que ya comió tiene que poder pagar.
+ */
+export const TAKES_ORDERS = 'itadaki:takes-orders';
+export const TakesOrders = (): MethodDecorator => SetMetadata(TAKES_ORDERS, true);
+
+/**
+ * Corta los pedidos de un local suspendido.
+ *
+ * Es lo último que se corta y lo único que el comensal llega a notar. El panel
+ * se bloquea el día que vence el trial; las mesas siguen una semana más, para
+ * que el corte no agarre a nadie en mitad de un servicio.
+ */
+@Injectable()
+export class ServicioActivoGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
+  /** Se reemplaza en los tests, para correr sin base de datos. */
+  protected lookUp: (tenantId: string) => Promise<TrialInput | null> = async (tenantId) => {
+    const found = await new PostgresTenantStore(database).subscriptionFor(tenantId);
+    return found.isOk() ? found.value : null;
+  };
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const gated = this.reflector.getAllAndOverride<boolean>(TAKES_ORDERS, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (gated !== true) return true;
+
+    const request = context.switchToHttp().getRequest<AuthedRequest>();
+    const tenantId = request.scope?.tenantId ?? request.auth?.tenantId;
+    if (tenantId === undefined) return true;
+
+    const trial = await this.lookUp(tenantId);
+    // Un fallo de lectura no puede dejar sin pedir a un local que está al día.
+    if (trial === null) return true;
+
+    if (!canTakeOrders(describeSubscription(trial, new Date()))) {
+      throw new ForbiddenException({ kind: 'SERVICIO_SUSPENDIDO' });
     }
     return true;
   }

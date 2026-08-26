@@ -2,6 +2,9 @@ import {
   TRIAL_DAYS,
   WARN_WITHIN_DAYS,
   canEditConfiguration,
+  canTakeOrders,
+  graceDaysLeft,
+  GRACE_DAYS,
   daysUntil,
   describeSubscription,
   trialEndFor,
@@ -81,5 +84,48 @@ describe('daysUntil', () => {
   it('goes negative once past', () => {
     expect(daysUntil(new Date(NOW.getTime() - 3_600_000), NOW)).toBe(0);
     expect(daysUntil(inDays(-2), NOW)).toBe(-2);
+  });
+});
+
+describe('la semana de gracia', () => {
+  it('el panel se bloquea el día que vence, pero las mesas siguen', () => {
+    const vencido = describe_(inDays(-1), false);
+
+    expect(vencido.status).toBe('EXPIRED');
+    expect(canEditConfiguration(vencido)).toBe(false);
+    // Lo importante: nadie queda varado a mitad de un servicio.
+    expect(canTakeOrders(vencido)).toBe(true);
+  });
+
+  it('las mesas siguen todo el último día de gracia', () => {
+    const casi = describe_(inDays(-GRACE_DAYS + 1), false);
+
+    expect(canTakeOrders(casi)).toBe(true);
+  });
+
+  it('pasada la gracia se corta también el pedido', () => {
+    const suspendido = describe_(inDays(-GRACE_DAYS), false);
+
+    expect(suspendido.status).toBe('SUSPENDED');
+    expect(canTakeOrders(suspendido)).toBe(false);
+    expect(canEditConfiguration(suspendido)).toBe(false);
+  });
+
+  it('pagar reactiva todo, aunque haya estado suspendido', () => {
+    // El caso de quien vuelve: no puede quedar castigado por haber tardado.
+    const alDia = describe_(inDays(-30), true);
+
+    expect(alDia.status).toBe('ACTIVE');
+    expect(canTakeOrders(alDia)).toBe(true);
+    expect(canEditConfiguration(alDia)).toBe(true);
+  });
+
+  it('cuenta los días de gracia que quedan', () => {
+    expect(graceDaysLeft(describe_(inDays(-1), false))).toBe(GRACE_DAYS - 1);
+    expect(graceDaysLeft(describe_(inDays(-GRACE_DAYS), false))).toBe(0);
+  });
+
+  it('quien está al día no tiene cuenta regresiva', () => {
+    expect(graceDaysLeft(describe_(null, true))).toBe(GRACE_DAYS);
   });
 });

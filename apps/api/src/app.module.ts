@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { AuthGuard, TableScopeGuard, TrialGuard } from './auth';
+import { BillingController } from './billing.controller';
+import { AuthGuard, ServicioActivoGuard, TableScopeGuard, TrialGuard } from './auth';
 import { RateLimitGuard } from './rate-limit.guard';
 import { AuthController } from './auth.controller';
 import { HealthController } from './health.controller';
@@ -27,7 +28,7 @@ import { GoogleService } from './google.service';
 import { RealtimeGateway } from './realtime.gateway';
 
 @Module({
-  controllers: [MenuController, OrdersController, ImagesController, SessionsController, BillsController, MetricsController, AuthController, TablesController, StaffController, HealthController, CallsController],
+  controllers: [MenuController, OrdersController, ImagesController, SessionsController, BillsController, MetricsController, AuthController, TablesController, StaffController, HealthController, CallsController, BillingController],
   providers: [CatalogService, OrdersService, ArchiveService, ImagesService, SessionsService, BillsService, StaffService, TenantsService, ResetsService, GoogleService, CallsService, RealtimeGateway,
     // First: cheap, and a flood should be turned away before any lookup.
     { provide: APP_GUARD, useClass: RateLimitGuard },
@@ -37,6 +38,9 @@ import { RealtimeGateway } from './realtime.gateway';
     { provide: APP_GUARD, useClass: TableScopeGuard },
     // Last: the session is resolved by now, and only config changes are gated.
     { provide: APP_GUARD, useClass: TrialGuard },
+    // Y al final el servicio: corta los pedidos de un local suspendido, que es
+    // lo último que se corta y lo único que el comensal llega a notar.
+    { provide: APP_GUARD, useClass: ServicioActivoGuard },
   ],
 })
 export class AppModule {}
