@@ -425,6 +425,10 @@ export class CartPage {
         quantity: line.quantity,
         notes: line.notes,
         modifierIds: [],
+        // Lo que la mesa marcó para que salga primero. Se copia acá porque
+        // esta lista se arma a mano: sin esto el switch se prendía, se
+        // guardaba en la mesa, y se perdía justo al mandar a la cocina.
+        primero: line.primero ?? false,
       })),
       session.id,
       dinerId,

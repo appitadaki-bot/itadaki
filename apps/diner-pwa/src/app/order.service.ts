@@ -56,6 +56,7 @@ export class OrderService {
         quantity: line.quantity,
         notes: line.notes,
         modifierIds: line.modifiers.map((modifier) => modifier.modifierId),
+        primero: line.primero ?? false,
       })),
       sessionId,
       dinerId,
@@ -74,6 +75,7 @@ export class OrderService {
       quantity: number;
       notes: string;
       modifierIds: readonly string[];
+      primero?: boolean;
     }>,
     sessionId: string,
     dinerId: string,
