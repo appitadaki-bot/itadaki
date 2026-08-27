@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { type CallReason, type PaymentMethod } from '@itadaki/ordering/domain';
+import { Router } from '@angular/router';
+import { type CallReason } from '@itadaki/ordering/domain';
 import { CallStore } from './call.store';
-import { PaymentSheetComponent } from './payment-sheet.component';
 import { SessionStore } from './session.store';
 
 const OPTIONS: ReadonlyArray<{ reason: CallReason; label: string; hint: string }> = [
   { reason: 'WAITER', label: 'Llamar al mozo', hint: 'Alguien se acerca a la mesa' },
-  { reason: 'BILL', label: 'Pedir la cuenta', hint: 'La preparan y te la traen' },
+  { reason: 'BILL', label: 'Ver la cuenta', hint: 'El total, y cómo la dividen' },
   { reason: 'QUESTION', label: 'Tengo una duda', hint: 'Sobre algo de la carta' },
 ];
 
@@ -80,12 +80,11 @@ function savePlacement(placement: Placement): void {
 @Component({
   selector: 'itd-call-button',
   standalone: true,
-  imports: [PaymentSheetComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './call-button.component.css',
   template: `
     @if (session.isJoined()) {
-      @if (open() && !askingPayment()) {
+      @if (open()) {
         <div class="sheet-backdrop" (click)="open.set(false)"></div>
         <div class="sheet" role="dialog" aria-label="Llamar a alguien">
           <p class="sheet-title">¿Qué necesitás?</p>
@@ -97,7 +96,7 @@ function savePlacement(placement: Placement): void {
             <button
               type="button"
               class="option"
-              [class.on]="waiting(option.reason)"
+              [class.on]="marcada(option.reason)"
               [disabled]="calls.busy() || blocked(option.reason)"
               (click)="pedirOCancelar(option.reason)"
             >
@@ -107,7 +106,7 @@ function savePlacement(placement: Placement): void {
                   {{ hintFor(option) }}
                 </span>
               </span>
-              @if (waiting(option.reason)) {
+              @if (marcada(option.reason)) {
                 <span class="option-tick" aria-hidden="true">✓</span>
               }
             </button>
@@ -119,18 +118,6 @@ function savePlacement(placement: Placement): void {
 
           <button type="button" class="cancel" (click)="open.set(false)">Cerrar</button>
         </div>
-      }
-
-      <!-- La misma hoja que abre la cuenta: la mesa contesta lo mismo se haya
-           metido por el timbre o por el pie de la cuenta. -->
-      @if (askingPayment()) {
-        <itd-payment-sheet
-          [busy]="calls.busy()"
-          [error]="calls.error()"
-          cancelLabel="volver"
-          (choose)="askBill($event)"
-          (close)="askingPayment.set(false)"
-        />
       }
 
       <button
@@ -160,11 +147,11 @@ function savePlacement(placement: Placement): void {
 })
 export class CallButtonComponent {
   protected readonly calls = inject(CallStore);
+  private readonly router = inject(Router);
   protected readonly session = inject(SessionStore);
 
   protected readonly options = OPTIONS;
   protected readonly open = signal(false);
-  protected readonly askingPayment = signal(false);
 
   protected readonly anyWaiting = computed(() => this.calls.pending().length > 0);
 
@@ -247,7 +234,6 @@ export class CallButtonComponent {
   protected toggle(): void {
     const next = !this.open();
     this.open.set(next);
-    this.askingPayment.set(false);
 
     // Refresh on open: another phone at the table may have called already.
     const sessionId = this.session.session()?.id;
@@ -263,6 +249,14 @@ export class CallButtonComponent {
    */
   protected blocked(reason: CallReason): boolean {
     if (reason === 'BILL' && !this.tableHasOrdered()) return true;
+    /*
+     * Ver la cuenta no es un llamado: abre una pantalla.
+     *
+     * Por eso no la bloquea tener otro llamado abierto —mirar el total
+     * mientras el mozo viene en camino es razonable— ni se ofrece "tocá para
+     * cancelar", que cancelaría un aviso que esto nunca mandó.
+     */
+    if (reason === 'BILL') return false;
     return this.blockedByOther(reason);
   }
 
@@ -303,9 +297,23 @@ export class CallButtonComponent {
    * Un botón deshabilitado sin motivo se lee como una app rota; con el motivo
    * al lado se lee como una regla, y además dice cómo salir de ella.
    */
+  /**
+   * Si la opción se muestra como pedida, con su tilde.
+   *
+   * Ver la cuenta nunca lo está: abre una pantalla, no manda un aviso. Si
+   * quedó un llamado de cuenta viejo —hecho desde la propia pantalla de la
+   * cuenta— marcar acá el tilde diría que este botón hizo algo que no hizo.
+   */
+  protected marcada(reason: CallReason): boolean {
+    return reason !== 'BILL' && this.waiting(reason);
+  }
+
   protected hintFor(option: { reason: CallReason; hint: string }): string {
+    if (option.reason === 'BILL') {
+      // No es un llamado, así que ni se cancela ni la bloquea otro.
+      return this.tableHasOrdered() ? option.hint : 'Todavía no pidieron nada';
+    }
     if (this.waiting(option.reason)) return 'Ya avisamos · tocá para cancelar';
-    if (option.reason === 'BILL' && !this.tableHasOrdered()) return 'Todavía no pidieron nada';
     if (this.blockedByOther(option.reason)) return 'Cancelá el otro llamado primero';
     return option.hint;
   }
@@ -333,9 +341,21 @@ export class CallButtonComponent {
     // sobrevive a que otro teléfono de la mesa llame mientras tanto.
     if (this.blocked(reason)) return;
 
-    // Asking for the bill is two taps: the second one saves the waiter a trip.
+    /*
+     * Pedir la cuenta lleva a la pantalla de la cuenta, no avisa al mozo.
+     *
+     * Desde acá se avisaba derecho, y eso se saltea todo lo que la mesa
+     * necesita antes: ver el total, elegir cómo dividirlo y poner propina. El
+     * mozo llegaba con una cuenta sola mientras la mesa todavía discutía quién
+     * paga qué — que es exactamente el momento que este producto vino a
+     * resolver.
+     *
+     * Ahí abajo está el mismo botón de pedirla, con la forma de pago, así que
+     * no se pierde ningún paso: se gana el del medio.
+     */
     if (reason === 'BILL') {
-      this.askingPayment.set(true);
+      this.open.set(false);
+      void this.router.navigate(['/cuenta']);
       return;
     }
 
@@ -347,14 +367,4 @@ export class CallButtonComponent {
     if (done) setTimeout(() => this.open.set(false), 900);
   }
 
-  protected async askBill(method: PaymentMethod): Promise<void> {
-    const sessionId = this.session.session()?.id;
-    if (sessionId === undefined) return;
-
-    const done = await this.calls.raise(sessionId, 'BILL', '', method);
-    if (done) {
-      this.askingPayment.set(false);
-      setTimeout(() => this.open.set(false), 900);
-    }
-  }
 }
