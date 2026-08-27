@@ -1750,7 +1750,7 @@
    es lo que se hace todos los días. */
 .table-delete {
   padding: 0.45rem 0.8rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--itadaki-border);
   border-radius: var(--itadaki-radius-action);
   background: transparent;
   color: var(--itadaki-ink-subtle);
