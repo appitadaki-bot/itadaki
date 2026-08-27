@@ -42,8 +42,6 @@ interface MenuProduct {
   name: string;
   description: string;
   categoryId: string;
-  /** A qué parte de la cocina va, o `null` mientras nadie lo dijo. */
-  station: string | null;
   price: { amountInMinorUnits: number; currency: string };
   available: boolean;
   /** Lo que leen los filtros de la carta: vegano, sin gluten, etc. */
@@ -789,19 +787,6 @@ const ROLE_NAMES: Record<string, string> = {
           </select>
           </label>
 
-          <!-- La cocina lo lee para saber en qué pantalla mostrarlo. Sin
-          asignar aparece en todas, que es lo seguro mientras nadie decidió. -->
-          <label class="field">
-          <span>En la cocina va a</span>
-          <select name="station">
-          @for (option of stationOptions; track option.id) {
-          <option [value]="option.id" [selected]="option.id === (dish.station ?? '')">
-          {{ option.label }}
-          </option>
-          }
-          </select>
-          </label>
-
           <!-- Los filtros de la carta leen esto: un plato sin dietas es
           invisible para quien busca vegano o sin gluten. -->
           <fieldset class="field diets">
@@ -1359,22 +1344,6 @@ export class AdminComponent {
   }
 
   /** Las dietas que la carta ofrece como filtro, con su nombre en español. */
-  /**
-   * A qué parte de la cocina va cada plato.
-   *
-   * "Sin asignar" es una opción de verdad y va primera: una carta importada
-   * entra así, y obligar a elegir haría que alguien ponga cualquiera para
-   * poder guardar — que es exactamente como toda la carta terminó siendo
-   * "fría".
-   */
-  protected readonly stationOptions = [
-    { id: '', label: 'Sin asignar' },
-    { id: 'GRILL', label: 'Parrilla' },
-    { id: 'COLD', label: 'Fríos' },
-    { id: 'BAR', label: 'Barra' },
-    { id: 'DESSERT', label: 'Postres' },
-  ] as const;
-
   protected readonly dietOptions = [
     { id: 'VEGAN', label: 'vegano' },
     { id: 'VEGETARIAN', label: 'vegetariano' },
@@ -1495,11 +1464,6 @@ export class AdminComponent {
         description: String(data.get('description') ?? '').trim(),
         priceMinor: Math.round(pesos * 100),
         categoryId: String(data.get('categoryId') ?? ''),
-        // Vacío es `null` y no "no lo toques": sacarle la estación a un plato
-        // tiene que poder hacerse desde acá.
-        station: String(data.get('station') ?? '') === ''
-          ? null
-          : String(data.get('station')),
         diets,
       }),
     });
