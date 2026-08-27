@@ -188,9 +188,37 @@ const CALL_LABELS: Record<string, string> = {
                 <!-- Cobrar es la acción normal y cierra la cuenta; liberar sin
                      cobrar existe para la mesa que pagó por fuera del sistema,
                      y dice cuánto debe antes de hacerlo. -->
-                <button type="button" class="action" (click)="charge(mesa.sessionId)">
-                  Cobré {{ money(mesa.owed) }}
-                </button>
+                <!-- Con qué cobró, en el mismo toque.
+                     Lo declara quien tuvo la plata en la mano: la mesa dice
+                     cómo *piensa* pagar antes de que el mozo llegue, y eso
+                     cambia. Un número que el dueño cruza con su caja no puede
+                     salir de una intención. -->
+                @if (cobrando() === mesa.sessionId) {
+                  <p class="cobro-ask">¿Con qué pagaron?</p>
+                  <div class="cobro-row">
+                    <button
+                      type="button"
+                      class="cobro efectivo"
+                      (click)="charge(mesa.sessionId, 'CASH')"
+                    >
+                      Efectivo
+                    </button>
+                    <button
+                      type="button"
+                      class="cobro"
+                      (click)="charge(mesa.sessionId, 'CARD')"
+                    >
+                      Tarjeta
+                    </button>
+                  </div>
+                  <button type="button" class="cobro-volver" (click)="cobrando.set(null)">
+                    Volver
+                  </button>
+                } @else {
+                  <button type="button" class="action" (click)="cobrando.set(mesa.sessionId)">
+                    Cobré {{ money(mesa.owed) }}
+                  </button>
+                }
 
                 @if (confirming() === mesa.sessionId) {
                   <!-- La confirmación es una pregunta con dos salidas. Un solo
@@ -409,9 +437,13 @@ export class FloorComponent implements OnDestroy {
   }
 
   /** Un solo toque: cobrar es lo que pasa en casi todas las mesas. */
-  protected async charge(sessionId: string): Promise<void> {
+  /** Qué mesa está eligiendo con qué se cobró. */
+  protected readonly cobrando = signal<string | null>(null);
+
+  protected async charge(sessionId: string, cobradoCon?: 'CASH' | 'CARD'): Promise<void> {
     this.confirming.set(null);
-    await this.store.chargeTable(sessionId);
+    this.cobrando.set(null);
+    await this.store.chargeTable(sessionId, cobradoCon);
   }
 
   private readonly tick = signal(Date.now());

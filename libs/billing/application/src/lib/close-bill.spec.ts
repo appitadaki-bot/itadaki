@@ -5,6 +5,11 @@ import { closeBill } from './close-bill';
 
 /** Local fake: application must not reach into infra. */
 class FakeBillStore implements BillReader, BillWriter {
+  /** Este caso de uso no lo usa; está para cumplir el puerto. */
+  async cobrosPorMedio() {
+    return ok([]);
+  }
+
   private readonly rows = new Map<string, Bill>();
 
   async findBySession(

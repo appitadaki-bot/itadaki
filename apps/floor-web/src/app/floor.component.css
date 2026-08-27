@@ -692,3 +692,68 @@ button {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
+
+/*
+ * Con qué se cobró.
+ *
+ * Un toque más antes de cerrar la mesa, y es el que convierte una intención
+ * en un dato: la mesa dice cómo piensa pagar antes de que el mozo llegue, y
+ * eso cambia. El que tuvo la plata en la mano es quien puede declararlo.
+ */
+.cobro-ask {
+  margin: 0.5rem 0 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--itadaki-ink-strong);
+  text-align: right;
+}
+
+.cobro-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.cobro {
+  flex: 1;
+  max-width: 8rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--itadaki-radius-action);
+  border: 1px solid var(--itadaki-border);
+  background: var(--itadaki-surface-raised);
+  font-family: var(--itadaki-font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--itadaki-ink-strong);
+  cursor: pointer;
+  /* Grande: se toca de parado, con una bandeja en la otra mano. */
+  min-height: 48px;
+  transition:
+    background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease);
+}
+
+/* El efectivo primero y marcado: es el que lleva descuento, así que es el que
+   hay que acertar. */
+.cobro.efectivo {
+  border-color: var(--itadaki-status-ready);
+  background: var(--itadaki-status-ready-bg);
+  color: var(--itadaki-status-ready-fg);
+}
+
+.cobro:active {
+  transform: scale(0.97);
+}
+
+.cobro-volver {
+  align-self: flex-end;
+  margin-top: 0.4rem;
+  border: none;
+  background: none;
+  padding: 0.4rem 0.2rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--itadaki-ink-subtle);
+  cursor: pointer;
+}
