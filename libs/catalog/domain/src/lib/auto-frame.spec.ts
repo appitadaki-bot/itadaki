@@ -47,34 +47,6 @@ describe('proposeFrame', () => {
     expect(crop.y).toBeGreaterThan(0.25);
   });
 
-  it('places the focal point on the subject', () => {
-    const grid = gridWithSubject(400, 200, { left: 240, top: 30, size: 100 });
-    const { crop, focal } = proposeFrame(grid);
-
-    // Convert the focal point back to source pixels and check it lands
-    // inside the textured patch.
-    const cropLeftPx = crop.x * grid.width;
-    const focalPx = cropLeftPx + focal.x * Math.min(grid.width, grid.height);
-    const focalPy = focal.y * Math.min(grid.width, grid.height);
-
-    expect(focalPx).toBeGreaterThan(230);
-    expect(focalPx).toBeLessThan(350);
-    expect(focalPy).toBeGreaterThan(20);
-    expect(focalPy).toBeLessThan(140);
-  });
-
-  it('centres the focal point on a flat image', () => {
-    const flat: LumaGrid = {
-      width: 100,
-      height: 100,
-      data: new Uint8Array(100 * 100).fill(150),
-    };
-    const { crop, focal } = proposeFrame(flat);
-
-    expect(focal).toEqual({ x: 0.5, y: 0.5 });
-    expect(crop).toEqual({ x: 0, y: 0, size: 1 });
-  });
-
   it('returns the whole frame for an already-square image', () => {
     const grid = gridWithSubject(200, 200, { left: 20, top: 20, size: 60 });
     const { crop } = proposeFrame(grid);
@@ -86,21 +58,24 @@ describe('proposeFrame', () => {
 
   it('survives a degenerate one-pixel image', () => {
     const tiny: LumaGrid = { width: 1, height: 1, data: new Uint8Array([200]) };
-    const { crop, focal } = proposeFrame(tiny);
+    const { crop } = proposeFrame(tiny);
 
     expect(crop.size).toBe(1);
-    expect(focal).toEqual({ x: 0.5, y: 0.5 });
   });
 
   it('produces a crop the render pipeline accepts', () => {
     const grid = gridWithSubject(900, 600, { left: 600, top: 200, size: 200 });
-    const { crop, focal } = proposeFrame(grid);
+    const { crop } = proposeFrame(grid);
 
     expect(crop.x).toBeGreaterThanOrEqual(0);
     expect(crop.y).toBeGreaterThanOrEqual(0);
     expect(crop.size).toBeGreaterThan(0);
     expect(crop.size).toBeLessThanOrEqual(1);
-    expect(focal.x).toBeGreaterThanOrEqual(0);
-    expect(focal.x).toBeLessThanOrEqual(1);
+
+    // `size` es fracción del lado corto y `x`/`y` del lado que le toca, así
+    // que la invariante se mide en píxeles: la ventana tiene que entrar.
+    const corto = Math.min(grid.width, grid.height);
+    expect(crop.x * grid.width + crop.size * corto).toBeLessThanOrEqual(grid.width + 0.5);
+    expect(crop.y * grid.height + crop.size * corto).toBeLessThanOrEqual(grid.height + 0.5);
   });
 });

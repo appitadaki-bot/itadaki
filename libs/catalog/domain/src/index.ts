@@ -18,12 +18,8 @@ export {
 } from './lib/modifier';
 export {
   type CropBox,
-  type FocalPoint,
-  type DepthOfField,
-  type Adjustments,
   type ImageEditParams,
   type ImageEditError,
-  DEFAULT_ADJUSTMENTS,
   VARIANT_WIDTHS,
   VARIANT_FORMATS,
   defaultCrop,
