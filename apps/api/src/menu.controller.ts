@@ -1,6 +1,5 @@
 import {
   ALLERGENS,
-  DEFAULT_ADJUSTMENTS,
   DIET_TAGS,
   MAX_CATEGORY,
   MAX_DESCRIPTION,
@@ -688,7 +687,7 @@ export class MenuController {
       tenantId,
       imageId: productId,
       original: downloaded.bytes,
-      params: { crop: defaultCrop(), depthOfField: null, adjustments: DEFAULT_ADJUSTMENTS },
+      params: { crop: defaultCrop() },
       alt,
     });
 

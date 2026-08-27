@@ -25,42 +25,6 @@ const MIME_BY_FORMAT: Record<(typeof VARIANT_FORMATS)[number], string> = {
 };
 
 /**
- * Builds a single-channel falloff: 0 inside the sharp radius, ramping to 255
- * beyond it. Used as the alpha of the blurred layer, so the focal area keeps
- * the original pixels and the surround fades into defocus.
- *
- * The ramp is computed per pixel rather than drawn as an SVG radial gradient:
- * the librsvg build bundled with sharp renders `stop-opacity` inside a
- * referenced gradient as a flat value, which silently produced a uniform mask.
- */
-function radialFalloff(
-  size: number,
-  focalX: number,
-  focalY: number,
-  sharpRadius: number,
-): Buffer {
-  const mask = Buffer.alloc(size * size);
-  const cx = focalX * size;
-  const cy = focalY * size;
-  const inner = Math.max(1, sharpRadius * size);
-  // Feather over a fixed fraction of the frame so the transition reads as
-  // optical falloff rather than a hard circle.
-  const outer = inner + size * 0.45;
-
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      const distance = Math.hypot(x - cx, y - cy);
-      const ramp = (distance - inner) / (outer - inner);
-      const clamped = ramp <= 0 ? 0 : ramp >= 1 ? 1 : ramp;
-      // Smoothstep keeps the edge of the sharp zone from banding.
-      const eased = clamped * clamped * (3 - 2 * clamped);
-      mask[y * size + x] = Math.round(eased * 255);
-    }
-  }
-  return mask;
-}
-
-/**
  * Renders the master square from the original plus the editor parameters.
  * The browser canvas is never uploaded: re-rendering server-side from the
  * untouched original keeps quality and makes the edit non-destructive.
@@ -83,47 +47,7 @@ async function renderMaster(original: Buffer, params: ImageEditParams, size: num
     .extract({ left, top, width: cropSide, height: cropSide })
     .resize(size, size, { fit: 'cover' });
 
-  let composed = await base.png().toBuffer();
-
-  const dof = params.depthOfField;
-  if (dof !== null && dof.blurIntensity > 0) {
-    // Blur sigma scales with output size so the effect looks the same at any width.
-    const sigma = Math.max(0.3, dof.blurIntensity * size * 0.035);
-    const mask = radialFalloff(size, dof.focal.x, dof.focal.y, dof.sharpRadius);
-
-    // Blend the two layers per pixel. sharp's composite honours a layer's
-    // alpha against the canvas, not as a per-pixel mix weight, so doing the
-    // interpolation directly is both correct and easy to reason about.
-    const sharpPixels = await sharp(composed).removeAlpha().raw().toBuffer();
-    const blurPixels = await sharp(composed).blur(sigma).removeAlpha().raw().toBuffer();
-    const blended = Buffer.alloc(size * size * 3);
-
-    for (let pixel = 0; pixel < size * size; pixel += 1) {
-      const weight = (mask[pixel] ?? 0) / 255;
-      for (let channel = 0; channel < 3; channel += 1) {
-        const index = pixel * 3 + channel;
-        blended[index] = Math.round(
-          (sharpPixels[index] ?? 0) * (1 - weight) + (blurPixels[index] ?? 0) * weight,
-        );
-      }
-    }
-
-    composed = await sharp(blended, { raw: { width: size, height: size, channels: 3 } })
-      .png()
-      .toBuffer();
-  }
-
-  let pipeline = sharp(composed);
-
-  const { sharpen, brightness, saturation } = params.adjustments;
-  if (sharpen > 0) {
-    pipeline = pipeline.sharpen({ sigma: 1, m1: 0, m2: sharpen });
-  }
-  if (brightness !== 1 || saturation !== 1) {
-    pipeline = pipeline.modulate({ brightness, saturation });
-  }
-
-  return pipeline.png().toBuffer();
+  return base.png().toBuffer();
 }
 
 /**

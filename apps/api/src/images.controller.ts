@@ -21,21 +21,6 @@ const editParamsSchema = z.object({
     y: z.number().min(0).max(1),
     size: z.number().gt(0).max(1),
   }),
-  depthOfField: z
-    .object({
-      focal: z.object({ x: z.number().min(0).max(1), y: z.number().min(0).max(1) }),
-      sharpRadius: z.number().min(0).max(1),
-      blurIntensity: z.number().min(0).max(1),
-    })
-    .nullable()
-    .default(null),
-  adjustments: z
-    .object({
-      sharpen: z.number().min(0).max(5).default(0),
-      brightness: z.number().min(0.1).max(3).default(1),
-      saturation: z.number().min(0.1).max(3).default(1),
-    })
-    .default({ sharpen: 0, brightness: 1, saturation: 1 }),
 });
 
 const uploadSchema = z.object({

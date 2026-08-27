@@ -10,7 +10,6 @@ import {
   viewChild,
 } from '@angular/core';
 import {
-  DEFAULT_ADJUSTMENTS,
   type ImageEditParams,
   type LumaGrid,
   proposeFrame,
@@ -371,11 +370,7 @@ export class ImageEditorComponent {
 
     this.applied.emit({
       file: this.file,
-      params: {
-        crop: { x: clamp(centreX), y: clamp(centreY), size },
-        depthOfField: null,
-        adjustments: DEFAULT_ADJUSTMENTS,
-      },
+      params: { crop: { x: clamp(centreX), y: clamp(centreY), size } },
     });
   }
 }
