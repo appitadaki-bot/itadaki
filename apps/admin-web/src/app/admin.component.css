@@ -1881,6 +1881,13 @@
   max-height: min(92vh, 900px);
 }
 
+/* El título a la misma altura que los botones. Con `flex-start` —que el resto
+   de los modales necesita para su bajada de dos renglones— quedaba pegado al
+   borde de arriba, con la píldora del "seguir" bajando 8px más. */
+.modal.ancho .modal-head {
+  align-items: center;
+}
+
 .foto-head-acciones {
   display: flex;
   align-items: center;
