@@ -31,6 +31,42 @@
   color: white;
   margin: 0.15rem 0 0;
 }
+.sections {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+/* El filtro por sección: una pantalla de parrilla no muestra las bebidas. */
+.section {
+  border: 1px solid oklch(42% 0.02 40);
+  background: transparent;
+  color: oklch(80% 0.02 70);
+  border-radius: var(--itadaki-radius-action);
+  padding: 0.5rem 1rem;
+  font-family: var(--itadaki-font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  min-height: 44px;
+  transition:
+    background var(--itadaki-quick) var(--itadaki-ease),
+    color var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.section[aria-pressed='true'] {
+  background: white;
+  color: var(--itadaki-ink);
+  border-color: white;
+}
+
+.section:focus-visible {
+  outline: 3px solid var(--itadaki-accent-bright);
+  outline-offset: 2px;
+}
+
 .head-right {
   display: flex;
   align-items: center;
@@ -370,22 +406,6 @@
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--itadaki-accent);
-}
-
-/* Cierra el bloque del plato: al ancho de su texto y no del renglón, o el
-   fondo de color se estiraría hasta el borde y dejaría de leerse como chip. */
-.item-section {
-  align-self: flex-start;
-  margin-top: 0.15rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  padding: 0.15rem 0.45rem;
-  border-radius: var(--itadaki-radius-action);
-  background: var(--itadaki-surface-sunken);
-  color: var(--itadaki-ink-muted);
-  white-space: nowrap;
 }
 
 .ticket-btn {
