@@ -31,8 +31,6 @@
   color: white;
   margin: 0.15rem 0 0;
 }
-
-/* Station filter: a grill screen should not show drinks. */
 .head-right {
   display: flex;
   align-items: center;
@@ -376,7 +374,7 @@
 
 /* Cierra el bloque del plato: al ancho de su texto y no del renglón, o el
    fondo de color se estiraría hasta el borde y dejaría de leerse como chip. */
-.item-station {
+.item-section {
   align-self: flex-start;
   margin-top: 0.15rem;
   font-size: 0.7rem;
@@ -389,11 +387,6 @@
   color: var(--itadaki-ink-muted);
   white-space: nowrap;
 }
-
-.item-station[data-station='GRILL'] { background: oklch(88% 0.08 40); color: oklch(35% 0.12 40); }
-.item-station[data-station='COLD'] { background: oklch(88% 0.07 220); color: oklch(35% 0.12 240); }
-.item-station[data-station='BAR'] { background: oklch(90% 0.09 85); color: oklch(38% 0.12 70); }
-.item-station[data-station='DESSERT'] { background: oklch(90% 0.07 320); color: oklch(38% 0.12 330); }
 
 .ticket-btn {
   width: 100%;

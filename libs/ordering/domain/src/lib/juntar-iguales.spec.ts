@@ -16,7 +16,7 @@ const plato = (over: Partial<Parameters<typeof juntarIguales>[0][number]> = {}) 
   name: 'Empanadas de carne',
   quantity: 1,
   notes: '',
-  station: 'COLD',
+  category: 'Entradas',
   ...over,
 });
 

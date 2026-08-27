@@ -3,7 +3,7 @@ import { withSslWhenRemote } from './db-url';
 describe('withSslWhenRemote', () => {
   it('le agrega TLS a una base remota que no lo pide', () => {
     expect(withSslWhenRemote('postgresql://u:p@algo.oregon-postgres.render.com/db')).toBe(
-      'postgresql://u:p@algo.oregon-postgres.render.com/db?sslmode=require',
+      'postgresql://u:p@algo.oregon-postgres.render.com/db?sslmode=verify-full',
     );
   });
 
@@ -23,7 +23,7 @@ describe('withSslWhenRemote', () => {
 
   it('conserva los demás parámetros', () => {
     expect(withSslWhenRemote('postgresql://u:p@remoto.example.com/db?application_name=itadaki')).toBe(
-      'postgresql://u:p@remoto.example.com/db?application_name=itadaki&sslmode=require',
+      'postgresql://u:p@remoto.example.com/db?application_name=itadaki&sslmode=verify-full',
     );
   });
 

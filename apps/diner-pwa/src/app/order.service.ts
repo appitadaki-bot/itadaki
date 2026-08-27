@@ -74,6 +74,8 @@ export class OrderService {
       quantity: number;
       notes: string;
       modifierIds: readonly string[];
+      /** Lo que la mesa pidió que salga primero. */
+      primero?: boolean;
     }>,
     sessionId: string,
     dinerId: string,

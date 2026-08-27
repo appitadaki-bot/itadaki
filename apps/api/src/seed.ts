@@ -66,8 +66,8 @@ async function main(): Promise<void> {
   for (const product of PRODUCTS) {
     await client.query(
       `INSERT INTO products (tenant_id, id, category_id, name, description, price_minor,
-                             currency, allergens, diets, prep_minutes, available, station)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+                             currency, allergens, diets, prep_minutes, available)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        ON CONFLICT (tenant_id, id) DO UPDATE SET
          name = EXCLUDED.name,
          description = EXCLUDED.description,
@@ -85,7 +85,6 @@ async function main(): Promise<void> {
         product.diets,
         product.estimatedPrepMinutes,
         product.available,
-        product.station,
       ],
     );
   }

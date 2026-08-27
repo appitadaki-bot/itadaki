@@ -453,13 +453,13 @@ export class FloorComponent implements OnDestroy {
       dishes.map((dish) => ({
         id: dish.itemId,
         orderId: dish.orderId,
-        // El salón no muestra estado ni estación: lo que llega acá ya está
-        // listo, y de una sola cocina.
+        // El salón no muestra estado ni sección: lo que llega acá ya está
+        // listo, y va a la misma mesa.
         status: 'READY',
         name: dish.name,
         quantity: dish.quantity,
         notes: dish.notes,
-        station: '',
+        category: null,
       })),
     );
   }

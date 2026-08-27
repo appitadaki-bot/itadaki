@@ -49,14 +49,6 @@ const COLUMNS: readonly Column[] = [
   { status: 'READY', label: 'LISTO PARA SERVIR', next: null, action: 'ESPERANDO AL MOZO' },
 ];
 
-const STATIONS: ReadonlyArray<{ id: string; label: string }> = [
-  { id: 'ALL', label: 'todas' },
-  { id: 'GRILL', label: 'parrilla' },
-  { id: 'COLD', label: 'fríos' },
-  { id: 'BAR', label: 'barra' },
-  { id: 'DESSERT', label: 'postres' },
-];
-
 /** Minutes a ticket may wait before the board flags it. */
 const API_URL = apiUrl();
 
@@ -87,6 +79,10 @@ const SLA_LATE = 15;
              mira son las tarjetas. -->
         <p class="eyebrow">KDS · COCINA EN VIVO</p>
       </div>
+
+      <!-- Sin chips de filtro: una cocina que no separa por puesto los tenía
+           ocupando el ancho de la pantalla sin usarlos nunca. El filtro por
+           sección sigue existiendo por dentro, en "todas". -->
 
       <div class="head-right">
         <p class="live" [class.off]="!store.connected()">
@@ -159,9 +155,11 @@ const SLA_LATE = 15;
                           @if (item.notes !== '') {
                             <span class="item-note">{{ item.notes }}</span>
                           }
-                          <span class="item-station" [attr.data-station]="item.station">
-                            {{ stationLabel(item.station) }}
-                          </span>
+                          <!-- Sin chip cuando el plato ya no está en la carta:
+                               la comanda vale igual y hay que cocinarla. -->
+                          @if (item.category !== null) {
+                            <span class="item-section">{{ item.category }}</span>
+                          }
                         </span>
                         <!-- Sólo la acción contra el margen derecho, siempre en
                              el mismo lugar: el botón entre medio se corría según
@@ -409,9 +407,22 @@ export class KdsComponent implements OnDestroy {
   protected readonly auth = inject(AuthStore);
   protected readonly store = inject(KdsStore);
   protected readonly columns = COLUMNS;
-  protected readonly stations = STATIONS;
 
-  protected readonly activeStation = signal('ALL');
+  /** null es "todas": una sección de la carta podría llamarse igual. */
+  protected readonly activeSection = signal<string | null>(null);
+
+  /** Las secciones que hay algo pidiendo ahora, en orden alfabético. */
+  protected readonly sections = computed<readonly string[]>(() =>
+    [
+      ...new Set(
+        this.store
+          .tickets()
+          .flatMap((ticket) => ticket.items)
+          .map((item) => item.category)
+          .filter((category): category is string => category !== null),
+      ),
+    ].sort((a, b) => a.localeCompare(b, 'es')),
+  );
 
   /**
    * Qué tan ancha está la pantalla, para elegir cómo mostrar el tablero.
@@ -431,16 +442,21 @@ export class KdsComponent implements OnDestroy {
   private readonly timer: ReturnType<typeof setInterval>;
 
   /**
-   * Only tickets with at least one item for the active station. A grill screen
+   * Only tickets with at least one item for the active section. A grill screen
    * showing drinks is noise the cook has to filter by eye.
    */
   private readonly visible = computed<readonly TicketDto[]>(() => {
-    const station = this.activeStation();
-    if (station === 'ALL') return this.store.tickets();
+    const section = this.activeSection();
+    if (section === null) return this.store.tickets();
 
+    // Los platos sin sección entran en todas las pantallas. Esconderlos en
+    // todas seria peor que mostrarlos de mas: nadie los cocina y nadie se
+    // entera, que es como se pierde un pedido.
     return this.store
       .tickets()
-      .filter((ticket) => ticket.items.some((item) => item.station === station));
+      .filter((ticket) =>
+        ticket.items.some((item) => item.category === section || item.category === null),
+      );
   });
 
   /**
@@ -486,8 +502,8 @@ export class KdsComponent implements OnDestroy {
     this.store.disconnect();
   }
 
-  protected selectStation(id: string): void {
-    this.activeStation.set(id);
+  protected selectSection(section: string | null): void {
+    this.activeSection.set(section);
   }
 
   /**
@@ -614,32 +630,26 @@ export class KdsComponent implements OnDestroy {
   }
 
   /**
-   * Los platos de una comanda, filtrados por estación y juntados los iguales.
+   * Los platos de una comanda, filtrados por sección y juntados los iguales.
    *
    * La cocina hace comida, no lleva la cuenta de quién pidió qué: dos
    * empanadas son dos empanadas, vengan del mismo comensal o de dos.
    * Separadas obligan a sumar de memoria y hacen la comanda el doble de larga.
    */
   protected visibleItems(card: TableCard): readonly PlatoJunto[] {
-    const station = this.activeStation();
-    const suyos = station === 'ALL' ? card.items : card.items.filter((i) => i.station === station);
+    const section = this.activeSection();
+    // Sin sección propia se ve en todas las pantallas: un plato que el dueño
+    // todavía no clasificó no puede desaparecer de la cocina.
+    const suyos =
+      section === null
+        ? card.items
+        : card.items.filter((i) => i.category === section || i.category === null);
     return juntarIguales(suyos);
   }
 
   /** Lo mismo para un envío suelto dentro de la comanda. */
   protected batchItems(batch: { items: TableCard['items'] }): readonly PlatoJunto[] {
     return juntarIguales(batch.items);
-  }
-
-  /**
-   * El nombre de la estación, en mayúscula.
-   *
-   * El dueño la carga desde el panel y puede escribirla como quiera; acá se
-   * muestra pareja sin tocar lo que él guardó, que es suyo.
-   */
-  protected stationLabel(station: string): string {
-    const propia = STATIONS.find((entry) => entry.id === station)?.label ?? station;
-    return propia.toUpperCase();
   }
 
   /**
@@ -707,13 +717,13 @@ export class KdsComponent implements OnDestroy {
    * bloque vacío: directamente no está.
    */
   protected visibleBatches(card: TableCard): readonly CardBatch[] {
-    const station = this.activeStation();
-    if (station === 'ALL') return card.batches;
+    const section = this.activeSection();
+    if (section === null) return card.batches;
 
     return card.batches
       .map((batch) => ({
         ...batch,
-        items: batch.items.filter((item) => item.station === station),
+        items: batch.items.filter((item) => item.category === section || item.category === null),
       }))
       .filter((batch) => batch.items.length > 0);
   }

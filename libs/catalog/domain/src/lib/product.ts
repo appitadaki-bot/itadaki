@@ -15,9 +15,6 @@ export type Allergen = (typeof ALLERGENS)[number];
 export const DIET_TAGS = ['VEGAN', 'VEGETARIAN', 'GLUTEN_FREE', 'LACTOSE_FREE'] as const;
 export type DietTag = (typeof DIET_TAGS)[number];
 
-export const STATIONS = ['GRILL', 'COLD', 'BAR', 'DESSERT'] as const;
-export type Station = (typeof STATIONS)[number];
-
 /** One rendered variant of a product image. */
 export interface ImageVariant {
   readonly url: string;
@@ -47,7 +44,6 @@ export interface Product {
   readonly diets: readonly DietTag[];
   readonly estimatedPrepMinutes: number;
   readonly available: boolean;
-  readonly station: Station;
 }
 
 /** Diner-facing filters. A product matches only if it satisfies every criterion. */

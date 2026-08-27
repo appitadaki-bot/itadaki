@@ -3,8 +3,6 @@ export {
   type Allergen,
   DIET_TAGS,
   type DietTag,
-  STATIONS,
-  type Station,
   type ImageSet,
   type ImageVariant,
   type Product,

@@ -36,4 +36,9 @@ CREATE POLICY tenant_isolation ON daily_summaries
   USING (tenant_id = current_setting('app.tenant_id', true))
   WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON daily_summaries TO itadaki_app;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON daily_summaries TO itadaki_app;
+  END IF;
+END $$;

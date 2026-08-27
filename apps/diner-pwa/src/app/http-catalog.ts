@@ -30,7 +30,6 @@ interface MenuDto {
     diets: string[];
     available: boolean;
     estimatedPrepMinutes: number;
-    station: string;
     imageSet: {
       variants: Array<{ url: string; width: number; format: 'avif' | 'webp' | 'jpeg' }>;
       lqip: string;
@@ -116,7 +115,6 @@ export class HttpCatalog implements ProductReader {
       diets: dto.diets as Product['diets'],
       estimatedPrepMinutes: dto.estimatedPrepMinutes,
       available: dto.available,
-      station: dto.station as Product['station'],
     };
   }
 

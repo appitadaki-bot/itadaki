@@ -125,37 +125,19 @@ CREATE TABLE IF NOT EXISTS images (
   PRIMARY KEY (tenant_id, id)
 );
 
--- The role the API connects as, which every GRANT below targets.
+-- El rol con el que se conecta la API.
 --
--- Created here when absent so migrating a fresh database never depends on
--- someone having run a setup step by hand; Docker Compose creates it too, and
--- both paths are idempotent.
+-- No se crea acá. En la laptop lo crea `scripts/init-db.sql`, que el Postgres
+-- de Docker corre al estrenar el volumen; en una base hosteada el rol es el
+-- que da el proveedor y crear otro no está permitido.
 --
--- On a hosted database (Render, Neon, Supabase) neither applies: the app
--- connects as the user the provider hands over. Failing here would abort the
--- whole migration over something that does not matter there, so the block
--- gives up quietly and the GRANTs below are skipped the same way — a role that
--- does not exist needs no permissions.
+-- Se intentó crearlo acá con un `EXCEPTION WHEN OTHERS` alrededor. No alcanza:
+-- Neon le manda el DDL de roles a su control plane al commitear la
+-- transacción, o sea después de que el bloque terminó bien, y devuelve
+-- "insecure password" desde un lugar donde ya no hay nada que atrapar.
 --
--- Se atrapa cualquier error y no sólo la falta de permiso, porque cada
--- proveedor se niega a su manera: Render no deja crear roles, y Neon sí pero
--- su panel rechaza esta contraseña por corta, con un error interno que no se
--- parece en nada al otro. Los dos significan lo mismo acá — este rol es del
--- Postgres de la laptop y allá no hace falta.
---
--- The password is only ever used by docker compose on a laptop. A hosted
--- deploy never reaches this branch, so it is not a credential in production.
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN
-    BEGIN
-      CREATE ROLE itadaki_app LOGIN PASSWORD 'itadaki_app';
-    EXCEPTION WHEN OTHERS THEN
-      RAISE NOTICE 'no se pudo crear itadaki_app (%): la app usa el usuario del proveedor', SQLERRM;
-    END;
-  END IF;
-END $$;
-
+-- Los GRANT quedan, condicionados a que el rol exista: si no está, no hay a
+-- quién darle permisos y la migración sigue.
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN

@@ -19,7 +19,13 @@ export interface BoardTicket {
     readonly name: string;
     readonly quantity: number;
     readonly notes: string;
-    readonly station: string;
+    /**
+     * La sección de la carta a la que pertenece el plato.
+     *
+     * Nula cuando el plato ya no está en la carta: la comanda vieja sigue
+     * siendo válida y se muestra sin chip.
+     */
+    readonly category: string | null;
     /** Lo que la mesa pidió que salga primero. */
     readonly primero?: boolean;
   }>;

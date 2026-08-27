@@ -1,0 +1,11 @@
+-- Un plato puede no tener estación asignada todavía.
+--
+-- La columna exigía valor, así que crear un plato obligaba a elegir uno y toda
+-- carta importada entraba entera como fría: en la pantalla de cocina el café,
+-- la empanada y el helado decían FRÍO. Un chip que miente es peor que no tener
+-- chip, porque el cocinero lo lee y decide con eso.
+--
+-- Las filas que ya están no se tocan: quedan con la estación que tengan, sea
+-- elegida o heredada del valor por defecto viejo. Distinguir cuál es cuál no
+-- se puede, y adivinarlo seria borrar decisiones de alguien.
+ALTER TABLE products ALTER COLUMN station DROP NOT NULL;

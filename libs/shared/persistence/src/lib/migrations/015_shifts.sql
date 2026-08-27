@@ -23,4 +23,9 @@ CREATE POLICY tenant_isolation ON staff_shifts
   USING (tenant_id = current_setting('app.tenant_id', true))
   WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON staff_shifts TO itadaki_app;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON staff_shifts TO itadaki_app;
+  END IF;
+END $$;

@@ -28,7 +28,6 @@ interface ProductRow {
   diets: string[];
   prep_minutes: number;
   available: boolean;
-  station: string;
   image_set: ImageSet | null;
 }
 
@@ -60,7 +59,6 @@ function toProduct(row: ProductRow): Product {
     diets: row.diets as Product['diets'],
     estimatedPrepMinutes: row.prep_minutes,
     available: row.available,
-    station: row.station as Product['station'],
   };
 }
 
@@ -127,8 +125,8 @@ export class PostgresProductStore implements ProductReader, ProductWriter {
       await this.db.withTenant(product.tenantId, async (client) => {
         await client.query(
           `INSERT INTO products (tenant_id, id, category_id, name, description, price_minor,
-                                 currency, allergens, diets, prep_minutes, available, station)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+                                 currency, allergens, diets, prep_minutes, available)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
            ON CONFLICT (tenant_id, id) DO UPDATE SET
              category_id = EXCLUDED.category_id,
              name = EXCLUDED.name,
@@ -138,8 +136,7 @@ export class PostgresProductStore implements ProductReader, ProductWriter {
              allergens = EXCLUDED.allergens,
              diets = EXCLUDED.diets,
              prep_minutes = EXCLUDED.prep_minutes,
-             available = EXCLUDED.available,
-             station = EXCLUDED.station`,
+             available = EXCLUDED.available`,
           [
             product.tenantId,
             product.id,
@@ -152,7 +149,6 @@ export class PostgresProductStore implements ProductReader, ProductWriter {
             product.diets,
             product.estimatedPrepMinutes,
             product.available,
-            product.station,
           ],
         );
       });
