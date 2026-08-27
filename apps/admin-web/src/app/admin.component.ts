@@ -695,13 +695,21 @@ const ROLE_NAMES: Record<string, string> = {
     @if (modal() === 'foto' && editing(); as dish) {
       <div class="modal ancho" role="dialog" aria-modal="true" aria-label="La foto">
         <header class="modal-head">
-          <div>
-            <p class="modal-eyebrow">La foto de</p>
-            <h2 class="modal-title">{{ dish.name }}</h2>
+          <h2 class="modal-title">{{ dish.name }}</h2>
+
+          <div class="foto-head-acciones">
+            <!-- Cargar las fotos de una carta es una tanda, no una visita por
+                 plato: seguir al siguiente es la acción que más se repite, así
+                 que vive arriba y no al pie de todo lo demás. -->
+            @if (siguienteSinFoto(); as siguiente) {
+              <button type="button" class="foto-siguiente" (click)="irALaFoto(siguiente.id)">
+                Seguir con {{ siguiente.name }} →
+              </button>
+            }
+            <button type="button" class="modal-close" (click)="cerrarFoto()" aria-label="Cerrar">
+              ✕
+            </button>
           </div>
-          <button type="button" class="modal-close" (click)="cerrarFoto()" aria-label="Cerrar">
-            ✕
-          </button>
         </header>
 
         <div class="modal-body">
@@ -729,14 +737,6 @@ const ROLE_NAMES: Record<string, string> = {
             <p class="muted">
               {{ set.variants.length }} variantes · AVIF, WebP y JPEG en 4 tamaños
             </p>
-          }
-
-          <!-- Saltar al siguiente sin cerrar: cargar las fotos de una carta es
-               una tanda, no una visita por plato. -->
-          @if (siguienteSinFoto(); as siguiente) {
-            <button type="button" class="secondary" (click)="irALaFoto(siguiente.id)">
-              Seguir con {{ siguiente.name }} →
-            </button>
           }
         </div>
       </div>

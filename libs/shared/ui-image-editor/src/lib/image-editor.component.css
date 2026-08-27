@@ -1,23 +1,22 @@
-/* El editor se mide a sí mismo para decidir si entra en dos columnas: se usa
-   tanto en el modal ancho como en paneles angostos, y quien sabe cuánto lugar
-   hay es el contenedor, no la ventana. */
 :host {
   display: block;
-  container-type: inline-size;
 }
 
-/*
- * El ancho lo decide quien lo usa, no el editor.
- *
- * Antes esto se plantaba en 460px. Dentro del modal de la foto —que pide 860px
- * justamente para poner la imagen y sus controles al lado— el editor se
- * quedaba en su media pantalla y la otra media era un hueco vacío.
- */
+/* Todo en una columna centrada: la foto es lo único que hay que mirar. */
 .editor {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 1rem;
   width: 100%;
+}
+
+/* La foto, los avisos y los botones al mismo ancho, o cada uno se acomodaba
+   al largo de su texto y la columna quedaba en escalera. El tope existe
+   porque un cuadrado del ancho del modal se come la pantalla sin verse
+   mejor: lo que se recorta termina siendo una miniatura de la carta. */
+.editor > * {
+  width: min(100%, 380px);
 }
 
 .stage {
@@ -87,12 +86,6 @@
   padding: 0.45rem 0.6rem;
 }
 
-.hint {
-  margin: 0;
-  font-size: 0.76rem;
-  color: var(--itadaki-ink-subtle);
-  text-align: center;
-}
 
 .actions {
   display: flex;
@@ -183,16 +176,6 @@
   border-top: 1px solid var(--itadaki-border);
 }
 
-/* Por qué el botón de aplicar está apagado. Sin esto quedaba gris sin motivo. */
-.editor-nota {
-  margin: 0;
-  padding: 0.7rem 0.9rem;
-  border-radius: var(--itadaki-radius-chip);
-  background: var(--itadaki-surface-sunken);
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: var(--itadaki-ink-subtle);
-}
 
 /*
  * Con ancho de sobra, la foto a un lado y los ajustes al otro.
@@ -207,34 +190,3 @@
  * componente se usa en el modal ancho y en paneles angostos, y el que sabe si
  * entran dos columnas es el contenedor, no la pantalla.
  */
-@container (min-width: 640px) {
-  .editor {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
-    row-gap: 1rem;
-    column-gap: 1.6rem;
-  }
-
-  /* La foto y su selector de modo mandan la columna izquierda: el modo cambia
-     lo que hace el arrastre sobre la imagen, así que va pegado a ella. */
-  .stage,
-  .modes,
-  .existing-note,
-  .auto-note,
-  .hint {
-    grid-column: 1;
-  }
-
-  /* Los ajustes y lo que se hace con ellos, en la derecha. */
-  .controls,
-  .editor-nota,
-  .actions {
-    grid-column: 2;
-  }
-
-  /* Las acciones al pie de su columna, no flotando a media altura. */
-  .actions {
-    margin-top: auto;
-  }
-}
