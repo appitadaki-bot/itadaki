@@ -30,4 +30,9 @@ CREATE POLICY tenant_isolation ON table_assignments
   USING (tenant_id = current_setting('app.tenant_id', true))
   WITH CHECK (tenant_id = current_setting('app.tenant_id', true));
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON table_assignments TO itadaki_app;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON table_assignments TO itadaki_app;
+  END IF;
+END $$;
