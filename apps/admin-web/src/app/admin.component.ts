@@ -310,6 +310,65 @@ const ROLE_NAMES: Record<string, string> = {
 
       <!-- Tu local: mesas, equipo y ventas. -->
       @if (activeTab() === 'local') {
+      <!-- Antes de las mesas: es una decisión de cuánto cobrás, no de cómo
+           está armado el salón, y quien entra acá a configurar el local lo
+           primero que quiere resolver es eso. -->
+      <section class="panel">
+        <h2 class="panel-title">Descuento por pagar en efectivo</h2>
+        <p class="panel-lede">
+          Si lo activás, la mesa lo ve al elegir cómo paga y el total baja solo.
+          El mozo cobra lo que dice la pantalla, sin hacer cuentas.
+        </p>
+
+        <div class="descuento-fila">
+          <label class="descuento-campo">
+            <span class="descuento-label">Descuento</span>
+            <span class="descuento-input">
+              <input
+                type="number"
+                min="0"
+                max="50"
+                step="1"
+                inputmode="numeric"
+                [value]="descuento()"
+                (input)="cambiarDescuento($event)"
+                aria-label="Porcentaje de descuento por pagar en efectivo"
+              />
+              <span class="descuento-signo" aria-hidden="true">%</span>
+            </span>
+          </label>
+
+          <button
+            type="button"
+            class="create"
+            [disabled]="guardandoDescuento() || descuento() === descuentoGuardado()"
+            (click)="guardarDescuento()"
+          >
+            {{ guardandoDescuento() ? 'Guardando…' : 'Guardar' }}
+          </button>
+        </div>
+
+        <!-- Un ejemplo con plata, no un porcentaje suelto: "10%" no dice
+             cuánto resigna el local hasta que uno hace la cuenta. -->
+        @if (descuento() > 0) {
+          <p class="descuento-ejemplo">
+            Una mesa de {{ format(ejemploConsumo) }} pagaría
+            <strong>{{ format(ejemploConDescuento()) }}</strong> en efectivo.
+            Resignás {{ format(ejemploAhorro()) }} y te ahorrás la comisión de
+            la tarjeta.
+          </p>
+        } @else {
+          <p class="descuento-ejemplo apagado">
+            En cero no aparece en ninguna pantalla. Poné un número para
+            activarlo.
+          </p>
+        }
+
+        @if (descuentoError(); as error) {
+          <p class="error" role="alert">{{ error }}</p>
+        }
+      </section>
+
       <section class="panel">
         <h2 class="panel-title">Mesas y códigos QR</h2>
         <p class="panel-lede">
@@ -1504,6 +1563,10 @@ export class AdminComponent {
   }
 
   private async load(): Promise<void> {
+    // Los ajustes en paralelo: son otra pantalla, y esperar la carta para
+    // leerlos dejaría el formulario en cero mientras tanto.
+    void this.cargarDescuento();
+
     const response = await this.auth.apiFetch(`${API}/menu`, { headers: this.auth.headers() });
     if (!response.ok) return;
 
@@ -2025,6 +2088,82 @@ export class AdminComponent {
     // previous upload left on screen.
     const existing = this.products().find((product) => product.id === id)?.imageSet ?? null;
     this.result.set(existing);
+  }
+
+  /* ── El descuento por pagar en efectivo ── */
+
+  /** Lo que el dueño está escribiendo ahora. */
+  protected readonly descuento = signal(0);
+
+  /** Lo último confirmado por el servidor, para saber si hay algo que guardar. */
+  protected readonly descuentoGuardado = signal(0);
+
+  protected readonly guardandoDescuento = signal(false);
+  protected readonly descuentoError = signal<string | null>(null);
+
+  /**
+   * Una mesa de veinte mil, para el ejemplo.
+   *
+   * Un porcentaje suelto no dice cuánto resigna el local hasta que uno hace
+   * la cuenta, y esa cuenta con la calculadora del teléfono es exactamente lo
+   * que este ejemplo evita.
+   */
+  protected readonly ejemploConsumo = { amountInMinorUnits: 2_000_000, currency: 'ARS' };
+
+  protected readonly ejemploAhorro = computed(() => ({
+    amountInMinorUnits: Math.round(this.ejemploConsumo.amountInMinorUnits * (this.descuento() / 100)),
+    currency: this.ejemploConsumo.currency,
+  }));
+
+  protected readonly ejemploConDescuento = computed(() => ({
+    amountInMinorUnits:
+      this.ejemploConsumo.amountInMinorUnits - this.ejemploAhorro().amountInMinorUnits,
+    currency: this.ejemploConsumo.currency,
+  }));
+
+  protected cambiarDescuento(evento: Event): void {
+    const valor = Number((evento.target as HTMLInputElement).value);
+    // Se acota acá y no sólo al guardar: escribir 500 y ver 500 hasta tocar
+    // el botón hace pensar que se puede.
+    this.descuento.set(Number.isFinite(valor) ? Math.min(50, Math.max(0, Math.trunc(valor))) : 0);
+    this.descuentoError.set(null);
+  }
+
+  private async cargarDescuento(): Promise<void> {
+    try {
+      const respuesta = await fetch(`${API}/ajustes`, { headers: this.auth.headers() });
+      if (!respuesta.ok) return;
+
+      const { descuentoEfectivo } = (await respuesta.json()) as { descuentoEfectivo: number };
+      this.descuento.set(descuentoEfectivo);
+      this.descuentoGuardado.set(descuentoEfectivo);
+    } catch {
+      // Sin conexión el formulario queda en cero: no se anuncia un descuento
+      // que no sabemos si existe.
+    }
+  }
+
+  protected async guardarDescuento(): Promise<void> {
+    this.guardandoDescuento.set(true);
+    this.descuentoError.set(null);
+
+    try {
+      const respuesta = await fetch(`${API}/ajustes/descuento`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
+        body: JSON.stringify({ puntos: this.descuento() }),
+      });
+
+      if (!respuesta.ok) {
+        this.descuentoError.set('No pudimos guardarlo. Probá de nuevo.');
+        return;
+      }
+      this.descuentoGuardado.set(this.descuento());
+    } catch {
+      this.descuentoError.set('Sin conexión. Fijate la red y probá de nuevo.');
+    } finally {
+      this.guardandoDescuento.set(false);
+    }
   }
 
   protected format(price: { amountInMinorUnits: number; currency: string }): string {

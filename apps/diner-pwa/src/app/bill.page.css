@@ -138,3 +138,32 @@
     animation: itadaki-rise var(--itadaki-smooth) var(--itadaki-ease-out) both;
   }
 }
+
+/*
+ * El porcentaje que se ahorra, sobre la opción de efectivo.
+ *
+ * En verde: es lo único de esta pantalla que baja el total, y el verde ya
+ * significa eso en el resto de la app. Al lado de la opción y no en un aviso
+ * aparte, porque es la razón para elegirla.
+ */
+.ahorro {
+  flex-shrink: 0;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--itadaki-radius-pill);
+  background: var(--itadaki-status-ready-bg);
+  border: 1px solid var(--itadaki-status-ready);
+  color: var(--itadaki-status-ready-fg);
+  font-size: 0.78rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* El renglón del descuento en el resumen, del mismo verde. */
+.line.ahorrado {
+  color: var(--itadaki-status-ready-fg);
+}
+
+.line.ahorrado .amount {
+  font-weight: 700;
+}
