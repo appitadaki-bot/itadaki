@@ -19,7 +19,8 @@ export interface BoardTicket {
     readonly name: string;
     readonly quantity: number;
     readonly notes: string;
-    readonly station: string;
+    /** `null` mientras nadie le asignó una parte de la cocina. */
+    readonly station: string | null;
     /** Lo que la mesa pidió que salga primero. */
     readonly primero?: boolean;
   }>;

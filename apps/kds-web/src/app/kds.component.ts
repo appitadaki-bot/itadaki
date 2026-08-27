@@ -164,9 +164,15 @@ const SLA_LATE = 15;
                           @if (item.notes !== '') {
                             <span class="item-note">{{ item.notes }}</span>
                           }
-                          <span class="item-station" [attr.data-station]="item.station">
-                            {{ stationLabel(item.station) }}
-                          </span>
+                          <!-- Sin chip cuando nadie le asignó estación. Antes
+                               todo plato importado decía FRÍO, que es una
+                               respuesta inventada: el cocinero la lee y decide
+                               con ella. -->
+                          @if (item.station !== null) {
+                            <span class="item-station" [attr.data-station]="item.station">
+                              {{ stationLabel(item.station) }}
+                            </span>
+                          }
                         </span>
                         <!-- Sólo la acción contra el margen derecho, siempre en
                              el mismo lugar: el botón entre medio se corría según
@@ -443,9 +449,14 @@ export class KdsComponent implements OnDestroy {
     const station = this.activeStation();
     if (station === 'ALL') return this.store.tickets();
 
+    // Los platos sin estación entran en todas las pantallas. Esconderlos en
+    // todas seria peor que mostrarlos de mas: nadie los cocina y nadie se
+    // entera, que es como se pierde un pedido.
     return this.store
       .tickets()
-      .filter((ticket) => ticket.items.some((item) => item.station === station));
+      .filter((ticket) =>
+        ticket.items.some((item) => item.station === station || item.station === null),
+      );
   });
 
   /**
@@ -608,7 +619,8 @@ export class KdsComponent implements OnDestroy {
   protected visibleItems(card: TableCard): TableCard['items'] {
     const station = this.activeStation();
     if (station === 'ALL') return card.items;
-    return card.items.filter((item) => item.station === station);
+    // Igual que arriba: sin estación asignada se ve en todas las pantallas.
+    return card.items.filter((item) => item.station === station || item.station === null);
   }
 
   protected stationLabel(station: string): string {
@@ -686,7 +698,7 @@ export class KdsComponent implements OnDestroy {
     return card.batches
       .map((batch) => ({
         ...batch,
-        items: batch.items.filter((item) => item.station === station),
+        items: batch.items.filter((item) => item.station === station || item.station === null),
       }))
       .filter((batch) => batch.items.length > 0);
   }

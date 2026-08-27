@@ -420,11 +420,14 @@ export class CartPage {
     if (lines.length === 0) return;
 
     await this.orders.submitLines(
+      // La marca viaja con la línea: sin esto la mesa la prendía, se guardaba
+      // bien, y al enviar el pedido la cocina lo recibía como cualquier otro.
       lines.map((line) => ({
         productId: line.productId,
         quantity: line.quantity,
         notes: line.notes,
         modifierIds: [],
+        ...(line.primero === true ? { primero: true } : {}),
       })),
       session.id,
       dinerId,

@@ -15,21 +15,16 @@ import {
   type StatusChange,
   type TableSession,
 } from '@itadaki/ordering/domain';
-import { Money, type CurrencyCode, type Result, err, ok } from '@itadaki/shared/domain';
+import { type CurrencyCode, type Result, err, ok } from '@itadaki/shared/domain';
 import { type Database } from '@itadaki/shared/persistence';
-
-interface MoneyJson {
-  amountInMinorUnits: number;
-  currency: string;
-}
-
-const toMoney = (json: MoneyJson): Money =>
-  Money.of(json.amountInMinorUnits, json.currency as CurrencyCode).unwrapOr(Money.zero('ARS'));
-
-const fromMoney = (money: Money): MoneyJson => ({
-  amountInMinorUnits: money.amountInMinorUnits,
-  currency: money.currency,
-});
+import {
+  type CartLineRow,
+  type MoneyJson,
+  cartLineFromRow,
+  cartLineToRow,
+  fromMoney,
+  toMoney,
+} from './cart-line-row';
 
 interface OrderRow {
   id: string;
@@ -290,14 +285,7 @@ interface SessionRow {
   status: string;
   currency: string;
   diners: Array<{ id: string; nickname: string; colorIndex: number; joinedAt: string }>;
-  cart_lines: Array<{
-    id: string;
-    dinerId: string;
-    quantity: number;
-    notes: string;
-    product: { productId: string; name: string; unitPrice: MoneyJson; capturedAt: string };
-    modifiers: Array<{ modifierId: string; name: string; priceDelta: MoneyJson }>;
-  }>;
+  cart_lines: CartLineRow[];
   opened_at: string;
   /** Null en las sesiones abiertas antes de que existiera el código. */
   join_code: string | null;
@@ -322,23 +310,7 @@ export class PostgresSessionStore implements SessionReader, SessionWriter {
       })),
     };
 
-    const lines: CartLine[] = row.cart_lines.map((line) => ({
-      id: line.id,
-      dinerId: line.dinerId,
-      quantity: line.quantity,
-      notes: line.notes,
-      product: {
-        productId: line.product.productId,
-        name: line.product.name,
-        unitPrice: toMoney(line.product.unitPrice),
-        capturedAt: new Date(line.product.capturedAt),
-      },
-      modifiers: line.modifiers.map((modifier) => ({
-        modifierId: modifier.modifierId,
-        name: modifier.name,
-        priceDelta: toMoney(modifier.priceDelta),
-      })),
-    }));
+    const lines: CartLine[] = row.cart_lines.map(cartLineFromRow);
 
     return { session, cart: { currency: session.currency, lines } };
   }
@@ -605,25 +577,7 @@ export class PostgresSessionStore implements SessionReader, SessionWriter {
             joinedAt: diner.joinedAt.toISOString(),
           })),
         ),
-        JSON.stringify(
-          state.cart.lines.map((line) => ({
-            id: line.id,
-            dinerId: line.dinerId,
-            quantity: line.quantity,
-            notes: line.notes,
-            product: {
-              productId: line.product.productId,
-              name: line.product.name,
-              unitPrice: fromMoney(line.product.unitPrice),
-              capturedAt: line.product.capturedAt.toISOString(),
-            },
-            modifiers: line.modifiers.map((modifier) => ({
-              modifierId: modifier.modifierId,
-              name: modifier.name,
-              priceDelta: fromMoney(modifier.priceDelta),
-            })),
-          })),
-        ),
+        JSON.stringify(state.cart.lines.map(cartLineToRow)),
         state.session.openedAt,
         // La columna quedó de cuando el código vivía en la sesión. Ahora es de
         // la mesa: ver la migración 011.
