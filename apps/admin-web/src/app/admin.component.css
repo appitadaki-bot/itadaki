@@ -1874,9 +1874,42 @@
  * `.modal` fija `width`, así que un `max-width` no lo ensanchaba: el editor
  * entraba en 560px con los controles apilados uno encima de otro.
  */
+/* Una sola columna centrada: con los seis deslizadores al lado, el modal
+   pedía 860px. Sin ellos ese ancho era medio modal vacío. */
 .modal.ancho {
-  width: min(860px, calc(100vw - 2rem));
+  width: min(560px, calc(100vw - 2rem));
   max-height: min(92vh, 900px);
+}
+
+.foto-head-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 0 0 auto;
+}
+
+/* La acción que más se repite, y por eso arriba. El hueco contra la cruz es a
+   propósito: cerrar y seguir hacen cosas distintas y se tocan con el pulgar. */
+.foto-siguiente {
+  border: none;
+  border-radius: var(--itadaki-radius-pill);
+  padding: 0.55rem 1rem;
+  background: var(--itadaki-accent);
+  color: white;
+  font-family: var(--itadaki-font-body);
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  min-height: 40px;
+  max-width: 15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.foto-siguiente:hover {
+  background: var(--itadaki-accent-bright);
 }
 
 /*
