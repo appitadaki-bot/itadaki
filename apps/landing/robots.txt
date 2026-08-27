@@ -1,0 +1,5 @@
+# La landing es la única cara pública del producto: acá sí queremos que Google
+# entre. Las cuatro apps —comensal, cocina, admin, salón— son otros proyectos
+# de Vercel y cada una trae su propio robots.txt con un `noindex` en el HTML.
+User-agent: *
+Disallow:

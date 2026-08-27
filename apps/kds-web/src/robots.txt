@@ -1,0 +1,7 @@
+# Se puede rastrear, y cada página dice que no se indexe.
+#
+# Es al revés de lo que parece: bloquear acá impediría leer el `noindex` del
+# HTML, y una URL bloqueada igual entra al índice si alguien la enlaza — sin
+# contenido, que es peor. Dejarlo pasar es lo que hace que el `noindex` valga.
+User-agent: *
+Disallow:

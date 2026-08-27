@@ -205,6 +205,25 @@ El `/browser` del final es obligatorio: Angular deja ahí el `index.html`, y
 apuntar un nivel más arriba publica una carpeta sin índice — la raíz da 404.
 Framework Preset en **Other**; el preset de Angular adivina otra carpeta.
 
+#### Los headers, y por qué el CSS crítico está apagado
+
+El `vercel.json` manda una `Content-Security-Policy` que vale para los cinco
+proyectos. Lo que deja pasar además del propio dominio: las fuentes de Google,
+el botón de "entrar con Google" del personal, y la API —por HTTPS y por
+WebSocket, porque socket.io arranca por uno y sigue por el otro—.
+
+`script-src` no lleva `'unsafe-inline'`, que es lo que hace que la política
+sirva de algo. Por eso `inlineCritical` está en `false` en las cuatro apps del
+`angular.json`: con él prendido el builder mete el CSS crítico en el HTML y
+engancha el resto con `onload="this.media='all'"`, un handler inline que la
+política bloquea. No se rompe nada a la vista —la página carga— pero la hoja
+diferida nunca se activa y queda con la mitad de los estilos. Se paga un pedido
+más antes del primer pintado, de una hoja de 5 kB del mismo dominio.
+
+Si algún día se agrega un servicio de terceros —métricas, un chat, un
+procesador de pagos— hay que sumarle el dominio a la directiva que corresponda
+o el navegador lo bloquea sin más aviso que una línea en la consola.
+
 ## Pendiente antes de producción
 
 - No hay integración de cobro ni facturación ARCA. Decisión tomada: el
