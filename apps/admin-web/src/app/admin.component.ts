@@ -370,11 +370,28 @@ const ROLE_NAMES: Record<string, string> = {
       </section>
 
       <section class="panel">
-        <h2 class="panel-title">Mesas y códigos QR</h2>
+        <div class="panel-head">
+          <h2 class="panel-title">Mesas y códigos QR</h2>
+          <!-- Arriba y no al pie: con veinte mesas cargadas, agregar una
+               obligaba a bajar la lista entera para llegar al campo. -->
+          <button type="button" class="nueva-mesa" (click)="nuevaMesa.set(!nuevaMesa())">
+            {{ nuevaMesa() ? 'Cancelar' : '+ Nueva mesa' }}
+          </button>
+        </div>
         <p class="panel-lede">
           Si repartís las mesas, cada mozo abre su app y ve solamente su sector.
           Las que dejes en "todo el salón" las siguen viendo todos.
         </p>
+
+        @if (nuevaMesa()) {
+          <form class="new-form" (submit)="createTable($event)">
+            <label class="field">
+              <span>Nombre de la mesa</span>
+              <input name="label" required maxlength="40" placeholder="Ej: Mesa 8, Barra 2" autofocus />
+            </label>
+            <button type="submit" class="create">Crear mesa</button>
+          </form>
+        }
 
         <!-- El aviso del confirm se ve una vez y se olvida. Esto queda hasta
              que alguien lo resuelva, porque una mesa que no aparece en la app
@@ -476,13 +493,6 @@ const ROLE_NAMES: Record<string, string> = {
             </button>
           }
 
-          <form class="new-form" (submit)="createTable($event)">
-            <label class="field">
-              <span>Nueva mesa</span>
-              <input name="label" required maxlength="40" placeholder="Ej: Mesa 8, Barra 2" />
-            </label>
-            <button type="submit" class="create">Crear mesa</button>
-          </form>
           <p class="muted qr-hint">
             El link es el QR de esa mesa. Vence a las 8 horas y se renueva solo cada vez que abrís esta pantalla.
           </p>
@@ -1588,6 +1598,9 @@ export class AdminComponent {
     }
   }
 
+  /** El formulario de mesa nueva, cerrado hasta que alguien lo pide. */
+  protected readonly nuevaMesa = signal(false);
+
   protected async createTable(event: Event): Promise<void> {
     event.preventDefault();
     const form = event.target as HTMLFormElement;
@@ -1602,6 +1615,7 @@ export class AdminComponent {
 
     if (response.ok) {
       form.reset();
+      this.nuevaMesa.set(false);
       await this.loadTables();
     }
   }
