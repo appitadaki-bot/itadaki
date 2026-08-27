@@ -155,7 +155,7 @@
   margin-bottom: 0;
 }
 
-.nueva-mesa {
+.panel-action {
   flex: 0 0 auto;
   border: 1px solid var(--itadaki-border);
   background: transparent;
@@ -170,7 +170,7 @@
   white-space: nowrap;
 }
 
-.nueva-mesa:hover {
+.panel-action:hover {
   border-color: var(--itadaki-ink);
 }
 
@@ -1218,7 +1218,7 @@
   margin-bottom: 0;
 }
 
-.nueva-mesa {
+.panel-action {
   flex: 0 0 auto;
   border: 1px solid var(--itadaki-border);
   background: transparent;
@@ -1233,7 +1233,7 @@
   white-space: nowrap;
 }
 
-.nueva-mesa:hover {
+.panel-action:hover {
   border-color: var(--itadaki-ink);
 }
 

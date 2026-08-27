@@ -374,7 +374,7 @@ const ROLE_NAMES: Record<string, string> = {
           <h2 class="panel-title">Mesas y códigos QR</h2>
           <!-- Arriba y no al pie: con veinte mesas cargadas, agregar una
                obligaba a bajar la lista entera para llegar al campo. -->
-          <button type="button" class="nueva-mesa" (click)="nuevaMesa.set(!nuevaMesa())">
+          <button type="button" class="panel-action" (click)="nuevaMesa.set(!nuevaMesa())">
             {{ nuevaMesa() ? 'Cancelar' : '+ Nueva mesa' }}
           </button>
         </div>
@@ -571,7 +571,12 @@ const ROLE_NAMES: Record<string, string> = {
 
       @if (auth.can('staff:manage')) {
         <section class="panel">
-          <h2 class="panel-title">Tu equipo</h2>
+          <div class="panel-head">
+            <h2 class="panel-title">Tu equipo</h2>
+            <button type="button" class="panel-action" (click)="modal.set('equipo')">
+              + Agregar persona
+            </button>
+          </div>
           <p class="panel-lede">
             Quién entra a cada pantalla. La cocina no toca precios y el mozo no
             edita la carta.
@@ -604,37 +609,6 @@ const ROLE_NAMES: Record<string, string> = {
                 <p class="muted">Todavía sos la única persona con acceso.</p>
               }
             </div>
-
-            <form class="new-form staff-form" (submit)="inviteStaff($event)">
-              <label class="field">
-                <span>Nombre</span>
-                <input name="displayName" required maxlength="60" placeholder="Ej: Nico" />
-              </label>
-              <label class="field">
-                <span>Email</span>
-                <input name="email" type="email" required placeholder="Nico@turestaurante.ar" />
-              </label>
-              <label class="field">
-                <span>Contraseña inicial</span>
-                <input name="password" type="password" required minlength="8" />
-              </label>
-              <label class="field">
-                <span>Puesto</span>
-                <select name="role" required>
-                  <option value="KITCHEN">Cocina — ve y avanza los pedidos</option>
-                  <option value="WAITER">Mozo — pedidos y cuentas</option>
-                  <option value="MANAGER">Encargado — todo menos el equipo</option>
-                </select>
-              </label>
-              <button type="submit" class="create">Dar de alta</button>
-            </form>
-
-            @if (staffError(); as message) {
-              <p class="error-note" role="alert">{{ message }}</p>
-            }
-            <p class="muted qr-hint">
-              Le pasás vos la contraseña; después la puede seguir usando para entrar.
-            </p>
           </details>
         </section>
       }
@@ -892,6 +866,50 @@ const ROLE_NAMES: Record<string, string> = {
           </button>
           </div>
           </form>
+        </div>
+      </div>
+    }
+
+    @if (modal() === 'equipo') {
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="equipo-title">
+        <header class="modal-head">
+          <h2 class="modal-title" id="equipo-title">Agregar persona</h2>
+          <button type="button" class="modal-close" (click)="closeModal()" aria-label="Cerrar">
+            ✕
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <form class="new-form staff-form" (submit)="inviteStaff($event)">
+            <label class="field">
+              <span>Nombre</span>
+              <input name="displayName" required maxlength="60" placeholder="Ej: Nico" autofocus />
+            </label>
+            <label class="field">
+              <span>Email</span>
+              <input name="email" type="email" required placeholder="Nico@turestaurante.ar" />
+            </label>
+            <label class="field">
+              <span>Contraseña inicial</span>
+              <input name="password" type="password" required minlength="8" />
+            </label>
+            <label class="field">
+              <span>Puesto</span>
+              <select name="role" required>
+                <option value="KITCHEN">Cocina — ve y avanza los pedidos</option>
+                <option value="WAITER">Mozo — pedidos y cuentas</option>
+                <option value="MANAGER">Encargado — todo menos el equipo</option>
+              </select>
+            </label>
+            <button type="submit" class="create">Dar de alta</button>
+          </form>
+
+          @if (staffError(); as message) {
+            <p class="error-note" role="alert">{{ message }}</p>
+          }
+          <p class="muted qr-hint">
+            Le pasás vos la contraseña; después la puede seguir usando para entrar.
+          </p>
         </div>
       </div>
     }
@@ -1242,7 +1260,9 @@ export class AdminComponent {
    * En la misma página, el formulario de alta pegado a la lista hacía dudar
    * si un plato se estaba creando o editando.
    */
-  protected readonly modal = signal<'nuevo' | 'editar' | 'opciones' | 'importar' | 'foto' | null>(
+  protected readonly modal = signal<
+    'nuevo' | 'editar' | 'opciones' | 'importar' | 'foto' | 'equipo' | null
+  >(
     null,
   );
 
@@ -1404,6 +1424,7 @@ export class AdminComponent {
 
   protected closeModal(): void {
     this.modal.set(null);
+    this.staffError.set(null);
     this.editError.set(null);
     this.editSaved.set(false);
   }
@@ -1786,6 +1807,7 @@ export class AdminComponent {
     }
 
     form.reset();
+    this.closeModal();
     await this.loadStaff();
   }
 
