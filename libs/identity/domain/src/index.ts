@@ -47,3 +47,4 @@ export {
   efectoDe,
   nuevoVencimiento,
 } from './lib/pago-recibido';
+export { type ResenaError, linkDeResena, pideResenas } from './lib/resena-google';

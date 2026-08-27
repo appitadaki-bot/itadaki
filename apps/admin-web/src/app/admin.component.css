@@ -2175,3 +2175,119 @@
   border-color: var(--itadaki-border);
   color: var(--itadaki-ink-subtle);
 }
+
+/* ═══ RESEÑAS DE GOOGLE ═══ */
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+
+.campo-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--itadaki-ink-subtle);
+}
+
+.campo-input {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--itadaki-border);
+  border-radius: var(--itadaki-radius-action);
+  background: var(--itadaki-surface-raised);
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--itadaki-ink-strong);
+  transition: border-color var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.campo-input:focus {
+  outline: none;
+  border-color: var(--itadaki-accent);
+}
+
+/*
+ * Dónde encontrar el link.
+ *
+ * Plegado: quien ya lo tiene no necesita leerlo, y quien no, sin esto se va a
+ * googlear "cómo consigo mi link de reseñas" y no vuelve.
+ */
+.ayuda {
+  margin-top: 0.75rem;
+}
+
+.ayuda summary {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--itadaki-accent-deep);
+  cursor: pointer;
+  padding: 0.35rem 0;
+  list-style: none;
+}
+
+.ayuda summary::-webkit-details-marker {
+  display: none;
+}
+
+.ayuda summary::before {
+  content: '＋ ';
+  font-weight: 400;
+}
+
+.ayuda[open] summary::before {
+  content: '－ ';
+}
+
+.ayuda-pasos {
+  margin: 0.5rem 0 0;
+  padding-left: 1.3rem;
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--itadaki-ink-muted);
+}
+
+.ayuda-nota {
+  margin: 0.6rem 0 0;
+  font-size: 0.82rem;
+  color: var(--itadaki-ink-subtle);
+}
+
+/*
+ * Cuántas veces se ofreció y cuántas se tocó.
+ *
+ * Cuántas reseñas entraron de verdad lo ve el dueño en su propio Google:
+ * decirlo acá sería inventar un número que él puede contrastar.
+ */
+.resena-numeros {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--itadaki-radius-action);
+  background: var(--itadaki-surface-sunken);
+}
+
+.resena-dato {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--itadaki-ink-muted);
+}
+
+.resena-dato strong {
+  font-family: var(--itadaki-font-display);
+  font-size: 1.25rem;
+  color: var(--itadaki-ink-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.resena-tasa {
+  font-weight: 700;
+  color: var(--itadaki-accent-deep);
+}

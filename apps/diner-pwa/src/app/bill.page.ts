@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal,
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal,
   type ElementRef,
   viewChild,
 } from '@angular/core';
@@ -269,6 +269,25 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
       <footer class="foot" #pie>
         @if (bill.status === 'SETTLED') {
           <p class="settled" role="status">Cuenta cerrada · gracias!</p>
+
+          <!-- Acá y no antes: la mesa ya pagó y la comida terminó bien. Pedir
+               una reseña antes de cobrar se lee como presión, y todavía no
+               saben cómo terminó la noche.
+
+               Sólo si el local configuró su link: mandar a un cliente
+               conforme a una página rota es peor que no pedirle nada. -->
+          @if (resenaUrl(); as url) {
+            <a
+              class="cta resena"
+              [href]="url"
+              target="_blank"
+              rel="noopener"
+              (click)="contarResena()"
+            >
+              ⭐ Dejanos tu opinión en Google
+            </a>
+            <p class="resena-nota">Nos ayuda muchísimo · tarda menos de un minuto</p>
+          }
         } @else if (told()) {
           <!-- Cerrar la cuenta lo hace el local. Desde acá sólo se avisa, y
                eso es lo que dice la pantalla: prometer "listo, cerrada" sería
@@ -337,6 +356,38 @@ export class BillPage {
 
   /** Los puntos que el local ofrece, leídos al abrir la cuenta. */
   protected readonly descuentoOfrecido = signal(0);
+
+  /** Dónde deja la reseña, o null si el local no las pide. */
+  protected readonly resenaUrl = signal<string | null>(null);
+
+  /** Para no contar dos veces el mismo ofrecimiento. */
+  private resenaContada = false;
+
+  /**
+   * Cuenta el ofrecimiento cuando el botón de verdad aparece.
+   *
+   * No al cargar la pantalla: la cuenta se abre mucho antes de pagarse, y
+   * contar ahí infla el número con mesas que todavía están comiendo. Recién
+   * cuando la cuenta está cerrada y el link existe hay algo que ofrecer.
+   */
+  private readonly contarOfrecimiento = effect(() => {
+    const cerrada = this.store.bill()?.status === 'SETTLED';
+    if (!cerrada || this.resenaUrl() === null || this.resenaContada) return;
+
+    this.resenaContada = true;
+    void this.api.send('/ajustes/resenas/ofrecida', 'PATCH', {});
+  });
+
+  /**
+   * Cuenta que alguien tocó el botón.
+   *
+   * Se dispara sin esperar: el link ya está abriéndose en otra pestaña, y
+   * hacer que el cliente espere una escritura nuestra sería cobrarle el favor
+   * que nos está haciendo.
+   */
+  protected contarResena(): void {
+    void this.api.send('/ajustes/resenas/tocada', 'PATCH', {});
+  }
 
   protected readonly ofreceDescuento = computed(() => this.descuentoOfrecido() > 0);
 
@@ -472,8 +523,12 @@ export class BillPage {
       const respuesta = await this.api.fetch('/ajustes/publicos');
       if (!respuesta.ok) return;
 
-      const { descuentoEfectivo } = (await respuesta.json()) as { descuentoEfectivo: number };
-      this.descuentoOfrecido.set(descuentoEfectivo);
+      const ajustes = (await respuesta.json()) as {
+        descuentoEfectivo: number;
+        resenaUrl: string | null;
+      };
+      this.descuentoOfrecido.set(ajustes.descuentoEfectivo);
+      this.resenaUrl.set(ajustes.resenaUrl);
     } catch {
       // Queda en cero.
     }

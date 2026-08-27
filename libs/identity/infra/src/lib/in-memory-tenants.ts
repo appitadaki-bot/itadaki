@@ -29,6 +29,12 @@ export class InMemoryTenantStore {
   /** Los ajustes de los locales que no están en el mapa, como el sembrado. */
   private static readonly ajustes = new Map<string, number>();
 
+  /** Las reseñas: link y contadores, por local. */
+  private static readonly resenasPorLocal = new Map<
+    string,
+    { url: string | null; asks: number; taps: number }
+  >();
+
   /** Los avisos de cobro ya aplicados, para no aplicar dos veces el mismo. */
   private static readonly avisos = new Set<string>();
 
@@ -45,6 +51,7 @@ export class InMemoryTenantStore {
   static reset(): void {
     InMemoryTenantStore.locales.clear();
     InMemoryTenantStore.ajustes.clear();
+    InMemoryTenantStore.resenasPorLocal.clear();
     InMemoryTenantStore.avisos.clear();
     InMemoryTenantStore.verificaciones.clear();
     InMemoryTenantStore.verificados.clear();
@@ -156,6 +163,38 @@ export class InMemoryTenantStore {
     }
 
     fila.descuento = puntos;
+    return ok(undefined);
+  }
+
+  async resenas(
+    tenantId: string,
+  ): Promise<Result<{ url: string | null; asks: number; taps: number }, TenantError>> {
+    return ok(
+      InMemoryTenantStore.resenasPorLocal.get(tenantId) ?? { url: null, asks: 0, taps: 0 },
+    );
+  }
+
+  async guardarResenas(tenantId: string, url: string | null): Promise<Result<void, TenantError>> {
+    const previo = InMemoryTenantStore.resenasPorLocal.get(tenantId) ?? {
+      url: null,
+      asks: 0,
+      taps: 0,
+    };
+    InMemoryTenantStore.resenasPorLocal.set(tenantId, { ...previo, url });
+    return ok(undefined);
+  }
+
+  async contarResena(tenantId: string, cual: 'ask' | 'tap'): Promise<Result<void, TenantError>> {
+    const previo = InMemoryTenantStore.resenasPorLocal.get(tenantId) ?? {
+      url: null,
+      asks: 0,
+      taps: 0,
+    };
+    InMemoryTenantStore.resenasPorLocal.set(tenantId, {
+      ...previo,
+      asks: previo.asks + (cual === 'ask' ? 1 : 0),
+      taps: previo.taps + (cual === 'tap' ? 1 : 0),
+    });
     return ok(undefined);
   }
 
