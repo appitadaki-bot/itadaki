@@ -13,9 +13,11 @@ import {
   type BoardLayout,
   type CardBatch,
   type OrderStatus,
+  type PlatoJunto,
   type TableCard,
   canTransition,
   groupByTable,
+  juntarIguales,
   layoutFor,
   splitByUrgency,
 } from '@itadaki/ordering/domain';
@@ -145,7 +147,7 @@ const SLA_LATE = 15;
                   }
 
                   <ul class="ticket-items">
-                    @for (item of batch.items; track item.orderId + item.id) {
+                    @for (item of batchItems(batch); track item.ids[0]!.orderId + item.ids[0]!.id) {
                       <li class="ticket-item" [attr.data-item-status]="item.status">
                         <span class="qty">{{ item.quantity }}</span>
                         <!-- La estación cierra el bloque del plato, debajo del
@@ -179,7 +181,7 @@ const SLA_LATE = 15;
                             <button
                               type="button"
                               class="item-btn"
-                              (click)="advanceItem(item.orderId, item.id, step.next)"
+                              (click)="advanceJunto(item, step.next)"
                             >
                               {{ step.action }}
                             </button>
@@ -236,7 +238,7 @@ const SLA_LATE = 15;
                   </header>
 
                   <ul class="ticket-items">
-                    @for (item of visibleItems(ticket); track item.orderId + item.id) {
+                    @for (item of visibleItems(ticket); track item.ids[0]!.orderId + item.ids[0]!.id) {
                       <li class="ticket-item" [attr.data-item-status]="item.status">
                         <span class="qty">{{ item.quantity }}</span>
                         <span class="item-body">
@@ -250,7 +252,7 @@ const SLA_LATE = 15;
                             <button
                               type="button"
                               class="item-btn"
-                              (click)="advanceItem(item.orderId, item.id, step.next)"
+                              (click)="advanceJunto(item, step.next)"
                             >
                               {{ step.action }}
                             </button>
@@ -336,7 +338,7 @@ const SLA_LATE = 15;
               }
 
               <ul class="ticket-items">
-                @for (item of batch.items; track item.orderId + item.id) {
+                @for (item of batchItems(batch); track item.ids[0]!.orderId + item.ids[0]!.id) {
                   <li class="ticket-item" [attr.data-item-status]="item.status">
                     <span class="qty">{{ item.quantity }}</span>
                     <span class="item-body">
@@ -378,7 +380,7 @@ const SLA_LATE = 15;
                 <button type="button" class="fold-btn" (click)="toggle(card.key)">Plegar</button>
               </header>
               <ul class="ticket-items">
-                @for (item of visibleItems(card); track item.orderId + item.id) {
+                @for (item of visibleItems(card); track item.ids[0]!.orderId + item.ids[0]!.id) {
                   <li class="ticket-item" [attr.data-item-status]="item.status">
                     <span class="qty">{{ item.quantity }}</span>
                     <span class="item-body"><span class="item-name">{{ item.name }}</span></span>
@@ -594,6 +596,20 @@ export class KdsComponent implements OnDestroy {
     await this.advanceItems(batch.items, next);
   }
 
+  /**
+   * Avanza un plato junto: todas las líneas que lo componen.
+   *
+   * Al tocar "aceptar" sobre dos empanadas juntas hay que avanzar las dos, o
+   * una queda atrás sin que nadie lo note — y la mesa recibe una sola.
+   */
+  protected async advanceJunto(plato: PlatoJunto, next: string): Promise<void> {
+    for (const { orderId, id } of plato.ids) {
+      if (canTransition(plato.status as OrderStatus, next as OrderStatus)) {
+        await this.store.advanceItem(orderId, id, next);
+      }
+    }
+  }
+
   private async advanceItems(items: TableCard['items'], next: string): Promise<void> {
     for (const item of items) {
       // La misma regla que aplica el servidor, para no mandar lo que va a
@@ -604,11 +620,22 @@ export class KdsComponent implements OnDestroy {
     }
   }
 
-  /** On a station screen, hide the lines that belong to another station. */
-  protected visibleItems(card: TableCard): TableCard['items'] {
+  /**
+   * Los platos de una comanda, filtrados por estación y juntados los iguales.
+   *
+   * La cocina hace comida, no lleva la cuenta de quién pidió qué: dos
+   * empanadas son dos empanadas, vengan del mismo comensal o de dos.
+   * Separadas obligan a sumar de memoria y hacen la comanda el doble de larga.
+   */
+  protected visibleItems(card: TableCard): readonly PlatoJunto[] {
     const station = this.activeStation();
-    if (station === 'ALL') return card.items;
-    return card.items.filter((item) => item.station === station);
+    const suyos = station === 'ALL' ? card.items : card.items.filter((i) => i.station === station);
+    return juntarIguales(suyos);
+  }
+
+  /** Lo mismo para un envío suelto dentro de la comanda. */
+  protected batchItems(batch: { items: TableCard['items'] }): readonly PlatoJunto[] {
+    return juntarIguales(batch.items);
   }
 
   protected stationLabel(station: string): string {

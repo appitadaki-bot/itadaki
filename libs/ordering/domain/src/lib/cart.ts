@@ -25,11 +25,20 @@ export function emptyCart(currency: CurrencyCode): Cart {
   return { currency, lines: [] };
 }
 
-/** Two lines merge only when the product, modifiers, and notes all match. */
+/**
+ * Dos líneas se juntan sólo si son el mismo plato, pedido igual.
+ *
+ * Todo lo que las distinga tiene que estar acá: si falta un campo, dos platos
+ * que no son iguales se suman en uno y el que se guarda es el primero. Pasó
+ * con `primero` cuando se agregó — una empanada marcada para salir antes se
+ * comía a la siguiente sin marcar, y la cocina recibía dos "primero" cuando
+ * la mesa había pedido una.
+ */
 function isSameConfiguration(left: CartLine, right: Omit<CartLine, 'id' | 'quantity'>): boolean {
   if (left.product.productId !== right.product.productId) return false;
   if (left.notes !== right.notes) return false;
   if (left.dinerId !== right.dinerId) return false;
+  if ((left.primero ?? false) !== (right.primero ?? false)) return false;
   if (left.modifiers.length !== right.modifiers.length) return false;
 
   const leftIds = [...left.modifiers].map((m) => m.modifierId).sort();
