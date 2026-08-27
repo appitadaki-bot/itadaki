@@ -3,9 +3,31 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Itadaki · Pedidos por QR para restaurantes</title>
-<meta name="description" content="El pedido llega a la cocina con un click. Tu cliente lo manda desde su celular, sin esperar a que pase el mozo. 30 días gratis, sin tarjeta." />
+<!--
+  El título arranca con lo que se busca, no con la marca.
+  Quien no conoce Itadaki busca "sistema de pedidos con QR para restaurantes";
+  poner la marca primero gasta los caracteres que Google muestra en algo que
+  esa persona todavía no reconoce. La marca va al final, que es donde ayuda a
+  quien ya nos vio.
+-->
+<title>Pedidos con QR para restaurantes en Argentina | Itadaki</title>
+<meta
+  name="description"
+  content="Tus clientes piden desde el celular escaneando un QR y el pedido llega directo a la cocina. Sin comisión por pedido. Probalo 30 días gratis, sin tarjeta."
+/>
 <meta name="theme-color" content="#211a15" />
+
+<!--
+  La dirección del sitio, en un solo lugar.
+  El canonical, la tarjeta social y los datos estructurados la necesitan
+  igual, y tres copias de una URL son tres lugares donde olvidarse de
+  cambiarla el día que el dominio cambie.
+
+  TODO: completar al comprar el dominio, y reemplazarla en los cuatro lugares
+  marcados abajo. Mientras esté vacía, Google usa la URL con la que llegó —que
+  es el comportamiento por defecto y no rompe nada.
+-->
+<link rel="canonical" href="https://itadaki.app/" />
 <!-- Dónde vive la API, para el alta. Mismo nombre que usan las cuatro apps,
      así hay un solo lugar que cambiar al mover el servidor. -->
 <meta name="itadaki-api" content="https://itadaki-api.onrender.com" />
@@ -13,13 +35,157 @@
      cuenta. Sin esto el botón "Entrar al panel" no aparece: mejor no mostrarlo
      que mandar a una URL que no existe. -->
 <meta name="itadaki-panel" content="" />
-<meta property="og:title" content="Itadaki · El pedido llega a la cocina con un click" />
-<meta property="og:description" content="Tu cliente lo manda desde su celular, sin esperar a que pase el mozo. 30 días gratis, sin tarjeta." />
+<!--
+  Cómo se ve al compartirla por WhatsApp, que es por donde va a circular.
+  Sin `og:image` el mensaje sale como un renglón de texto gris, y ese link
+  compartido entre dueños de restaurante es la forma más probable de que
+  alguien conozca esto.
+-->
+<meta property="og:title" content="Pedidos con QR para restaurantes | Itadaki" />
+<meta
+  property="og:description"
+  content="Tus clientes piden desde el celular y el pedido llega directo a la cocina. Sin comisión por pedido. 30 días gratis."
+/>
 <meta property="og:type" content="website" />
+<meta property="og:locale" content="es_AR" />
+<meta property="og:site_name" content="Itadaki" />
+<meta property="og:url" content="https://itadaki.app/" />
+<meta property="og:image" content="https://itadaki.app/social.png" />
+<meta property="og:image:alt" content="Itadaki: el pedido llega a la cocina con un click" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<!--
+  Lo que Google necesita para entender qué es esto.
+  Sin estos datos tiene que adivinar del texto si somos un software, un
+  restaurante o una nota. Declararlo es lo que permite que aparezca el precio
+  y la prueba gratis en el resultado de búsqueda.
+-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Itadaki",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "url": "https://itadaki.app/",
+  "description": "Sistema de pedidos con QR para restaurantes: los clientes piden desde el celular y el pedido llega directo a la cocina.",
+  "inLanguage": "es-AR",
+  "areaServed": { "@type": "Country", "name": "Argentina" },
+  "offers": {
+    "@type": "Offer",
+    "price": "35000",
+    "priceCurrency": "ARS",
+    "description": "Plan Pro mensual, con 30 días de prueba gratis sin tarjeta"
+  }
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="./landing.css" />
+
+<!--
+  Las preguntas frecuentes, para que Google pueda mostrarlas como respuesta.
+  Generado desde las preguntas reales de la página por `build-landing.mjs`:
+  escrito a mano se desincroniza en cuanto alguien edita una respuesta, y ahí
+  el buscador muestra un texto que la página ya no dice.
+-->
+<script type="application/ld+json" data-faq>
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "¿Cómo funciona un sistema de pedidos con QR?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Pegás un QR en cada mesa. El cliente lo escanea con la cámara del celular —sin bajar ninguna app— y se le abre tu carta digital. Elige, manda el pedido, y ese pedido aparece en la pantalla de la cocina al instante, ya escrito y sin que nadie lo haya anotado a mano. El mozo deja de caminar para tomar la orden y camina para servir."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Cobran comisión por cada pedido?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Se paga un abono mensual fijo de $35.000 y nada más, vendas diez pedidos o mil. Lo que cobrás es tuyo: no pasamos por el medio del cobro ni tocamos tu plata. Es la diferencia con las apps de delivery, que se quedan con un porcentaje de cada venta."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Qué pasa si no pago después de los 30 días?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "El día 31 el panel queda en modo lectura: no podés editar la carta ni cargar personal. Las mesas siguen tomando pedidos una semana más , así el corte no te agarra en mitad de un servicio. Recién el día 38 se suspende del todo. Pero no se borra nada — tu carta, tus fotos, tus mesas y tus números quedan guardados, y el día que contratás volvés a encontrar todo tal cual lo dejaste. Te avisamos el día 28, así no te agarra de sorpresa."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Y si se cae internet en el medio del servicio?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "El pedido que el cliente ya cargó no se pierde: queda guardado en su teléfono y sale solo cuando vuelve la señal. La pantalla de cocina y la del mozo siguen mostrando todo lo que ya había entrado. Si el corte es largo, se sigue tomando en papel como siempre — nadie se queda sin comer."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Mis mozos no son de fierro con la tecnología. ¿Lo van a poder usar?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "La app del mozo tiene tres cosas: qué mesa llamó, qué está listo para llevar y cerrar la cuenta. Nada más. La mayoría lo entiende en un servicio. Y lo importante: el mozo sigue atendiendo como siempre — esto le saca los viajes al pedo, no le cambia el oficio."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Cuánto tarda desde que me anoto hasta que lo puedo usar?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Te escribimos dentro de las 24 horas hábiles. Nos mandás tu carta como la tengas — foto, Word, PDF o el link de tu web — y te la dejamos cargada nosotros. Normalmente en el mismo día ya tenés los QR para imprimir."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Tengo que comprar tablets o algún aparato?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. El cliente usa su celular, y la cocina y el mozo abren la pantalla en cualquier celular, tablet o computadora que ya tengas. Lo único que se imprime son los QR de las mesas, en papel común."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Reemplaza a mi sistema de facturación?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No, y es importante que quede claro: Itadaki no emite facturas . Toma pedidos, los manda a la cocina y te arma la cuenta de la mesa. La factura al comensal la seguís haciendo con el sistema que usás hoy."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Puedo probarlo sin que mis clientes se den cuenta?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sí. Muchos arrancan con dos o tres mesas del fondo un día de semana. Si funciona, ponés el resto; si no, sacás los QR y listo."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Los datos de mi restaurante los ve alguien más?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Cada restaurante está separado del resto a nivel base de datos, no por una configuración que se pueda tocar por error. Tus ventas, tu carta y tus clientes son tuyos."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "¿Puedo exportar mis datos si me voy?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Sí. Tu carta y tus ventas te las damos en un archivo que abrís en Excel. No trabajamos secuestrando datos."
+      }
+    }
+  ]
+}
+</script>
 </head>
 <body>
 
@@ -36,13 +202,19 @@
 <section class="hero">
   <div class="ancho hero-centro">
     <!-- La marca es lo primero y lo más grande: en una esquina competía con
-         el botón y no la miraba nadie. -->
-    <h1 class="marca-hero">Itadaki</h1>
+         el botón y no la miraba nadie.
 
-    <!-- Las letras entran de a una. El texto vive completo en el HTML —el
+         Deja de ser el `h1` porque "Itadaki" no le dice nada a quien todavía
+         no nos conoce, y el `h1` es lo que un buscador lee como "de qué trata
+         esta página". Visualmente no cambia nada: sigue arriba y del mismo
+         tamaño. -->
+    <p class="marca-hero">Itadaki</p>
+
+    <!-- El `h1` es la promesa, que es lo que la persona vino a entender.
+         Las letras entran de a una: el texto vive completo en el HTML —el
          script sólo lo envuelve— así que un buscador y un lector de pantalla
          lo leen entero aunque el JavaScript no corra. -->
-    <p class="hero-titulo">
+    <h1 class="hero-titulo">
       <span class="palabra">El</span>
       <span class="palabra">pedido</span>
       <span class="palabra">llega</span>
@@ -52,10 +224,11 @@
       <span class="palabra">con</span>
       <span class="palabra">un</span>
       <span class="palabra">click.</span>
-    </p>
+    </h1>
 
     <p class="hero-lede">
-      Tu cliente lo manda desde su celular. Sin esperar a que pase el mozo.
+      Tu cliente escanea el QR de la mesa, ve tu carta digital y manda el
+      pedido desde su celular. Sin esperar a que pase el mozo.
     </p>
 
     <div class="acciones centradas">
@@ -63,7 +236,9 @@
       <a class="btn btn-borde" href="#piezas">Ver cómo funciona</a>
     </div>
 
-    <p class="hero-pie">30 días gratis · sin tarjeta · te armamos la carta</p>
+    <p class="hero-pie">
+      30 días gratis · sin tarjeta · sin comisión por pedido · te armamos la carta
+    </p>
   </div>
 
   <!-- El producto entero en cinco segundos: el pedido sale del teléfono y
@@ -523,6 +698,29 @@
   <div class="ancho angosto">
     <p class="numero">07</p>
     <h2 class="titulo centrado">Preguntas antes de anotarte</h2>
+
+    <details class="pregunta">
+      <!-- Las dos primeras son las que alguien tipea en Google antes de
+           conocernos: el resto contesta dudas de quien ya está evaluando. -->
+      <summary>¿Cómo funciona un sistema de pedidos con QR?</summary>
+      <p>
+        Pegás un QR en cada mesa. El cliente lo escanea con la cámara del
+        celular —sin bajar ninguna app— y se le abre tu carta digital. Elige,
+        manda el pedido, y ese pedido aparece en la pantalla de la cocina al
+        instante, ya escrito y sin que nadie lo haya anotado a mano. El mozo
+        deja de caminar para tomar la orden y camina para servir.
+      </p>
+    </details>
+
+    <details class="pregunta">
+      <summary>¿Cobran comisión por cada pedido?</summary>
+      <p>
+        No. Se paga un abono mensual fijo de $35.000 y nada más, vendas diez
+        pedidos o mil. Lo que cobrás es tuyo: no pasamos por el medio del
+        cobro ni tocamos tu plata. Es la diferencia con las apps de delivery,
+        que se quedan con un porcentaje de cada venta.
+      </p>
+    </details>
 
     <details class="pregunta">
       <summary>¿Qué pasa si no pago después de los 30 días?</summary>

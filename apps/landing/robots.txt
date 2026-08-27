@@ -2,4 +2,9 @@
 # entre. Las cuatro apps —comensal, cocina, admin, salón— son otros proyectos
 # de Vercel y cada una trae su propio robots.txt con un `noindex` en el HTML.
 User-agent: *
-Disallow:
+Allow: /
+
+# Dónde está el mapa del sitio. Sin esta línea el buscador lo encuentra igual
+# si se lo declara en Search Console, pero acá no cuesta nada y sirve para
+# cualquier buscador, no sólo Google.
+Sitemap: https://itadaki.app/sitemap.xml

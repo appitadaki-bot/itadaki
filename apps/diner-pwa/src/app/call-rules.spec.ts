@@ -18,7 +18,15 @@ function blocked(
   { hasOrdered, waiting }: { hasOrdered: boolean; waiting: ReadonlySet<CallReason> },
 ): boolean {
   if (reason === 'BILL' && !hasOrdered) return true;
+  // Ver la cuenta abre una pantalla, no manda un aviso: no la bloquea tener
+  // otro llamado abierto.
+  if (reason === 'BILL') return false;
   return waiting.size > 0 && !waiting.has(reason);
+}
+
+/** Si la opción se muestra con su tilde de "ya pedido". */
+function marcada(reason: CallReason, waiting: ReadonlySet<CallReason>): boolean {
+  return reason !== 'BILL' && waiting.has(reason);
 }
 
 const nada = new Set<CallReason>();
@@ -42,11 +50,12 @@ describe('pedir la cuenta sin haber pedido nada', () => {
 });
 
 describe('un llamado a la vez', () => {
-  it('bloquea los demás mientras hay uno pedido', () => {
+  it('bloquea los demás llamados mientras hay uno pedido', () => {
     // Tres avisos juntos de la misma mesa no dicen qué necesita ahora.
+    // Ver la cuenta queda afuera de esta regla: no manda ningún aviso, así
+    // que no hay nada que confundir al mozo.
     const waiting = esperando('WAITER');
 
-    expect(blocked('BILL', { hasOrdered: true, waiting })).toBe(true);
     expect(blocked('QUESTION', { hasOrdered: true, waiting })).toBe(true);
   });
 
@@ -108,5 +117,28 @@ describe('quien todavía no se sentó', () => {
 
   it('una mesa recién abierta no tiene cuenta que pedir', () => {
     expect(consumio({ joined: true, lines: 0, placedMinor: 0 })).toBe(false);
+  });
+});
+
+describe('ver la cuenta no es un llamado', () => {
+  it('se puede abrir con otro llamado en curso', () => {
+    // Mirar el total mientras el mozo viene en camino es razonable: no le
+    // cuesta un viaje a nadie.
+    expect(blocked('BILL', { hasOrdered: true, waiting: esperando('WAITER') })).toBe(false);
+  });
+
+  it('sigue bloqueada si la mesa no consumió', () => {
+    // Lo único que la bloquea: no hay cuenta que mirar.
+    expect(blocked('BILL', { hasOrdered: false, waiting: nada })).toBe(true);
+  });
+
+  it('no se marca con el tilde de pedido', () => {
+    // Un llamado de cuenta viejo —hecho desde la propia pantalla de la
+    // cuenta— no puede hacer parecer que este botón mandó algo.
+    expect(marcada('BILL', esperando('BILL'))).toBe(false);
+  });
+
+  it('los llamados de verdad sí se marcan', () => {
+    expect(marcada('WAITER', esperando('WAITER'))).toBe(true);
   });
 });
