@@ -4,7 +4,25 @@
 .live { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--itadaki-status-ready-fg); letter-spacing: 0.5px; }
 .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--itadaki-live); animation: itadaki-pulse-dot 1.8s ease-in-out infinite; }
 .title { font-family: var(--itadaki-font-display); font-weight: 800; font-size: 1.45rem; color: var(--itadaki-ink-strong); margin: 0.25rem 0 0; letter-spacing: var(--itadaki-tracking-title); }
-.body { flex: 1; display: flex; flex-direction: column; gap: 0.85rem; padding: 0.75rem 18px 8rem; }
+/*
+ * El espacio de abajo lo decide el pie, no un número fijo.
+ *
+ * Eran 8rem, calculados para un pie de un botón. Con dos —seguir pidiendo y
+ * ver la cuenta— el pie mide más que eso y tapaba el final del contenido: el
+ * tiempo de llegada quedaba debajo de los botones y no se podía leer. En una
+ * pantalla angosta, donde el texto de un botón se parte en dos líneas, la
+ * diferencia es todavía mayor.
+ *
+ * `--itadaki-call-offset` ya lo publica el componente al medir su pie, y ese
+ * valor es exactamente el alto del pie más un dedo de aire.
+ */
+.body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.75rem 18px calc(var(--itadaki-call-offset, 8rem) + 1rem);
+}
 .body.empty { align-items: center; justify-content: center; text-align: center; gap: 1rem; padding-bottom: 3rem; }
 .muted { color: var(--itadaki-ink-subtle); font-size: 0.9rem; margin: 0; }
 .card { background: var(--itadaki-surface-raised); border-radius: var(--itadaki-radius-sheet); padding: 1rem; }
@@ -141,48 +159,72 @@
  */
 .head-row {
   display: flex;
-  align-items: center;
+  /* Alineados por arriba: el botón de volver trae su propio margen inferior
+     —lo necesita cuando está solo— y eso empujaba a la cuenta media altura. */
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
-  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
 }
 
-.head-row .eyebrow {
-  margin: 0;
-  /* No se parte en dos líneas: "Mesa 7 · En vivo" es una sola idea. */
-  white-space: nowrap;
+.head-row itd-back {
+  display: block;
+}
+
+.head-row :is(itd-back, .ir-a-la-cuenta) {
+  margin-bottom: 0;
 }
 
 /*
- * Ver la cuenta, como botón.
+ * "Ver la cuenta", igual que en el carrito.
  *
- * Como enlace pasaba desapercibida, y es a donde va la mesa cuando termina de
- * comer — el final del camino, no una nota al pie.
- *
- * En ladrillo y no negro: seguir pidiendo es lo que la mesa hace muchas veces
- * y la cuenta una sola, así que no pueden pesar igual. Dos botones sólidos
- * lado a lado obligan a leer los dos antes de tocar.
+ * Arriba y no en el pie: abajo competía con seguir pidiendo, que es lo que la
+ * mesa hace muchas veces mientras la cuenta se pide una sola.
  */
-.cta-cuenta {
-  display: flex;
+.ir-a-la-cuenta {
+  flex-shrink: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  text-decoration: none;
-  background: transparent;
-  color: var(--itadaki-accent-deep);
+  min-height: 40px;
+  padding: 0.5rem 0.95rem;
+  border-radius: var(--itadaki-radius-pill);
   border: 1px solid var(--itadaki-accent-line);
+  background: var(--itadaki-accent-tint);
+  color: var(--itadaki-accent-deep);
+  font-family: var(--itadaki-font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
   transition:
     background var(--itadaki-quick) var(--itadaki-ease),
     border-color var(--itadaki-quick) var(--itadaki-ease);
 }
 
 @media (hover: hover) {
-  .cta-cuenta:hover {
-    background: var(--itadaki-accent-tint);
+  .ir-a-la-cuenta:hover {
+    background: var(--itadaki-accent-tint-strong);
     border-color: var(--itadaki-accent);
   }
 }
 
-.cta-cuenta:active {
-  background: var(--itadaki-accent-tint-strong);
+.ir-a-la-cuenta:active {
+  transform: scale(0.97);
 }
+
+/*
+ * El "En vivo" dentro del título.
+ *
+ * Más chico y en su color: es un estado, no parte del nombre de la mesa, y
+ * con el mismo tamaño competiría con el número que la persona vino a ver.
+ */
+.title .live {
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+  text-transform: uppercase;
+}
+
+

@@ -1,0 +1,20 @@
+<!--
+  El ícono de la app en el teléfono del comensal.
+
+  Es el ojo de un QR: lo que la persona acaba de escanear para entrar. Dibujado
+  con rectángulos y no con texto porque el ícono se genera fuera del navegador,
+  donde la tipografía de la marca no está instalada y "Itadaki" saldría en otra
+  fuente cualquiera.
+
+  El margen es ancho a propósito. Android recorta el ícono con la forma que
+  tenga el lanzador —círculo, cuadrado redondeado, gota— y todo lo que quede
+  fuera del 80% central se pierde; por eso el manifest lo declara `maskable`.
+
+  Las dos medidas que pide el manifest salen de acá:
+    npx sharp -i apps/diner-pwa/src/icon.svg -o apps/diner-pwa/src/icon-512.png resize 512 512
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#AF2E13" />
+  <rect x="146" y="146" width="220" height="220" rx="30" fill="none" stroke="#FCF4E6" stroke-width="42" />
+  <rect x="222" y="222" width="68" height="68" rx="10" fill="#FCF4E6" />
+</svg>

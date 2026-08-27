@@ -35,11 +35,29 @@
                 "glob": "*.html",
                 "input": "apps/diner-pwa/src/legal",
                 "output": "/legal"
+              },
+              {
+                "glob": "robots.txt",
+                "input": "apps/diner-pwa/src",
+                "output": "/"
+              },
+              {
+                "glob": "icon-*.png",
+                "input": "apps/diner-pwa/src",
+                "output": "/"
               }
             ],
             "polyfills": [
               "zone.js"
-            ]
+            ],
+            "optimization": {
+              "scripts": true,
+              "fonts": true,
+              "styles": {
+                "minify": true,
+                "inlineCritical": false
+              }
+            }
           },
           "configurations": {
             "production": {
@@ -98,8 +116,21 @@
                 "glob": "sw.js",
                 "input": "apps/kds-web/src",
                 "output": "/"
+              },
+              {
+                "glob": "robots.txt",
+                "input": "apps/kds-web/src",
+                "output": "/"
               }
-            ]
+            ],
+            "optimization": {
+              "scripts": true,
+              "fonts": true,
+              "styles": {
+                "minify": true,
+                "inlineCritical": false
+              }
+            }
           },
           "configurations": {
             "production": {
@@ -151,8 +182,21 @@
                 "glob": "*.html",
                 "input": "apps/admin-web/src/legal",
                 "output": "/legal"
+              },
+              {
+                "glob": "robots.txt",
+                "input": "apps/admin-web/src",
+                "output": "/"
               }
-            ]
+            ],
+            "optimization": {
+              "scripts": true,
+              "fonts": true,
+              "styles": {
+                "minify": true,
+                "inlineCritical": false
+              }
+            }
           },
           "configurations": {
             "production": {
@@ -204,8 +248,21 @@
                 "glob": "sw.js",
                 "input": "apps/floor-web/src",
                 "output": "/"
+              },
+              {
+                "glob": "robots.txt",
+                "input": "apps/floor-web/src",
+                "output": "/"
               }
-            ]
+            ],
+            "optimization": {
+              "scripts": true,
+              "fonts": true,
+              "styles": {
+                "minify": true,
+                "inlineCritical": false
+              }
+            }
           },
           "configurations": {
             "production": {
