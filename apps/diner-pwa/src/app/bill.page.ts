@@ -7,6 +7,7 @@ import { type PaymentMethod } from '@itadaki/ordering/domain';
 import { DINER_PALETTE } from '@itadaki/shared/ui-tokens';
 import { BackLinkComponent } from './back-link.component';
 import { PaymentSheetComponent } from './payment-sheet.component';
+import { ApiClient } from './api-client';
 import { CallStore } from './call.store';
 import { BillStore, type MoneyDto, type SplitKind, type TipChoice } from './bill.store';
 import { SessionStore } from './session.store';
@@ -31,6 +32,18 @@ const TIP_OPTIONS: ReadonlyArray<{ label: string; choice: TipChoice }> = [
 ];
 
 const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
+
+/**
+ * Cómo puede pagar la mesa.
+ *
+ * Sólo se muestra si el local ofrece descuento en efectivo: sin eso, elegir
+ * acá no cambia nada y sería un paso que no sirve. Quien no elige paga como
+ * siempre, y el mozo pregunta en la mesa igual que ahora.
+ */
+const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: string }> = [
+  { id: 'CASH', label: 'En efectivo', hint: 'Con descuento' },
+  { id: 'CARD', label: 'Con tarjeta', hint: 'Te llevan el posnet' },
+];
 
 
 @Component({
@@ -84,6 +97,35 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
             }
           </div>
         </section>
+
+        <!-- Cómo pagan, antes de cómo dividen: el descuento en efectivo
+             cambia el total, y dividir un número que después baja obliga a
+             rehacer la cuenta. Sólo aparece si el local ofrece descuento —
+             sin eso, elegir el medio acá no cambiaría nada y sería un paso
+             que no sirve. -->
+        @if (ofreceDescuento()) {
+          <section class="card">
+            <h2 class="card-title">Cómo pagan</h2>
+            <div class="options">
+              @for (medio of mediosDePago; track medio.id) {
+                <button
+                  type="button"
+                  class="option"
+                  [attr.aria-pressed]="medioElegido() === medio.id"
+                  (click)="elegirMedio(medio.id)"
+                >
+                  <span class="option-text">
+                    <span class="option-label">{{ medio.label }}</span>
+                    <span class="option-hint">{{ medio.hint }}</span>
+                  </span>
+                  @if (medio.id === 'CASH') {
+                    <span class="ahorro">-{{ store.split()?.descuentoOfrecido ?? descuentoOfrecido() }}%</span>
+                  }
+                </button>
+              }
+            </div>
+          </section>
+        }
 
         <section class="card">
           <h2 class="card-title">Cómo dividimos</h2>
@@ -201,6 +243,15 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
               </div>
             }
 
+            @if (split.descuento && split.descuento.amountInMinorUnits > 0) {
+              <!-- En verde y con el signo menos: es lo único de esta pantalla
+                   que baja el total, y hay que poder verlo sin leer. -->
+              <div class="line sub ahorrado">
+                <span>Descuento por pagar en efectivo</span>
+                <span class="amount">-{{ money(split.descuento) }}</span>
+              </div>
+            }
+
             @if (split.tip.amountInMinorUnits > 0) {
               <div class="line sub">
                 <span>Propina incluida</span>
@@ -276,8 +327,23 @@ export class BillPage {
   protected readonly store = inject(BillStore);
   protected readonly session = inject(SessionStore);
   protected readonly calls = inject(CallStore);
+  private readonly api = inject(ApiClient);
 
   protected readonly splitOptions = SPLIT_LABELS;
+  protected readonly mediosDePago = MEDIOS_DE_PAGO;
+
+  /** Qué eligió la mesa, o null mientras no elija. */
+  protected readonly medioElegido = signal<PaymentMethod | null>(null);
+
+  /** Los puntos que el local ofrece, leídos al abrir la cuenta. */
+  protected readonly descuentoOfrecido = signal(0);
+
+  protected readonly ofreceDescuento = computed(() => this.descuentoOfrecido() > 0);
+
+  protected elegirMedio(medio: PaymentMethod): void {
+    this.medioElegido.set(medio);
+    this.recompute();
+  }
   protected readonly tipOptions = TIP_OPTIONS;
   protected readonly currencies = CURRENCIES;
 
@@ -303,6 +369,9 @@ export class BillPage {
     // cuenta" should not land on a second button that says the same thing.
     // Raising one is idempotent server-side, so an existing bill comes back
     // unchanged rather than being reissued.
+    // El descuento del local, para saber si mostrar la elección del medio.
+    void this.cargarDescuento();
+
     void this.store.close(id).then(() => {
       this.parts.set(this.store.bill()?.participants.length ?? 2);
       this.recompute();
@@ -392,6 +461,24 @@ export class BillPage {
     this.recompute();
   }
 
+  /**
+   * Cuánto descuenta el local por pagar en efectivo.
+   *
+   * Cualquier problema lo deja en cero, que apaga la sección entera: es mejor
+   * no ofrecer un descuento que ofrecer uno que después no se aplica.
+   */
+  private async cargarDescuento(): Promise<void> {
+    try {
+      const respuesta = await this.api.fetch('/ajustes/publicos');
+      if (!respuesta.ok) return;
+
+      const { descuentoEfectivo } = (await respuesta.json()) as { descuentoEfectivo: number };
+      this.descuentoOfrecido.set(descuentoEfectivo);
+    } catch {
+      // Queda en cero.
+    }
+  }
+
   protected chooseSplit(kind: SplitKind): void {
     this.splitKind.set(kind);
 
@@ -471,6 +558,7 @@ export class BillPage {
       this.parts(),
       assignments,
       this.payerId() ?? undefined,
+      this.medioElegido() ?? undefined,
     );
   }
 

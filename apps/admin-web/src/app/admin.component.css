@@ -2017,3 +2017,97 @@
   padding: 0.1rem 0.5rem;
   letter-spacing: 0;
 }
+
+/* ═══ DESCUENTO EN EFECTIVO ═══ */
+
+.descuento-fila {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.descuento-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.descuento-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--itadaki-ink-subtle);
+}
+
+/*
+ * El signo de porcentaje adentro del campo.
+ *
+ * Afuera se lee como una unidad suelta que hay que asociar con la vista;
+ * adentro es parte de lo que se está escribiendo, y deja claro que el número
+ * son puntos y no pesos.
+ */
+.descuento-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0 0.9rem 0 0;
+  border: 1px solid var(--itadaki-border);
+  border-radius: var(--itadaki-radius-action);
+  background: var(--itadaki-surface-raised);
+  transition: border-color var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.descuento-input:focus-within {
+  border-color: var(--itadaki-accent);
+}
+
+.descuento-input input {
+  width: 5rem;
+  border: none;
+  background: none;
+  padding: 0.65rem 0.5rem 0.65rem 0.9rem;
+  font-family: var(--itadaki-font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--itadaki-ink-strong);
+  /* Los dígitos de ancho fijo evitan que el campo baile al escribir. */
+  font-variant-numeric: tabular-nums;
+}
+
+.descuento-input input:focus {
+  outline: none;
+}
+
+.descuento-signo {
+  font-family: var(--itadaki-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--itadaki-ink-subtle);
+}
+
+/*
+ * El ejemplo con plata.
+ *
+ * "10%" no dice cuánto resigna el local hasta que uno hace la cuenta, y esa
+ * cuenta con la calculadora del teléfono es lo que este renglón evita.
+ */
+.descuento-ejemplo {
+  margin: 0.9rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--itadaki-radius-action);
+  background: var(--itadaki-accent-tint);
+  border: 1px solid var(--itadaki-accent-line);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--itadaki-accent-deep);
+}
+
+/* Apagado cuando está en cero: dice qué falta, sin celebrar nada. */
+.descuento-ejemplo.apagado {
+  background: var(--itadaki-surface-sunken);
+  border-color: var(--itadaki-border);
+  color: var(--itadaki-ink-subtle);
+}

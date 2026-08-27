@@ -27,6 +27,10 @@ export interface BillDto {
 export interface SplitDto {
   readonly kind: string;
   readonly subtotal: MoneyDto;
+  /** Cuánto baja por pagar en efectivo. Cero si no corresponde. */
+  readonly descuento?: MoneyDto;
+  /** Los puntos que el local ofrece, aunque todavía no hayan elegido. */
+  readonly descuentoOfrecido?: number;
   readonly tip: MoneyDto;
   readonly total: MoneyDto;
   readonly shares: ReadonlyArray<{
@@ -104,6 +108,7 @@ export class BillStore {
     parts?: number,
     assignments?: ReadonlyArray<{ lineId: string; payerIds: readonly string[] }>,
     payerId?: string,
+    paymentMethod?: string,
   ): Promise<void> {
     this.error.set(null);
 
@@ -113,6 +118,7 @@ export class BillStore {
       parts,
       assignments,
       payerId,
+      paymentMethod,
     });
 
     if (!response.ok) {
