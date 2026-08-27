@@ -30,10 +30,14 @@ interface Column {
   readonly action: string;
 }
 
+/*
+ * En mayúscula: esta pantalla se mira de lejos y de reojo, y una palabra en
+ * caja alta se reconoce por su forma antes de leerse.
+ */
 const COLUMNS: readonly Column[] = [
-  { status: 'SENT', label: 'nuevo', next: 'ACCEPTED', action: 'aceptar' },
-  { status: 'ACCEPTED', label: 'aceptado', next: 'IN_PREP', action: 'empezar' },
-  { status: 'IN_PREP', label: 'en preparación', next: 'READY', action: 'marcar listo' },
+  { status: 'SENT', label: 'NUEVO', next: 'ACCEPTED', action: 'ACEPTAR' },
+  { status: 'ACCEPTED', label: 'ACEPTADO', next: 'IN_PREP', action: 'EMPEZAR' },
+  { status: 'IN_PREP', label: 'EN PREPARACIÓN', next: 'READY', action: 'MARCAR LISTO' },
   /*
    * La cocina llega hasta acá y no más.
    *
@@ -42,7 +46,7 @@ const COLUMNS: readonly Column[] = [
    * mesa figuraba servida sin que nadie hubiera caminado hasta ella. Quien
    * entrega es quien lo declara, desde el salón.
    */
-  { status: 'READY', label: 'listo para servir', next: null, action: 'esperando al mozo' },
+  { status: 'READY', label: 'LISTO PARA SERVIR', next: null, action: 'ESPERANDO AL MOZO' },
 ];
 
 const STATIONS: ReadonlyArray<{ id: string; label: string }> = [
@@ -78,22 +82,11 @@ const SLA_LATE = 15;
     } @else {
     <header class="head">
       <div class="head-left">
-        <p class="eyebrow">KDS · cocina en vivo</p>
-        <h1 class="title">Pedidos entrando ahora</h1>
+        <!-- Sin título: la pantalla muestra pedidos entrando, y decirlo arriba
+             ocupa el lugar que necesitan las comandas. En una cocina lo que se
+             mira son las tarjetas. -->
+        <p class="eyebrow">KDS · COCINA EN VIVO</p>
       </div>
-
-      <nav class="stations" aria-label="Estación">
-        @for (station of stations; track station.id) {
-          <button
-            type="button"
-            class="station"
-            [attr.aria-pressed]="activeStation() === station.id"
-            (click)="selectStation(station.id)"
-          >
-            {{ station.label }}
-          </button>
-        }
-      </nav>
 
       <div class="head-right">
         <p class="live" [class.off]="!store.connected()">
@@ -205,7 +198,7 @@ const SLA_LATE = 15;
                         class="batch-btn"
                         (click)="advanceBatch(batch, step.next)"
                       >
-                        {{ step.action }} · {{ batch.number }}º envío →
+                        {{ step.action }} {{ batch.number }}º ENVÍO →
                       </button>
                     }
                   }
@@ -213,7 +206,7 @@ const SLA_LATE = 15;
 
                 @if (column.next !== null) {
                   <button type="button" class="ticket-btn" (click)="advanceCard(ticket, column.next)">
-                    {{ column.action }} · todo →
+                    {{ column.action }} TODO →
                   </button>
                 }
               </article>
@@ -268,7 +261,7 @@ const SLA_LATE = 15;
                       class="ticket-btn"
                       (click)="advanceCard(ticket, column.next)"
                     >
-                      {{ column.action }} · todo →
+                      {{ column.action }} TODO →
                     </button>
                   }
                 </article>
@@ -354,7 +347,7 @@ const SLA_LATE = 15;
               @if (card.batches.length > 1) {
                 @if (nextFor(batch.status); as step) {
                   <button type="button" class="batch-btn" (click)="advanceBatch(batch, step.next)">
-                    {{ step.action }} · {{ batch.number }}º envío →
+                    {{ step.action }} {{ batch.number }}º ENVÍO →
                   </button>
                 }
               }
@@ -362,7 +355,7 @@ const SLA_LATE = 15;
 
             @if (nextStepFor(card); as step) {
               <button type="button" class="ticket-btn" (click)="advanceCard(card, step.next)">
-                {{ step.action }} · todo →
+                {{ step.action }} TODO →
               </button>
             }
           </article>
@@ -389,7 +382,7 @@ const SLA_LATE = 15;
               </ul>
               @if (nextStepFor(card); as step) {
                 <button type="button" class="ticket-btn" (click)="advanceCard(card, step.next)">
-                  {{ step.action }} · todo →
+                  {{ step.action }} TODO →
                 </button>
               }
             </article>
@@ -638,8 +631,15 @@ export class KdsComponent implements OnDestroy {
     return juntarIguales(batch.items);
   }
 
+  /**
+   * El nombre de la estación, en mayúscula.
+   *
+   * El dueño la carga desde el panel y puede escribirla como quiera; acá se
+   * muestra pareja sin tocar lo que él guardó, que es suyo.
+   */
   protected stationLabel(station: string): string {
-    return STATIONS.find((entry) => entry.id === station)?.label ?? station.toLowerCase();
+    const propia = STATIONS.find((entry) => entry.id === station)?.label ?? station;
+    return propia.toUpperCase();
   }
 
   /**
