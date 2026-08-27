@@ -1,0 +1,8 @@
+# Todo el sitio es público: es una landing que queremos que se encuentre.
+User-agent: *
+Allow: /
+
+# Las páginas legales se indexan igual —dan confianza a quien las busca— pero
+# no hay nada acá que haga falta esconder.
+
+Sitemap: https://itadaki.app/sitemap.xml
