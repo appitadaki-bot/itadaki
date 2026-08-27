@@ -73,7 +73,9 @@ export class OrdersController {
         tableId: tables.get(order.sessionId) ?? null,
         items: dto.items.map((item, index) => ({
           ...item,
-          station: stations.get(order.items[index]?.product.productId ?? '') ?? 'COLD',
+          // Sin estación asignada viaja en `null`, y la cocina no le pone
+          // chip. Antes caía en 'COLD' y toda carta importada se veía fría.
+          station: stations.get(order.items[index]?.product.productId ?? '') ?? null,
         })),
       };
     });

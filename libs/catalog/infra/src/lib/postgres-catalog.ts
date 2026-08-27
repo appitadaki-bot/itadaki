@@ -28,7 +28,7 @@ interface ProductRow {
   diets: string[];
   prep_minutes: number;
   available: boolean;
-  station: string;
+  station: string | null;
   image_set: ImageSet | null;
 }
 
@@ -60,7 +60,7 @@ function toProduct(row: ProductRow): Product {
     diets: row.diets as Product['diets'],
     estimatedPrepMinutes: row.prep_minutes,
     available: row.available,
-    station: row.station as Product['station'],
+    station: (row.station as Product['station']) ?? null,
   };
 }
 
