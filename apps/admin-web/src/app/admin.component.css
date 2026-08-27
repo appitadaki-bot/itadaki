@@ -1877,7 +1877,7 @@
 /* Una sola columna centrada: con los seis deslizadores al lado, el modal
    pedía 860px. Sin ellos ese ancho era medio modal vacío. */
 .modal.ancho {
-  width: min(560px, calc(100vw - 2rem));
+  width: min(620px, calc(100vw - 2rem));
   max-height: min(92vh, 900px);
 }
 

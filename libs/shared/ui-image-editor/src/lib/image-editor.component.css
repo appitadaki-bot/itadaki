@@ -87,6 +87,13 @@
 }
 
 
+/* La fila de botones usa todo el ancho del modal, no la columna de la foto:
+   con los tres al ancho de su texto igual no entraban en 380px y "Aplicar"
+   caía a un segundo renglón. */
+.actions {
+  width: 100%;
+}
+
 /* Cada botón con el ancho de su texto, la fila centrada.
  *
  * Se repartían el ancho en tercios iguales y "Cambiar foto" no entraba: caía
