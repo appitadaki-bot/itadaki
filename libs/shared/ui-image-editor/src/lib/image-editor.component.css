@@ -87,17 +87,28 @@
 }
 
 
+/* Cada botón con el ancho de su texto, la fila centrada.
+ *
+ * Se repartían el ancho en tercios iguales y "Cambiar foto" no entraba: caía
+ * en dos renglones, y el texto de un renglón partido se alinea a la izquierda
+ * aunque el botón esté centrado. "Subir otra foto" —el mismo botón cuando el
+ * plato ya tiene foto— entra menos todavía, así que agrandar el tercio no
+ * alcanzaba. `wrap` es para la pantalla angosta donde los tres no entran en
+ * una línea: se apilan en vez de desbordar. */
 .actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.6rem;
 }
 
 .primary,
 .ghost {
-  flex: 1;
+  flex: 0 1 auto;
   border: none;
   border-radius: var(--itadaki-radius-pill);
-  padding: 0.85rem;
+  padding: 0.85rem 1.15rem;
+  text-align: center;
   font-family: var(--itadaki-font-display);
   font-weight: 600;
   font-size: 0.85rem;
