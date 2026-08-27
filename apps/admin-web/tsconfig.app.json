@@ -1,8 +1,17 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022", "module": "ES2022", "moduleResolution": "bundler",
-    "lib": ["ES2022", "DOM"], "types": [],
+    "target": "ES2022",
+    // El navegador: `document`, `HTMLElement`, `localStorage`.
+    //
+    // El `tsconfig.base` declara sólo ES2022 —el dominio no tiene por qué
+    // conocer el navegador— y hasta Angular 20 el builder agregaba `dom`
+    // por su cuenta. La 21 dejó de hacerlo, así que cada app que corre en
+    // un navegador lo pide acá, que además es donde se lee sin adivinar.
+    "lib": ["ES2022", "DOM"],
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "types": [],
     "experimentalDecorators": true, "useDefineForClassFields": false,
     "outDir": "../../dist/out-tsc/admin-web"
   },
