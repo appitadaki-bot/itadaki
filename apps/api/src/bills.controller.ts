@@ -13,7 +13,10 @@ import { type SessionState, closeTable } from '@itadaki/ordering/application';
 import {
   type Bill,
   type SplitStrategy,
+  aplicaA,
   billSubtotal,
+  descuentoDe,
+  montoDelDescuento,
   byDinerSplit,
   byItemSplit,
   customSplit,
@@ -36,6 +39,7 @@ import { BillsService } from './bills.service';
 import { SessionsService } from './sessions.service';
 import { OrdersService } from './orders.service';
 import { CallsService } from './calls.service';
+import { TenantsService } from './tenants.service';
 import { RealtimeGateway } from './realtime.gateway';
 import { toMoneyDto } from './contracts';
 import { log } from './logger';
@@ -43,6 +47,8 @@ import { MAX_SESSION_ORDERS } from '@itadaki/ordering/infra';
 
 const splitSchema = z.object({
   kind: z.enum(['SINGLE_PAYER', 'EQUAL', 'BY_DINER', 'BY_ITEM', 'CUSTOM_AMOUNT']),
+  // Cómo piensan pagar: sólo el efectivo lleva descuento.
+  paymentMethod: z.enum(['CARD', 'CASH', 'COUNTER', 'UNDECIDED']).optional(),
   payerId: z.string().min(1).optional(),
   parts: z.number().int().min(1).max(20).optional(),
   assignments: z
@@ -90,6 +96,7 @@ export class BillsController {
     private readonly orders: OrdersService,
     private readonly realtime: RealtimeGateway,
     private readonly calls: CallsService,
+    private readonly tenants: TenantsService,
   ) {}
 
   /** Cobrar termina la mesa, y una mesa que termina estrena código. */
@@ -341,8 +348,36 @@ export class BillsController {
           }
         : parsed.data.tip;
 
-    const tipValue = tipAmount(tip, subtotal.value);
-    const grandTotal = totalWithTip(subtotal.value, tip);
+    /*
+     * El descuento por pagar en efectivo, si el local lo ofrece.
+     *
+     * Va antes de la propina a propósito: el descuento lo pone el
+     * restaurante y la propina es del mozo, pero el mozo cobra su porcentaje
+     * sobre lo que la mesa realmente paga — que es lo que ocurre hoy cuando
+     * el descuento se arregla de palabra.
+     *
+     * Cualquier problema al leerlo deja el descuento en cero: un fallo no
+     * puede inventar una rebaja que el local no ofrece.
+     */
+    const puntos = await this.tenants.store.descuentoEnEfectivo(scope.tenantId);
+    const configurado = descuentoDe((puntos.isOk() ? puntos.value : 0) / 100);
+    const descuento = configurado.isOk() ? configurado.value : { porcentaje: 0 };
+
+    const daDescuento = aplicaA(parsed.data.paymentMethod ?? null);
+    const rebaja = daDescuento
+      ? montoDelDescuento(descuento, subtotal.value)
+      : ok(Money.zero(bill.currency));
+    if (rebaja.isErr()) {
+      throw new HttpException(rebaja.error, HttpStatus.CONFLICT);
+    }
+
+    const base = subtotal.value.subtract(rebaja.value);
+    if (base.isErr()) {
+      throw new HttpException(base.error, HttpStatus.CONFLICT);
+    }
+
+    const tipValue = tipAmount(tip, base.value);
+    const grandTotal = totalWithTip(base.value, tip);
     if (tipValue.isErr() || grandTotal.isErr()) {
       throw new HttpException(tipValue.isErr() ? tipValue.error : 'tip failed', HttpStatus.BAD_REQUEST);
     }
@@ -359,6 +394,11 @@ export class BillsController {
     return {
       kind: parsed.data.kind,
       subtotal: toMoneyDto(subtotal.value),
+      // Cuánto baja por pagar en efectivo, y cuánto ofrece el local aunque
+      // todavía no hayan elegido: la pantalla lo usa para decir "pagando en
+      // efectivo ahorrás X" antes de que la mesa decida.
+      descuento: toMoneyDto(rebaja.value),
+      descuentoOfrecido: Math.round(descuento.porcentaje * 100),
       tip: toMoneyDto(tipValue.value),
       total: toMoneyDto(grandTotal.value),
       shares: shares.value.map((share, index) => ({

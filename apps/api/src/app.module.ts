@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { AjustesController } from './ajustes.controller';
 import { BillingController } from './billing.controller';
 import { AuthGuard, ServicioActivoGuard, TableScopeGuard, TrialGuard } from './auth';
 import { RateLimitGuard } from './rate-limit.guard';
@@ -28,7 +29,7 @@ import { GoogleService } from './google.service';
 import { RealtimeGateway } from './realtime.gateway';
 
 @Module({
-  controllers: [MenuController, OrdersController, ImagesController, SessionsController, BillsController, MetricsController, AuthController, TablesController, StaffController, HealthController, CallsController, BillingController],
+  controllers: [MenuController, OrdersController, ImagesController, SessionsController, BillsController, MetricsController, AuthController, TablesController, StaffController, HealthController, CallsController, BillingController, AjustesController],
   providers: [CatalogService, OrdersService, ArchiveService, ImagesService, SessionsService, BillsService, StaffService, TenantsService, ResetsService, GoogleService, CallsService, RealtimeGateway,
     // First: cheap, and a flood should be turned away before any lookup.
     { provide: APP_GUARD, useClass: RateLimitGuard },

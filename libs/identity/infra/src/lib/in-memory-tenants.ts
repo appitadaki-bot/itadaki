@@ -10,6 +10,8 @@ interface Fila {
   paidUntil: Date | null;
   estrenado: boolean;
   plan: string | null;
+  /** Puntos porcentuales de descuento por pagar en efectivo. */
+  descuento: number;
 }
 
 /**
@@ -23,6 +25,9 @@ interface Fila {
 export class InMemoryTenantStore {
   /** Compartidas entre instancias: cada guard construye su propio store. */
   private static readonly locales = new Map<string, Fila>();
+
+  /** Los ajustes de los locales que no están en el mapa, como el sembrado. */
+  private static readonly ajustes = new Map<string, number>();
 
   /** Los avisos de cobro ya aplicados, para no aplicar dos veces el mismo. */
   private static readonly avisos = new Set<string>();
@@ -39,6 +44,7 @@ export class InMemoryTenantStore {
   /** Vacía todo; sirve en los tests, donde el estado se filtraría entre casos. */
   static reset(): void {
     InMemoryTenantStore.locales.clear();
+    InMemoryTenantStore.ajustes.clear();
     InMemoryTenantStore.avisos.clear();
     InMemoryTenantStore.verificaciones.clear();
     InMemoryTenantStore.verificados.clear();
@@ -128,6 +134,31 @@ export class InMemoryTenantStore {
     return ok(InMemoryTenantStore.verificados.has(email.toLowerCase()));
   }
 
+  async descuentoEnEfectivo(tenantId: string): Promise<Result<number, TenantError>> {
+    const fila = InMemoryTenantStore.locales.get(tenantId);
+    if (fila !== undefined) return ok(fila.descuento);
+    return ok(InMemoryTenantStore.ajustes.get(tenantId) ?? 0);
+  }
+
+  /**
+   * Guarda el descuento, incluso del local sembrado.
+   *
+   * El de demostración no está en este mapa —nadie lo registró— así que sin
+   * esto guardar no hacía nada y el ajuste se perdía en silencio, que es
+   * justo lo que hace imposible probarlo.
+   */
+  async guardarDescuento(tenantId: string, puntos: number): Promise<Result<void, TenantError>> {
+    const fila = InMemoryTenantStore.locales.get(tenantId);
+
+    if (fila === undefined) {
+      InMemoryTenantStore.ajustes.set(tenantId, puntos);
+      return ok(undefined);
+    }
+
+    fila.descuento = puntos;
+    return ok(undefined);
+  }
+
   async takenSlugs(prefix: string): Promise<Result<ReadonlySet<string>, TenantError>> {
     const usados = new Set(
       [...InMemoryTenantStore.locales.values()]
@@ -163,6 +194,7 @@ export class InMemoryTenantStore {
       paidUntil: null,
       estrenado: false,
       plan: null,
+      descuento: 0,
     });
 
     const owner = {

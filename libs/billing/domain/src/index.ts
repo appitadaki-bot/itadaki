@@ -25,3 +25,11 @@ export {
 } from './lib/bill-split';
 export { type Tip, type TipError, NO_TIP, TIP_PRESETS, tipAmount, totalWithTip } from './lib/tip';
 export { distributeTip } from './lib/tip-distribution';
+export {
+  type DescuentoEnEfectivo,
+  type DescuentoError,
+  aplicaA,
+  consumoConDescuento,
+  descuentoDe,
+  montoDelDescuento,
+} from './lib/descuento';
