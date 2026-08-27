@@ -640,36 +640,79 @@ const ROLE_NAMES: Record<string, string> = {
       @if (activeTab() === 'resenas') {
         <section class="panel">
           <h2 class="panel-title">Reseñas de Google</h2>
+          <p class="panel-lede">
+            Cuando la mesa termina de pagar, el mismo teléfono con el que pidió
+            le ofrece dejar la reseña. Es el único momento del día en que el
+            cliente está conforme, con el teléfono en la mano y la comida
+            fresca en la memoria — un cartelito en la mesa no compite con eso.
+          </p>
 
-          <!-- Todavía no está construido. Se anuncia acá, y no como algo que
-               ya anda, porque un botón que promete y no hace es peor que no
-               tenerlo: el que lo toca deja de creer el resto del panel. -->
-          <div class="soon">
-            <p class="soon-badge">Lo estamos terminando</p>
-            <p class="soon-lede">
-              Cuando la mesa termina de pagar, el mismo teléfono con el que pidió
-              le va a ofrecer dejar la reseña en Google.
+          <label class="campo">
+            <span class="campo-label">Tu link de reseñas de Google</span>
+            <input
+              type="url"
+              class="campo-input"
+              placeholder="https://g.page/r/…/review"
+              [value]="resenaUrl()"
+              (input)="cambiarResena($event)"
+            />
+          </label>
+
+          <!-- Dónde encontrarlo. Sin esto, el paso uno es googlear "cómo
+               conseguir mi link de reseñas", y ahí se pierde la mitad. -->
+          <details class="ayuda">
+            <summary>¿De dónde saco ese link?</summary>
+            <ol class="ayuda-pasos">
+              <li>Entrá a tu <strong>Perfil de Empresa de Google</strong>.</li>
+              <li>Buscá <strong>Pedir reseñas</strong> o <strong>Compartir</strong>.</li>
+              <li>Copiá el link corto que te da y pegalo acá.</li>
+            </ol>
+            <p class="ayuda-nota">
+              También sirve el que sale al buscar tu local en Google y tocar
+              "Escribir una reseña".
             </p>
-            <p class="soon-why">
-              Es el único momento del día en que el cliente está conforme, con el
-              teléfono en la mano y la comida fresca en la memoria. Un cartelito
-              en la mesa no compite con eso.
-            </p>
+          </details>
 
-            <div class="soon-side">
-              <p class="soon-steps-title">Cómo va a funcionar</p>
-              <ol class="soon-steps">
-                <li>Conectás tu ficha de Google una sola vez.</li>
-                <li>La mesa paga y le aparece el pedido de reseña.</li>
-                <li>Ves acá cuántas entraron y con cuántas estrellas.</li>
-              </ol>
+          <div class="descuento-fila">
+            <button
+              type="button"
+              class="create"
+              [disabled]="guardandoResena() || resenaUrl() === resenaGuardada()"
+              (click)="guardarResena()"
+            >
+              {{ guardandoResena() ? 'Guardando…' : 'Guardar' }}
+            </button>
 
-              <button type="button" class="secondary" disabled>
-                Conectar con Google — en camino
-              </button>
-              <p class="soon-note">Te avisamos apenas esté. No tiene costo extra.</p>
-            </div>
+            @if (resenaGuardada() !== '') {
+              <a class="secondary" [href]="resenaGuardada()" target="_blank" rel="noopener">
+                Probar el link →
+              </a>
+            }
           </div>
+
+          @if (resenaError(); as error) {
+            <p class="error" role="alert">{{ error }}</p>
+          }
+
+          <!-- Cuántas veces se ofreció y cuántas se tocó. Cuántas reseñas
+               entraron de verdad lo ve el dueño en su propio Google: decirlo
+               acá sería inventar un número que él puede contrastar. -->
+          @if (resenaOfrecidas() > 0) {
+            <div class="resena-numeros">
+              <p class="resena-dato">
+                <strong>{{ resenaOfrecidas() }}</strong> veces se ofreció
+              </p>
+              <p class="resena-dato">
+                <strong>{{ resenaTocadas() }}</strong> tocaron el botón
+                <span class="resena-tasa">({{ tasaDeResenas() }}%)</span>
+              </p>
+            </div>
+          } @else if (resenaGuardada() !== '') {
+            <p class="descuento-ejemplo apagado">
+              Todavía no se ofreció a ninguna mesa. Aparece cuando el mozo
+              cierra una cuenta.
+            </p>
+          }
         </section>
       }
     </div>
@@ -2121,6 +2164,61 @@ export class AdminComponent {
     currency: this.ejemploConsumo.currency,
   }));
 
+  /* ── Las reseñas de Google ── */
+
+  protected readonly resenaUrl = signal('');
+  protected readonly resenaGuardada = signal('');
+  protected readonly guardandoResena = signal(false);
+  protected readonly resenaError = signal<string | null>(null);
+  protected readonly resenaOfrecidas = signal(0);
+  protected readonly resenaTocadas = signal(0);
+
+  /** Qué porcentaje de los que lo vieron lo tocó. */
+  protected readonly tasaDeResenas = computed(() => {
+    const vistas = this.resenaOfrecidas();
+    return vistas === 0 ? 0 : Math.round((this.resenaTocadas() / vistas) * 100);
+  });
+
+  protected cambiarResena(evento: Event): void {
+    this.resenaUrl.set((evento.target as HTMLInputElement).value);
+    this.resenaError.set(null);
+  }
+
+  protected async guardarResena(): Promise<void> {
+    this.guardandoResena.set(true);
+    this.resenaError.set(null);
+
+    try {
+      const respuesta = await fetch(`${API}/ajustes/resenas`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
+        body: JSON.stringify({ url: this.resenaUrl() }),
+      });
+
+      if (!respuesta.ok) {
+        // El error dice qué está mal con el link, no "algo falló": quien pegó
+        // la dirección de su web tiene que saber que ése es el problema.
+        const detalle = (await respuesta.json().catch(() => null)) as { kind?: string } | null;
+        this.resenaError.set(
+          detalle?.kind === 'NO_ES_DE_GOOGLE'
+            ? 'Ese link no es de Google. Copialo desde tu Perfil de Empresa.'
+            : detalle?.kind === 'NO_ES_UNA_URL'
+              ? 'Eso no parece un link. Tiene que empezar con https://'
+              : 'No pudimos guardarlo. Probá de nuevo.',
+        );
+        return;
+      }
+
+      const { resenaUrl } = (await respuesta.json()) as { resenaUrl: string | null };
+      this.resenaGuardada.set(resenaUrl ?? '');
+      this.resenaUrl.set(resenaUrl ?? '');
+    } catch {
+      this.resenaError.set('Sin conexión. Fijate la red y probá de nuevo.');
+    } finally {
+      this.guardandoResena.set(false);
+    }
+  }
+
   protected cambiarDescuento(evento: Event): void {
     const valor = Number((evento.target as HTMLInputElement).value);
     // Se acota acá y no sólo al guardar: escribir 500 y ver 500 hasta tocar
@@ -2134,9 +2232,18 @@ export class AdminComponent {
       const respuesta = await fetch(`${API}/ajustes`, { headers: this.auth.headers() });
       if (!respuesta.ok) return;
 
-      const { descuentoEfectivo } = (await respuesta.json()) as { descuentoEfectivo: number };
-      this.descuento.set(descuentoEfectivo);
-      this.descuentoGuardado.set(descuentoEfectivo);
+      const ajustes = (await respuesta.json()) as {
+        descuentoEfectivo: number;
+        resenaUrl: string | null;
+        resenaOfrecidas: number;
+        resenaTocadas: number;
+      };
+      this.descuento.set(ajustes.descuentoEfectivo);
+      this.descuentoGuardado.set(ajustes.descuentoEfectivo);
+      this.resenaUrl.set(ajustes.resenaUrl ?? '');
+      this.resenaGuardada.set(ajustes.resenaUrl ?? '');
+      this.resenaOfrecidas.set(ajustes.resenaOfrecidas);
+      this.resenaTocadas.set(ajustes.resenaTocadas);
     } catch {
       // Sin conexión el formulario queda en cero: no se anuncia un descuento
       // que no sabemos si existe.

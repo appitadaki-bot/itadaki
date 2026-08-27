@@ -167,3 +167,42 @@
 .line.ahorrado .amount {
   font-weight: 700;
 }
+
+/*
+ * El pedido de reseña, después de pagar.
+ *
+ * En el color de la marca y no en verde: el verde de esta pantalla significa
+ * "ya está hecho" —la cuenta cerrada, el descuento aplicado— y esto es algo
+ * que todavía falta hacer. Pintar de verde un pedido lo haría parecer
+ * cumplido.
+ */
+.cta.resena {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.85rem;
+  text-decoration: none;
+  background: var(--itadaki-accent);
+  color: white;
+  border: none;
+}
+
+@media (hover: hover) {
+  .cta.resena:hover {
+    background: var(--itadaki-accent-hover);
+  }
+}
+
+.cta.resena:active {
+  transform: scale(0.98);
+}
+
+/* Cuánto cuesta el favor que se está pidiendo: "menos de un minuto" es lo que
+   decide entre tocarlo y dejarlo para después, que es no hacerlo nunca. */
+.resena-nota {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--itadaki-ink-subtle);
+}

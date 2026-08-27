@@ -361,6 +361,78 @@ export class PostgresTenantStore {
     }
   }
 
+  /**
+   * El link de reseñas del local, y cuántas veces se ofreció y se tocó.
+   *
+   * Un fallo de lectura devuelve el link en null, que apaga el pedido: mejor
+   * no ofrecer la reseña que mandar a un cliente conforme a un link roto.
+   */
+  async resenas(
+    tenantId: string,
+  ): Promise<Result<{ url: string | null; asks: number; taps: number }, TenantError>> {
+    try {
+      const fila = await this.db.unscoped(async (client) => {
+        const result = await client.query<{
+          google_review_url: string | null;
+          review_asks: number;
+          review_taps: number;
+        }>(
+          'SELECT google_review_url, review_asks, review_taps FROM tenants WHERE id = $1',
+          [tenantId],
+        );
+        return result.rows[0];
+      });
+
+      return ok({
+        url: fila?.google_review_url ?? null,
+        asks: fila?.review_asks ?? 0,
+        taps: fila?.review_taps ?? 0,
+      });
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /** Lo pega el dueño desde el panel. `null` deja de ofrecerlo. */
+  async guardarResenas(tenantId: string, url: string | null): Promise<Result<void, TenantError>> {
+    try {
+      await this.db.unscoped(async (client) => {
+        await client.query('UPDATE tenants SET google_review_url = $2 WHERE id = $1', [
+          tenantId,
+          url,
+        ]);
+      });
+      return ok(undefined);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /**
+   * Suma uno al contador de veces que se ofreció, o que se tocó.
+   *
+   * `UPDATE ... + 1` en vez de leer y escribir: dos mesas que cierran a la vez
+   * se pisarían si el número viajara al servidor de aplicación y volviera.
+   */
+  async contarResena(tenantId: string, cual: 'ask' | 'tap'): Promise<Result<void, TenantError>> {
+    // El nombre de la columna no puede ir como parámetro, así que se arma
+    // desde un literal y nunca desde lo que llegó por la red: `cual` está
+    // acotado a dos valores por el tipo, y acá se traduce a uno de dos
+    // nombres fijos.
+    const columna = cual === 'ask' ? 'review_asks' : 'review_taps';
+    try {
+      await this.db.unscoped(async (client) => {
+        await client.query(
+          `UPDATE tenants SET ${columna} = ${columna} + 1 WHERE id = $1`,
+          [tenantId],
+        );
+      });
+      return ok(undefined);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   /** Slugs already in use, so signup can pick a free one. */
   async takenSlugs(prefix: string): Promise<Result<ReadonlySet<string>, TenantError>> {
     try {

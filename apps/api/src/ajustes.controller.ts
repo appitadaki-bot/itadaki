@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Patch } from '@nestjs/common';
 import { descuentoDe } from '@itadaki/billing/domain';
+import { linkDeResena } from '@itadaki/identity/domain';
 import { z } from 'zod';
 import { Public, RequirePermission, Scope, TenantId, type DinerScope, TableScoped } from './auth';
 import { TenantsService } from './tenants.service';
@@ -33,7 +34,77 @@ export class AjustesController {
     if (puntos.isErr()) {
       throw new HttpException(puntos.error, HttpStatus.BAD_GATEWAY);
     }
-    return { descuentoEfectivo: puntos.value };
+    const resenas = await this.tenants.store.resenas(tenantId);
+
+    return {
+      descuentoEfectivo: puntos.value,
+      resenaUrl: resenas.isOk() ? resenas.value.url : null,
+      // Cuántas veces se ofreció y cuántas se tocó: es lo único que podemos
+      // medir sin permiso de Google sobre la ficha, y responde la pregunta
+      // que importa — si el botón sirve o lo ignoran.
+      resenaOfrecidas: resenas.isOk() ? resenas.value.asks : 0,
+      resenaTocadas: resenas.isOk() ? resenas.value.taps : 0,
+    };
+  }
+
+  @RequirePermission('menu:write')
+  @Patch('resenas')
+  async guardarResenas(@Body() body: unknown, @TenantId() tenantId: string) {
+    const parsed = z.object({ url: z.string().max(500) }).safeParse(body);
+    if (!parsed.success) {
+      throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
+    }
+
+    // Vacío es dejar de pedirlas, que es distinto de un link mal escrito.
+    if (parsed.data.url.trim() === '') {
+      const borrado = await this.tenants.store.guardarResenas(tenantId, null);
+      if (borrado.isErr()) {
+        throw new HttpException(borrado.error, HttpStatus.BAD_GATEWAY);
+      }
+      return { resenaUrl: null };
+    }
+
+    const valido = linkDeResena(parsed.data.url);
+    if (valido.isErr()) {
+      throw new HttpException(valido.error, HttpStatus.BAD_REQUEST);
+    }
+
+    const guardado = await this.tenants.store.guardarResenas(tenantId, valido.value);
+    if (guardado.isErr()) {
+      throw new HttpException(guardado.error, HttpStatus.BAD_GATEWAY);
+    }
+    return { resenaUrl: valido.value };
+  }
+
+  /**
+   * Cuenta que alguien tocó el botón de reseñar.
+   *
+   * Lo llama el teléfono del comensal, así que no puede pedir sesión. Es un
+   * contador y nada más: lo peor que puede hacer alguien que lo llame de más
+   * es inflar su propia estadística.
+   */
+  /**
+   * Cuenta que la mesa vio el pedido de reseña.
+   *
+   * Lo llama la pantalla al mostrarlo, y no el servidor al cerrar la mesa,
+   * porque lo que interesa medir es cuántas personas lo vieron: una mesa de
+   * cuatro con el pedido en cuatro teléfonos son cuatro oportunidades, no
+   * una. El porcentaje de tocadas sobre eso es lo que dice si sirve.
+   */
+  @Public()
+  @TableScoped()
+  @Patch('resenas/ofrecida')
+  async resenaOfrecida(@Scope() scope: DinerScope) {
+    await this.tenants.store.contarResena(scope.tenantId, 'ask');
+    return { ok: true };
+  }
+
+  @Public()
+  @TableScoped()
+  @Patch('resenas/tocada')
+  async resenaTocada(@Scope() scope: DinerScope) {
+    await this.tenants.store.contarResena(scope.tenantId, 'tap');
+    return { ok: true };
   }
 
   @RequirePermission('menu:write')
@@ -73,6 +144,13 @@ export class AjustesController {
     const puntos = await this.tenants.store.descuentoEnEfectivo(scope.tenantId);
     // Un fallo de lectura devuelve cero en vez de un error: la cuenta tiene
     // que poder mostrarse igual, sólo que sin anunciar el descuento.
-    return { descuentoEfectivo: puntos.isOk() ? puntos.value : 0 };
+    const resenas = await this.tenants.store.resenas(scope.tenantId);
+
+    return {
+      descuentoEfectivo: puntos.isOk() ? puntos.value : 0,
+      // Sin link no se ofrece nada: mejor eso que mandar a un cliente
+      // conforme a una página rota.
+      resenaUrl: resenas.isOk() ? resenas.value.url : null,
+    };
   }
 }
