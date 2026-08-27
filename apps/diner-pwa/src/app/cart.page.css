@@ -247,6 +247,15 @@
   margin-bottom: 0.35rem;
 }
 
+/* Todos los botones del pie centran su texto igual: uno con el texto corrido
+   al lado de otro centrado se lee como un error de alineación. */
+.foot .cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 .cta {
   width: 100%;
   background: var(--itadaki-accent);
@@ -259,9 +268,6 @@
   font-size: 0.9rem;
   cursor: pointer;
   box-shadow: var(--itadaki-shadow-cta-accent);
-  /* Espacio para el timbre, que flota sobre la esquina derecha: sin esto el
-     texto pasa por debajo del botón cuando la mesa tiene un llamado abierto. */
-  padding-right: 4rem;
 }
 
 /*
@@ -277,8 +283,6 @@
   color: var(--itadaki-accent-deep);
   border: 1px solid var(--itadaki-accent-line);
   box-shadow: none;
-  /* No hay timbre encima de este: recupera su espacio. */
-  padding-right: 1rem;
 }
 
 @media (hover: hover) {
@@ -544,9 +548,22 @@
  */
 .head-row {
   display: flex;
-  align-items: center;
+  /* Alineados por arriba, no por el centro: el botón de volver trae su propio
+     margen inferior —lo necesita cuando está solo— y eso empujaba a la cuenta
+     media altura hacia abajo. */
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+/* El margen ya lo pone la fila: dejarlo también en el botón lo duplica. */
+.head-row itd-back {
+  display: block;
+}
+
+.head-row :is(itd-back, .ir-a-la-cuenta) {
+  margin-bottom: 0;
 }
 
 /*
@@ -557,6 +574,12 @@
  */
 .ir-a-la-cuenta {
   flex-shrink: 0;
+  /* La misma altura y el mismo relleno que el botón de volver: en la misma
+     fila, dos pastillas de distinto alto se leen como un error. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
   padding: 0.5rem 0.95rem;
   border-radius: var(--itadaki-radius-pill);
   border: 1px solid var(--itadaki-accent-line);
@@ -589,6 +612,15 @@
  * Cuando la mesa ya envió, esto es lo único que queda por hacer: no hay otra
  * acción con la que competir, así que puede pesar como la principal.
  */
+/*
+ * Seguir el pedido, en negro.
+ *
+ * Cuando la mesa ya envió, esto es lo único que queda por hacer: no hay otra
+ * acción con la que competir, así que puede pesar como la principal.
+ *
+ * Va después de `.cta-link` a propósito — los dos podían aplicarse al mismo
+ * botón y el contorno le ganaba, dejándolo transparente.
+ */
 .cta.cta-seguir {
   display: flex;
   align-items: center;
@@ -606,36 +638,68 @@
 }
 
 /*
- * El aviso de que otro envió, flotando sobre la lista.
+ * El aviso de que el pedido salió, sobre la lista.
  *
  * Es una noticia, no una acción: en el pie quedaba amontonada con los botones
  * y empujaba el total. Acá aparece donde la persona está mirando —los platos
  * que acaban de desaparecer— sin mover nada de lugar.
+ *
+ * Centrado con `inset` y `margin: auto` en vez de `left: 50%` más un
+ * `translate`: la traslación se peleaba con la animación de entrada, que
+ * también usa `transform`, y el cartel terminaba corrido hacia un costado.
  */
 .aviso-flotante {
   position: fixed;
-  left: 50%;
-  top: 40%;
-  transform: translate(-50%, -50%);
+  inset: 0;
   z-index: 30;
+  width: max-content;
   max-width: min(20rem, calc(100vw - 3rem));
-  margin: 0;
-  padding: 0.85rem 1.1rem;
+  height: max-content;
+  margin: auto;
+  padding: 1rem 1.1rem 0.85rem;
   border-radius: var(--itadaki-radius-card);
   background: var(--itadaki-status-ready-bg);
   border: 1px solid var(--itadaki-status-ready);
   color: var(--itadaki-status-ready-fg);
-  font-size: 0.85rem;
+  box-shadow: var(--itadaki-shadow-panel);
+  text-align: center;
+}
+
+.aviso-texto {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
   font-weight: 600;
   line-height: 1.45;
-  text-align: center;
-  box-shadow: var(--itadaki-shadow-panel);
-  /* No intercepta toques: es un cartel, y debajo hay una lista que se usa. */
-  pointer-events: none;
+}
+
+/*
+ * Cerrarlo a mano.
+ *
+ * Se va solo a los doce segundos, pero quien ya lo leyó no tiene por qué
+ * esperar — y quien lo quiere releer con calma tampoco tiene por qué perderlo
+ * mientras lo está mirando.
+ */
+.aviso-cerrar {
+  border: 1px solid var(--itadaki-status-ready);
+  background: transparent;
+  border-radius: var(--itadaki-radius-pill);
+  padding: 0.4rem 1.1rem;
+  min-height: 36px;
+  font-family: var(--itadaki-font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--itadaki-status-ready-fg);
+  cursor: pointer;
+  transition: background var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.aviso-cerrar:active {
+  background: color-mix(in oklab, var(--itadaki-status-ready) 20%, transparent);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .aviso-flotante {
-    animation: itadaki-pop-in var(--itadaki-settle) var(--itadaki-ease-out) both;
+    animation: itadaki-appear var(--itadaki-settle) var(--itadaki-ease-out) both;
   }
 }
+

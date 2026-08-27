@@ -57,10 +57,11 @@ import { TrackingStore } from './tracking.store';
          y abajo quedaba amontonada con los botones. Acá aparece donde la
          persona está mirando —los platos que acaban de desaparecer— y se va
          solo. -->
-    @if (sentByOther()) {
-      <p class="aviso-flotante" role="status">
-        Alguien de la mesa envió el pedido a la cocina
-      </p>
+    @if (aviso(); as texto) {
+      <div class="aviso-flotante" role="status">
+        <p class="aviso-texto">{{ texto }}</p>
+        <button type="button" class="aviso-cerrar" (click)="cerrarAviso()">Entendido</button>
+      </div>
     }
 
     @if (session.isJoined()) {
@@ -153,10 +154,7 @@ import { TrackingStore } from './tracking.store';
         @if (orders.submitState(); as state) {
           @switch (state.kind) {
             @case ('sent') {
-              <p class="sent-note" role="status">
-                Pedido enviado · la cocina ya lo está viendo
-              </p>
-              <a class="cta cta-link" routerLink="/estado" (click)="afterSend()">
+              <a class="cta cta-seguir" routerLink="/estado" (click)="afterSend()">
                 Seguir mi pedido →
               </a>
             }
@@ -252,10 +250,7 @@ import { TrackingStore } from './tracking.store';
         @if (orders.submitState(); as state) {
           @switch (state.kind) {
             @case ('sent') {
-              <p class="sent-note" role="status">
-                Pedido enviado · la cocina ya lo está viendo
-              </p>
-              <a class="cta cta-link" routerLink="/estado" (click)="startNew()">
+              <a class="cta cta-seguir" routerLink="/estado" (click)="startNew()">
                 Seguir mi pedido →
               </a>
             }
@@ -408,22 +403,46 @@ export class CartPage {
   private readonly watchCart = effect(() => {
     if (this.tableLineCount() > 0) {
       this.hadLines.set(true);
-      // Vuelve a estar disponible: si la mesa sigue pidiendo y otro envía de
+      // Vuelve a estar disponible: si la mesa sigue pidiendo y se envía de
       // nuevo, el aviso tiene que aparecer otra vez.
       this.avisoVisible.set(true);
     }
   });
 
   /**
-   * Apaga el aviso unos segundos después de aparecer.
+   * Qué dice el cartel, o `null` si no hay nada que avisar.
    *
-   * Como texto en el pie se podía quedar puesto; como cartel sobre la lista
-   * taparía los platos hasta que la persona cambie de pantalla.
+   * Los dos casos son la misma noticia —el pedido salió— y sólo cambia quién
+   * lo mandó. Un solo cartel evita que, si dos cosas pasan casi juntas, se
+   * apilen dos mensajes contándose lo mismo.
+   */
+  protected readonly aviso = computed<string | null>(() => {
+    if (!this.avisoVisible()) return null;
+
+    if (this.orders.submitState().kind === 'sent') {
+      return 'Pedido enviado · la cocina ya lo está viendo';
+    }
+    if (this.sentByOther()) {
+      return 'Alguien de la mesa envió el pedido a la cocina';
+    }
+    return null;
+  });
+
+  protected cerrarAviso(): void {
+    this.avisoVisible.set(false);
+  }
+
+  /**
+   * Apaga el aviso solo, pasado un rato.
+   *
+   * Doce segundos y no cinco: es tiempo de leerlo sin apuro con el teléfono
+   * en la mano y la conversación de la mesa alrededor. Igual se puede cerrar
+   * antes, que es lo que hace quien ya lo leyó.
    */
   private readonly ocultarAviso = effect((onCleanup) => {
-    if (!this.sentByOther()) return;
+    if (this.aviso() === null) return;
 
-    const reloj = setTimeout(() => this.avisoVisible.set(false), 6000);
+    const reloj = setTimeout(() => this.avisoVisible.set(false), 12_000);
     onCleanup(() => clearTimeout(reloj));
   });
 
