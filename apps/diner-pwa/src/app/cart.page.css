@@ -110,12 +110,15 @@
   margin: 0 0 0.4rem 2.1rem;
 }
 
+/* El espacio de abajo lo decide el pie, que acá crece bastante: dos totales,
+   uno o dos botones según lo que la mesa haya hecho, y a veces un aviso. Un
+   número fijo o tapa el último plato o deja un hueco enorme. */
 .list {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  padding: 0.75rem 18px 14rem;
+  padding: 0.75rem 18px calc(var(--itadaki-call-offset, 14rem) + 1rem);
 }
 
 .row {

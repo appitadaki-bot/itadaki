@@ -31,16 +31,22 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
       <!-- La mesa arriba a la derecha, en su rincón: es dónde estás sentado,
            no de qué trata la pantalla. "Estado" sobraba — el título y la línea
            de tiempo ya lo dicen. -->
+      <!-- Volver y la cuenta en la misma fila, como en el carrito: son las
+           dos salidas de esta pantalla, una hacia atrás y otra hacia el final. -->
       <div class="head-row">
         <itd-back to="/carta" label="La carta" />
-        <p class="eyebrow">
-          @if (session.tableLabel(); as mesa) { Mesa {{ mesa }} }
-          @if (session.connected()) {
-            <span class="live"><span class="live-dot" aria-hidden="true"></span>En vivo</span>
-          }
-        </p>
+        <a class="ir-a-la-cuenta" routerLink="/cuenta">Ver la cuenta →</a>
       </div>
-      <h1 class="title">Itadakimasu!</h1>
+
+      <!-- La mesa como título: "Itadakimasu!" es lindo pero no dice nada que
+           la persona necesite mientras espera su comida, y ocupaba el lugar
+           más visible de la pantalla. -->
+      <h1 class="title">
+        @if (session.tableLabel(); as mesa) { Mesa {{ mesa }} } @else { Tu pedido }
+        @if (session.connected()) {
+          <span class="live"><span class="live-dot" aria-hidden="true"></span>En vivo</span>
+        }
+      </h1>
     </header>
 
     @if (store.hasOrders()) {
@@ -105,7 +111,6 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
 
       <footer class="foot" #pie>
         <a class="cta cta-link" routerLink="/carta">Seguir pidiendo</a>
-        <a class="cta cta-cuenta" routerLink="/cuenta">Ver la cuenta →</a>
       </footer>
     } @else {
       <!-- "No mandaste nada" solo cuando el servidor ya contesto.
