@@ -11,45 +11,25 @@ export interface CropBox {
   readonly size: number;
 }
 
-/** Focal point in normalised coordinates relative to the *crop box*. */
-export interface FocalPoint {
-  readonly x: number;
-  readonly y: number;
-}
-
-export interface DepthOfField {
-  readonly focal: FocalPoint;
-  /** Fraction of the crop that stays sharp. */
-  readonly sharpRadius: number;
-  /** 0 = no blur, 1 = maximum defocus outside the radius. */
-  readonly blurIntensity: number;
-}
-
-export interface Adjustments {
-  /** Unsharp mask amount; 0 disables sharpening. */
-  readonly sharpen: number;
-  /** Multipliers where 1 is unchanged. */
-  readonly brightness: number;
-  readonly saturation: number;
-}
-
+/**
+ * Lo único que el editor decide: qué parte de la foto se ve.
+ *
+ * Supo llevar también profundidad de campo y ajustes de brillo, saturación y
+ * nitidez. Nadie los cargaba: el editor de la carta se dejó en recortar y
+ * mover, así que llegaban siempre en su valor neutro y el renderizador hacía
+ * el trabajo de no hacer nada.
+ */
 export interface ImageEditParams {
   readonly crop: CropBox;
-  readonly depthOfField: DepthOfField | null;
-  readonly adjustments: Adjustments;
 }
 
-export type ImageEditError =
-  | { readonly kind: 'CROP_OUT_OF_BOUNDS'; readonly field: string; readonly value: number }
-  | { readonly kind: 'VALUE_OUT_OF_RANGE'; readonly field: string; readonly value: number };
+export type ImageEditError = {
+  readonly kind: 'CROP_OUT_OF_BOUNDS';
+  readonly field: string;
+  readonly value: number;
+};
 
 const inUnit = (value: number): boolean => Number.isFinite(value) && value >= 0 && value <= 1;
-
-export const DEFAULT_ADJUSTMENTS: Adjustments = {
-  sharpen: 0,
-  brightness: 1,
-  saturation: 1,
-};
 
 /** Centred square crop covering as much of the frame as the aspect allows. */
 export function defaultCrop(): CropBox {
@@ -62,7 +42,7 @@ export function defaultCrop(): CropBox {
  * pipeline, so it is rejected here where the error is still meaningful.
  */
 export function validateEditParams(params: ImageEditParams): Result<ImageEditParams, ImageEditError> {
-  const { crop, depthOfField, adjustments } = params;
+  const { crop } = params;
 
   for (const [field, value] of [
     ['crop.x', crop.x],
@@ -79,31 +59,6 @@ export function validateEditParams(params: ImageEditParams): Result<ImageEditPar
   }
   if (crop.x + crop.size > 1.0001 || crop.y + crop.size > 1.0001) {
     return err({ kind: 'CROP_OUT_OF_BOUNDS', field: 'crop', value: crop.size });
-  }
-
-  if (depthOfField !== null) {
-    for (const [field, value] of [
-      ['focal.x', depthOfField.focal.x],
-      ['focal.y', depthOfField.focal.y],
-      ['sharpRadius', depthOfField.sharpRadius],
-      ['blurIntensity', depthOfField.blurIntensity],
-    ] as const) {
-      if (!inUnit(value)) {
-        return err({ kind: 'VALUE_OUT_OF_RANGE', field, value });
-      }
-    }
-  }
-
-  if (!Number.isFinite(adjustments.sharpen) || adjustments.sharpen < 0 || adjustments.sharpen > 5) {
-    return err({ kind: 'VALUE_OUT_OF_RANGE', field: 'sharpen', value: adjustments.sharpen });
-  }
-  for (const [field, value] of [
-    ['brightness', adjustments.brightness],
-    ['saturation', adjustments.saturation],
-  ] as const) {
-    if (!Number.isFinite(value) || value < 0.1 || value > 3) {
-      return err({ kind: 'VALUE_OUT_OF_RANGE', field, value });
-    }
   }
 
   return ok(params);

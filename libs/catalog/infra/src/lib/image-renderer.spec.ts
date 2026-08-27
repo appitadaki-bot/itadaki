@@ -1,5 +1,4 @@
 import {
-  DEFAULT_ADJUSTMENTS,
   type ImageEditParams,
   VARIANT_WIDTHS,
   defaultCrop,
@@ -35,37 +34,9 @@ async function makeSource(width = 900, height = 600): Promise<Buffer> {
   return sharp(pixels, { raw: { width, height, channels: 3 } }).jpeg({ quality: 95 }).toBuffer();
 }
 
-/**
- * Standard deviation of the red channel over a region, measured on raw pixels.
- * sharp's `.extract().stats()` reports whole-image statistics here, so the
- * region has to be sampled directly for the assertion to mean anything.
- */
-async function regionSpread(
-  image: Buffer,
-  left: number,
-  top: number,
-  side: number,
-): Promise<number> {
-  const meta = await sharp(image).metadata();
-  const width = meta.width ?? 0;
-  const raw = await sharp(image).removeAlpha().raw().toBuffer();
-
-  const values: number[] = [];
-  for (let y = top; y < top + side; y += 1) {
-    for (let x = left; x < left + side; x += 1) {
-      values.push(raw[(y * width + x) * 3] ?? 0);
-    }
-  }
-  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-  const variance =
-    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
-  return Math.sqrt(variance);
-}
 
 const params = (overrides: Partial<ImageEditParams> = {}): ImageEditParams => ({
   crop: defaultCrop(),
-  depthOfField: null,
-  adjustments: DEFAULT_ADJUSTMENTS,
   ...overrides,
 });
 
@@ -175,43 +146,6 @@ describe('renderImageSet', () => {
     expect(b).toBeDefined();
     // Different framing must yield different pixels.
     expect(Buffer.compare(a as Buffer, b as Buffer)).not.toBe(0);
-  });
-
-  it('applies depth of field so the focal area stays sharper than the edge', async () => {
-    const source = await makeSource();
-    const rendered = await renderImageSet(
-      source,
-      params({
-        depthOfField: { focal: { x: 0.25, y: 0.25 }, sharpRadius: 0.15, blurIntensity: 0.9 },
-      }),
-    );
-
-    const variant = rendered.variants.find((v) => v.width === 600 && v.format === 'jpeg');
-    expect(variant).toBeDefined();
-
-    // Blur destroys local contrast, so the in-focus region keeps a markedly
-    // higher spread than the defocused corner.
-    const data = variant?.data as Buffer;
-    const focalSpread = await regionSpread(data, 90, 90, 120);
-    const farSpread = await regionSpread(data, 440, 440, 120);
-
-    expect(focalSpread).toBeGreaterThan(farSpread * 1.5);
-  });
-
-  it('leaves the image untouched when blur intensity is zero', async () => {
-    const source = await makeSource();
-    const plain = await renderImageSet(source, params());
-    const zeroBlur = await renderImageSet(
-      source,
-      params({
-        depthOfField: { focal: { x: 0.5, y: 0.5 }, sharpRadius: 0.4, blurIntensity: 0 },
-      }),
-    );
-
-    const pick = (set: typeof plain) =>
-      set.variants.find((v) => v.width === 300 && v.format === 'jpeg')?.data as Buffer;
-
-    expect(Buffer.compare(pick(plain), pick(zeroBlur))).toBe(0);
   });
 
   it('strips EXIF metadata from the output', async () => {

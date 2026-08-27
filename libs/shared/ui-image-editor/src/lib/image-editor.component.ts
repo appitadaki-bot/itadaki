@@ -10,7 +10,6 @@ import {
   viewChild,
 } from '@angular/core';
 import {
-  DEFAULT_ADJUSTMENTS,
   type ImageEditParams,
   type LumaGrid,
   proposeFrame,
@@ -54,30 +53,15 @@ const ANALYSIS_WIDTH = 160;
           <div class="grid" aria-hidden="true"></div>
         </div>
 
+        <!-- Dice qué se está viendo y, de paso, por qué "Aplicar" está
+             apagado: la foto se puede arrastrar en pantalla, pero recortar de
+             nuevo necesita el archivo original, que no lo tenemos. -->
         @if (showingExisting()) {
           <p class="existing-note" role="status">
-            Foto actual de este plato · elegí otra para reemplazarla
+            Ésta es la foto guardada · subí otra para reemplazarla
           </p>
         } @else if (autoFramed()) {
           <p class="auto-note" role="status">Encuadre sugerido automáticamente · movelo si querés</p>
-        }
-        <p class="hint">
-          @if (canPan()) {
-            Arrastrá la foto para encuadrarla · rueda para hacer zoom
-          } @else {
-            Hacé zoom para poder mover el encuadre
-          }
-        </p>
-
-        @if (showingExisting()) {
-          <!--
-            Sin esto el botón quedaba gris sin motivo visible: la foto se podía
-            arrastrar y hacer zoom en pantalla, pero aplicar no hacía nada y
-            nada explicaba por qué.
-          -->
-          <p class="editor-nota">
-            Ésta es la foto guardada. Para recortarla de nuevo, subila otra vez.
-          </p>
         }
 
         <div class="actions">
@@ -371,11 +355,7 @@ export class ImageEditorComponent {
 
     this.applied.emit({
       file: this.file,
-      params: {
-        crop: { x: clamp(centreX), y: clamp(centreY), size },
-        depthOfField: null,
-        adjustments: DEFAULT_ADJUSTMENTS,
-      },
+      params: { crop: { x: clamp(centreX), y: clamp(centreY), size } },
     });
   }
 }

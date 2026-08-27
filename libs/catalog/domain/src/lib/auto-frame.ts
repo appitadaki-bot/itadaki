@@ -1,4 +1,4 @@
-import { type CropBox, type FocalPoint } from './image-edit';
+import { type CropBox } from './image-edit';
 
 /** Grayscale luminance grid sampled from the source image. */
 export interface LumaGrid {
@@ -9,7 +9,6 @@ export interface LumaGrid {
 
 export interface FrameProposal {
   readonly crop: CropBox;
-  readonly focal: FocalPoint;
 }
 
 const at = (grid: LumaGrid, x: number, y: number): number =>
@@ -73,8 +72,7 @@ function windowSum(
 }
 
 /**
- * Proposes a square crop centred on the busiest part of the image, plus a
- * focal point at its centre of mass.
+ * Proposes a square crop centred on the busiest part of the image.
  *
  * The window covers the shorter side so nothing is discarded unnecessarily;
  * the search only decides where to slide it. Returned coordinates are
@@ -84,7 +82,7 @@ export function proposeFrame(grid: LumaGrid): FrameProposal {
   const side = Math.min(grid.width, grid.height);
 
   if (side < 3) {
-    return { crop: { x: 0, y: 0, size: 1 }, focal: { x: 0.5, y: 0.5 } };
+    return { crop: { x: 0, y: 0, size: 1 } };
   }
 
   const scores = saliency(grid);
@@ -114,28 +112,6 @@ export function proposeFrame(grid: LumaGrid): FrameProposal {
   const cropLeft = horizontal ? bestOffset : 0;
   const cropTop = horizontal ? 0 : bestOffset;
 
-  // Centre of mass of the detail inside the chosen window.
-  let weighted = 0;
-  let weightedX = 0;
-  let weightedY = 0;
-
-  for (let y = cropTop; y < cropTop + side; y += 1) {
-    for (let x = cropLeft; x < cropLeft + side; x += 1) {
-      const score = scores[y * grid.width + x] ?? 0;
-      weighted += score;
-      weightedX += score * (x - cropLeft);
-      weightedY += score * (y - cropTop);
-    }
-  }
-
-  const focal: FocalPoint =
-    weighted === 0
-      ? { x: 0.5, y: 0.5 }
-      : {
-          x: Math.min(1, Math.max(0, weightedX / weighted / side)),
-          y: Math.min(1, Math.max(0, weightedY / weighted / side)),
-        };
-
   // `size` is a fraction of the shorter side, matching the render pipeline;
   // a full-height window on a landscape photo is therefore 1.
   return {
@@ -144,6 +120,5 @@ export function proposeFrame(grid: LumaGrid): FrameProposal {
       y: cropTop / grid.height,
       size: 1,
     },
-    focal,
   };
 }
