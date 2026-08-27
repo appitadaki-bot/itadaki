@@ -1,3 +1,4 @@
+import { type PaymentMethod } from '@itadaki/ordering/domain';
 import { type BillReader, type BillRepositoryError, type BillWriter } from '@itadaki/billing/application';
 import { type Bill } from '@itadaki/billing/domain';
 import { Money, type CurrencyCode, type Result, err, ok } from '@itadaki/shared/domain';
@@ -13,6 +14,8 @@ interface BillRow {
   session_id: string;
   currency: string;
   status: string | null;
+  cobrado_con: string | null;
+  descuento_minor: number | null;
   lines: Array<{ id: string; dinerId: string; name: string; quantity: number; unitTotal: MoneyJson }>;
   participants: Array<{ id: string; nickname: string; colorIndex: number }>;
   rates: Array<{ from: string; to: string; rate: number; source: string; capturedAt: string }>;
@@ -34,6 +37,8 @@ export class PostgresBillStore implements BillReader, BillWriter {
       // safe default: an open bill recalculates, it does not overwrite history.
       status: row.status === 'SETTLED' ? 'SETTLED' : 'OPEN',
       closedAt: new Date(row.closed_at),
+      cobradoCon: (row.cobrado_con as PaymentMethod | null) ?? null,
+      descuentoMinor: row.descuento_minor ?? 0,
       participants: row.participants,
       lines: row.lines.map((line) => ({
         id: line.id,
@@ -71,6 +76,49 @@ export class PostgresBillStore implements BillReader, BillWriter {
     }
   }
 
+  /**
+   * Cuánto se cobró con cada medio de pago, y cuánto se descontó.
+   *
+   * Sólo las cuentas cerradas: una abierta todavía puede cambiar. Las que se
+   * cobraron sin declarar el medio quedan agrupadas aparte, en vez de
+   * repartirse a ojo entre las otras — un número inventado en un reporte que
+   * el dueño cruza con su caja es peor que un hueco declarado.
+   */
+  async cobrosPorMedio(
+    tenantId: string,
+    desde: Date,
+  ): Promise<Result<ReadonlyArray<{ medio: string | null; cuentas: number; descuentoMinor: number }>, BillRepositoryError>> {
+    try {
+      const filas = await this.db.withTenant(tenantId, async (client) => {
+        const result = await client.query<{
+          cobrado_con: string | null;
+          cuentas: string;
+          descuento: string;
+        }>(
+          `SELECT cobrado_con,
+                  count(*) AS cuentas,
+                  COALESCE(sum(descuento_minor), 0) AS descuento
+             FROM bills
+            WHERE status = 'SETTLED'
+              AND closed_at >= $1
+            GROUP BY cobrado_con`,
+          [desde],
+        );
+        return result.rows;
+      });
+
+      return ok(
+        filas.map((fila) => ({
+          medio: fila.cobrado_con,
+          cuentas: Number(fila.cuentas),
+          descuentoMinor: Number(fila.descuento),
+        })),
+      );
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   async save(tenantId: string, bill: Bill): Promise<Result<Bill, BillRepositoryError>> {
     try {
       await this.db.withTenant(tenantId, async (client) => {
@@ -79,12 +127,14 @@ export class PostgresBillStore implements BillReader, BillWriter {
           // used to drop those updates silently, so a dessert ordered after
           // the bill was first asked for never reached the total.
           // The WHERE clause is the guard: once settled, nothing overwrites it.
-          `INSERT INTO bills (tenant_id, id, session_id, currency, status, lines, participants, rates, closed_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+          `INSERT INTO bills (tenant_id, id, session_id, currency, status, lines, participants, rates, closed_at, cobrado_con, descuento_minor)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
            ON CONFLICT (tenant_id, session_id) DO UPDATE SET
              status = EXCLUDED.status,
              lines = EXCLUDED.lines,
-             participants = EXCLUDED.participants
+             participants = EXCLUDED.participants,
+             cobrado_con = EXCLUDED.cobrado_con,
+             descuento_minor = EXCLUDED.descuento_minor
            WHERE bills.status <> 'SETTLED'`,
           [
             tenantId,
@@ -115,6 +165,8 @@ export class PostgresBillStore implements BillReader, BillWriter {
               })),
             ),
             bill.closedAt,
+            bill.cobradoCon ?? null,
+            bill.descuentoMinor ?? 0,
           ],
         );
       });

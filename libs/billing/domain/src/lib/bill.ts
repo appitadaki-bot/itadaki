@@ -1,3 +1,4 @@
+import { type PaymentMethod } from '@itadaki/ordering/domain';
 import { type CurrencyCode, type ExchangeRate, Money, type MoneyError, type Result, ok } from '@itadaki/shared/domain';
 
 /**
@@ -40,6 +41,29 @@ export interface Bill {
   /** Rate captured when the bill was raised, kept for dispute-proof display. */
   readonly rates: readonly ExchangeRate[];
   readonly closedAt: Date;
+
+  /**
+   * Con qué se cobró, según el mozo.
+   *
+   * Lo declara quien cobró, no la mesa: el comensal dice cómo *piensa* pagar
+   * antes de que el mozo llegue, y eso cambia — dice tarjeta y paga efectivo,
+   * o cuatro personas pagan cada una distinto. Un número que el dueño puede
+   * querer cruzar con su caja tiene que venir de quien tuvo la plata en la
+   * mano.
+   *
+   * `null` en las cuentas cobradas antes de que esto existiera, y en las que
+   * se liberan sin cobrar.
+   */
+  readonly cobradoCon?: PaymentMethod | null;
+
+  /**
+   * Cuánto se descontó por pagar en efectivo, en unidades menores.
+   *
+   * Se guarda el monto y no el porcentaje: el porcentaje del local puede
+   * cambiar mañana, y entonces las cuentas viejas dirían un descuento que no
+   * fue el que se hizo.
+   */
+  readonly descuentoMinor?: number;
 }
 
 export function isSettled(bill: Bill): boolean {

@@ -342,12 +342,15 @@ export class FloorStore {
    * El `settle` de la API cierra la sesión también, así que no hace falta
    * liberar aparte.
    */
-  async chargeTable(sessionId: string): Promise<void> {
+  async chargeTable(sessionId: string, cobradoCon?: 'CASH' | 'CARD'): Promise<void> {
     this.actionError.set(null);
     try {
       const response = await fetch(`${API}/bills/${sessionId}/settle`, {
         method: 'POST',
         headers: { ...this.auth.headers(), 'Content-Type': 'application/json' },
+        // Sin medio declarado el servidor lo guarda en null, que es "nadie lo
+        // dijo": mejor que inventar uno.
+        body: JSON.stringify(cobradoCon === undefined ? {} : { cobradoCon }),
       });
       if (this.auth.expired(response)) return;
 
