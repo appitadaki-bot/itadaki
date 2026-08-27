@@ -20,4 +20,9 @@ CREATE INDEX IF NOT EXISTS password_resets_user
 -- Reset happens before anyone is signed in, so this table cannot be read
 -- through a tenant-scoped connection. It is written and read by the app role
 -- directly, and every row is found by a digest nobody can guess.
-GRANT SELECT, INSERT, UPDATE, DELETE ON password_resets TO itadaki_app;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'itadaki_app') THEN
+    GRANT SELECT, INSERT, UPDATE, DELETE ON password_resets TO itadaki_app;
+  END IF;
+END $$;
