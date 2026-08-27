@@ -211,7 +211,7 @@ const ROLE_NAMES: Record<string, string> = {
               <button
                 type="button"
                 class="product-foto"
-                [attr.aria-label]="'Poner la foto de ' + product.name"
+                [attr.aria-label]="(thumb(product) ? 'Editar la foto de ' : 'Poner la foto de ') + product.name"
                 (click)="irALaFoto(product.id)"
               >
                 @if (thumb(product); as url) {
@@ -221,7 +221,9 @@ const ROLE_NAMES: Record<string, string> = {
                     {{ initials(product.name) }}
                   </span>
                 }
-                <span class="product-foto-pista">{{ thumb(product) ? 'cambiar' : 'poner foto' }}</span>
+                <span class="product-foto-pista">
+                  {{ thumb(product) ? 'Editar foto' : 'Poner foto' }}
+                </span>
               </button>
 
               <button
@@ -633,7 +635,7 @@ const ROLE_NAMES: Record<string, string> = {
     @if (modal() === 'nuevo') {
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nuevo-title">
         <header class="modal-head">
-          <h2 class="modal-title" id="nuevo-title">Algo nuevo en la carta</h2>
+          <h2 class="modal-title" id="nuevo-title">Nuevo producto</h2>
           <button type="button" class="modal-close" (click)="closeModal()" aria-label="Cerrar">
             ✕
           </button>
@@ -1345,10 +1347,10 @@ export class AdminComponent {
 
   /** Las dietas que la carta ofrece como filtro, con su nombre en español. */
   protected readonly dietOptions = [
-    { id: 'VEGAN', label: 'vegano' },
-    { id: 'VEGETARIAN', label: 'vegetariano' },
-    { id: 'GLUTEN_FREE', label: 'sin gluten' },
-    { id: 'LACTOSE_FREE', label: 'sin lactosa' },
+    { id: 'VEGAN', label: 'Vegano' },
+    { id: 'VEGETARIAN', label: 'Vegetariano' },
+    { id: 'GLUTEN_FREE', label: 'Sin gluten' },
+    { id: 'LACTOSE_FREE', label: 'Sin lactosa' },
   ] as const;
 
   protected closeSheet(): void {

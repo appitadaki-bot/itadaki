@@ -132,3 +132,57 @@
     animation: itadaki-rise var(--itadaki-smooth) var(--itadaki-ease-out) both;
   }
 }
+
+/*
+ * La mesa arriba a la derecha, en la misma fila que el botón de volver.
+ *
+ * Es dónde estás sentado, no de qué trata la pantalla: ocupaba una línea
+ * propia debajo del botón y empujaba el título hacia abajo.
+ */
+.head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.head-row .eyebrow {
+  margin: 0;
+  /* No se parte en dos líneas: "Mesa 7 · En vivo" es una sola idea. */
+  white-space: nowrap;
+}
+
+/*
+ * Ver la cuenta, como botón.
+ *
+ * Como enlace pasaba desapercibida, y es a donde va la mesa cuando termina de
+ * comer — el final del camino, no una nota al pie.
+ *
+ * En ladrillo y no negro: seguir pidiendo es lo que la mesa hace muchas veces
+ * y la cuenta una sola, así que no pueden pesar igual. Dos botones sólidos
+ * lado a lado obligan a leer los dos antes de tocar.
+ */
+.cta-cuenta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background: transparent;
+  color: var(--itadaki-accent-deep);
+  border: 1px solid var(--itadaki-accent-line);
+  transition:
+    background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease);
+}
+
+@media (hover: hover) {
+  .cta-cuenta:hover {
+    background: var(--itadaki-accent-tint);
+    border-color: var(--itadaki-accent);
+  }
+}
+
+.cta-cuenta:active {
+  background: var(--itadaki-accent-tint-strong);
+}

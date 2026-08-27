@@ -170,9 +170,12 @@
   border: 1px solid var(--itadaki-border);
   background: var(--itadaki-surface);
   border-radius: var(--itadaki-radius-card);
-  padding: 0.85rem 1rem;
+  /* Ajustado al contenido: la altura mínima venía de un diseño con foto
+     grande, y con la miniatura actual dejaba un dedo de aire arriba y abajo
+     de cada plato. En una carta de treinta, eso es una pantalla entera de
+     nada. */
+  padding: 0.6rem 0.9rem;
   width: 100%;
-  min-height: 76px;
   transition: border-color var(--itadaki-quick) var(--itadaki-ease), background var(--itadaki-quick) var(--itadaki-ease);
 }
 
@@ -189,27 +192,49 @@
 
 /* Tocar la foto lleva a la foto: no hace falta explicarlo con un botón
    aparte, pero sí decir que se puede — de ahí la pista debajo. */
+/*
+ * La foto es un botón sobre la miniatura, no un texto debajo.
+ *
+ * El texto suelto ocupaba una línea propia —parte del alto de más que tenía
+ * cada fila— y no se leía como algo que se toca: parecía una etiqueta que
+ * describía la imagen. Encima de la foto, la relación es obvia.
+ */
 .product-foto {
+  position: relative;
   display: grid;
-  justify-items: center;
-  gap: 0.2rem;
   padding: 0;
   border: none;
   background: none;
   font-family: inherit;
   cursor: pointer;
+  border-radius: var(--itadaki-radius-action);
+  overflow: hidden;
 }
 
 .product-foto-pista {
-  font-size: 0.7rem;
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 0.2rem 0.15rem;
+  background: oklch(24% 0.02 40 / 0.72);
+  color: white;
+  font-size: 0.58rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--itadaki-ink-faint);
+  text-align: center;
+  /* Sobre una foto cualquiera hay que poder leerlo igual. */
+  text-shadow: 0 1px 2px oklch(0% 0 0 / 0.5);
+  transition: background var(--itadaki-quick) var(--itadaki-ease);
 }
 
-.product-foto:hover .product-foto-pista { color: var(--itadaki-accent); }
-.product-foto:hover .product-thumb { outline: 2px solid var(--itadaki-accent); outline-offset: 2px; }
+.product-foto:hover .product-foto-pista {
+  background: var(--itadaki-accent);
+}
+
+.product-foto:focus-visible {
+  outline: 2px solid var(--itadaki-accent);
+  outline-offset: 2px;
+}
 
 .product-ficha {
   display: flex;
@@ -1152,26 +1177,10 @@
   margin: 0;
 }
 
-/* La flecha sólo aparece al apuntar la fila: presente cuando hace falta,
-   invisible cuando la lista se está leyendo de un vistazo. */
-.product::after {
-  content: '›';
-  font-size: 1.3rem;
-  line-height: 1;
-  color: var(--itadaki-ink-soft);
-  opacity: 0;
-  transform: translateX(-3px);
-  transition: opacity var(--itadaki-quick) var(--itadaki-ease), transform var(--itadaki-quick) var(--itadaki-ease);
-}
-
+/* La flecha suelta salió: la fila ya dice "Editar →" al final, y dos flechas
+   para la misma acción se leen como dos cosas distintas. */
 .product:hover {
   border-color: var(--itadaki-accent);
-  transform: translateX(2px);
-}
-
-.product:hover::after {
-  opacity: 1;
-  transform: none;
 }
 
 /* ---- Traer una carta de otro lado ---- */
@@ -1890,16 +1899,34 @@
 
 
 /* Dice qué abre. La flecha sola obligaba a tocarla para averiguarlo. */
+/*
+ * "Editar" con forma de botón.
+ *
+ * Como texto suelto competía con el nombre del plato y el precio: tres cosas
+ * del mismo peso en una fila, y la única que se podía tocar no se distinguía.
+ * La pastilla lo separa de lo que es información.
+ */
 .product-abrir {
   flex-shrink: 0;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--itadaki-radius-pill);
+  border: 1px solid var(--itadaki-border);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--itadaki-ink-faint);
+  color: var(--itadaki-ink-muted);
   white-space: nowrap;
+  transition:
+    background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease),
+    color var(--itadaki-quick) var(--itadaki-ease);
 }
 
-.product-ficha:hover .product-abrir { color: var(--itadaki-accent); }
+.product-ficha:hover .product-abrir {
+  background: var(--itadaki-accent-tint);
+  border-color: var(--itadaki-accent-line);
+  color: var(--itadaki-accent-deep);
+}
 
 @media (max-width: 560px) {
   /* En un teléfono el nombre y el precio necesitan el ancho entero. */

@@ -1,12 +1,15 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  type ElementRef,
   computed,
   inject,
+  viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TRACKING_STEPS, trackingStepOf, type OrderStatus } from '@itadaki/ordering/domain';
 import { BackLinkComponent } from './back-link.component';
+import { medirElPie } from './medir-el-pie';
 import { SessionStore } from './session.store';
 import { TrackingStore, type TrackedOrder } from './tracking.store';
 
@@ -25,13 +28,18 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
   styleUrl: './tracking.page.css',
   template: `
     <header class="pad">
-      <itd-back to="/carta" label="La carta" />
-      <p class="eyebrow">
-        @if (session.tableLabel(); as mesa) { mesa {{ mesa }} · }estado
-        @if (session.connected()) {
-          <span class="live"><span class="live-dot" aria-hidden="true"></span>En vivo</span>
-        }
-      </p>
+      <!-- La mesa arriba a la derecha, en su rincón: es dónde estás sentado,
+           no de qué trata la pantalla. "Estado" sobraba — el título y la línea
+           de tiempo ya lo dicen. -->
+      <div class="head-row">
+        <itd-back to="/carta" label="La carta" />
+        <p class="eyebrow">
+          @if (session.tableLabel(); as mesa) { Mesa {{ mesa }} }
+          @if (session.connected()) {
+            <span class="live"><span class="live-dot" aria-hidden="true"></span>En vivo</span>
+          }
+        </p>
+      </div>
       <h1 class="title">Itadakimasu!</h1>
     </header>
 
@@ -95,9 +103,9 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
         }
       </main>
 
-      <footer class="foot">
+      <footer class="foot" #pie>
         <a class="cta cta-link" routerLink="/carta">Seguir pidiendo</a>
-        <a class="link" routerLink="/cuenta">Ver la cuenta →</a>
+        <a class="cta cta-cuenta" routerLink="/cuenta">Ver la cuenta →</a>
       </footer>
     } @else {
       <!-- "No mandaste nada" solo cuando el servidor ya contesto.
@@ -119,6 +127,14 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
 export class TrackingPage {
   protected readonly store = inject(TrackingStore);
   protected readonly session = inject(SessionStore);
+
+  private readonly pie = viewChild<ElementRef<HTMLElement>>('pie');
+
+  constructor() {
+    // El pie pasó a tener dos botones: sin medirlo, el timbre se para encima
+    // del segundo.
+    medirElPie(this.pie);
+  }
 
   protected readonly steps = TRACKING_STEPS;
 

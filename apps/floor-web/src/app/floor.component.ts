@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { type PlatoJunto, juntarIguales } from '@itadaki/ordering/domain';
 import { AuthStore, LoginComponent } from '@itadaki/shared/ui-auth';
 import { FloorStore, type CallDto, type Pickup } from './floor.store';
 
@@ -257,7 +258,7 @@ const CALL_LABELS: Record<string, string> = {
             </header>
 
             <ul class="trip-dishes">
-              @for (dish of mesa.dishes; track dish.itemId) {
+              @for (dish of juntos(mesa.dishes); track dish.ids[0]!.id) {
                 <li class="trip-dish">
                   <span class="trip-qty">{{ dish.quantity }}</span>
                   <span class="trip-name">{{ dish.name }}</span>
@@ -440,6 +441,29 @@ export class FloorComponent implements OnDestroy {
   }
 
   /** Digits first, so "mesa-7" reads as "7" across a room. */
+  /**
+   * Los platos listos, con los iguales juntos.
+   *
+   * El mozo lleva una bandeja, no una lista de quién pidió qué: dos empanadas
+   * son dos empanadas. Separadas lo obligan a contar de memoria antes de
+   * salir, que es cuando menos tiempo tiene.
+   */
+  protected juntos(dishes: readonly Pickup[]): readonly PlatoJunto[] {
+    return juntarIguales(
+      dishes.map((dish) => ({
+        id: dish.itemId,
+        orderId: dish.orderId,
+        // El salón no muestra estado ni sección: lo que llega acá ya está
+        // listo, y va a la misma mesa.
+        status: 'READY',
+        name: dish.name,
+        quantity: dish.quantity,
+        notes: dish.notes,
+        category: null,
+      })),
+    );
+  }
+
   protected tableNumber(tableId: string): string {
     const digits = /(\d+)\s*$/.exec(tableId);
     return digits?.[1] ?? tableId;

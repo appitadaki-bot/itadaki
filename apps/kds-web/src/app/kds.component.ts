@@ -13,9 +13,11 @@ import {
   type BoardLayout,
   type CardBatch,
   type OrderStatus,
+  type PlatoJunto,
   type TableCard,
   canTransition,
   groupByTable,
+  juntarIguales,
   layoutFor,
   splitByUrgency,
 } from '@itadaki/ordering/domain';
@@ -28,10 +30,14 @@ interface Column {
   readonly action: string;
 }
 
+/*
+ * En mayúscula: esta pantalla se mira de lejos y de reojo, y una palabra en
+ * caja alta se reconoce por su forma antes de leerse.
+ */
 const COLUMNS: readonly Column[] = [
-  { status: 'SENT', label: 'nuevo', next: 'ACCEPTED', action: 'aceptar' },
-  { status: 'ACCEPTED', label: 'aceptado', next: 'IN_PREP', action: 'empezar' },
-  { status: 'IN_PREP', label: 'en preparación', next: 'READY', action: 'marcar listo' },
+  { status: 'SENT', label: 'NUEVO', next: 'ACCEPTED', action: 'ACEPTAR' },
+  { status: 'ACCEPTED', label: 'ACEPTADO', next: 'IN_PREP', action: 'EMPEZAR' },
+  { status: 'IN_PREP', label: 'EN PREPARACIÓN', next: 'READY', action: 'MARCAR LISTO' },
   /*
    * La cocina llega hasta acá y no más.
    *
@@ -40,7 +46,7 @@ const COLUMNS: readonly Column[] = [
    * mesa figuraba servida sin que nadie hubiera caminado hasta ella. Quien
    * entrega es quien lo declara, desde el salón.
    */
-  { status: 'READY', label: 'listo para servir', next: null, action: 'esperando al mozo' },
+  { status: 'READY', label: 'LISTO PARA SERVIR', next: null, action: 'ESPERANDO AL MOZO' },
 ];
 
 /** Minutes a ticket may wait before the board flags it. */
@@ -68,32 +74,15 @@ const SLA_LATE = 15;
     } @else {
     <header class="head">
       <div class="head-left">
-        <p class="eyebrow">KDS · cocina en vivo</p>
-        <h1 class="title">Pedidos entrando ahora</h1>
+        <!-- Sin título: la pantalla muestra pedidos entrando, y decirlo arriba
+             ocupa el lugar que necesitan las comandas. En una cocina lo que se
+             mira son las tarjetas. -->
+        <p class="eyebrow">KDS · COCINA EN VIVO</p>
       </div>
 
-      <!-- Las secciones salen de la carta del local, no de una lista fija:
-           el que tiene wok y no parrilla filtra por lo que él cocina. -->
-      <nav class="sections" aria-label="Sección de la carta">
-        <button
-          type="button"
-          class="section"
-          [attr.aria-pressed]="activeSection() === null"
-          (click)="selectSection(null)"
-        >
-          todas
-        </button>
-        @for (section of sections(); track section) {
-          <button
-            type="button"
-            class="section"
-            [attr.aria-pressed]="activeSection() === section"
-            (click)="selectSection(section)"
-          >
-            {{ section }}
-          </button>
-        }
-      </nav>
+      <!-- Sin chips de filtro: una cocina que no separa por puesto los tenía
+           ocupando el ancho de la pantalla sin usarlos nunca. El filtro por
+           sección sigue existiendo por dentro, en "todas". -->
 
       <div class="head-right">
         <p class="live" [class.off]="!store.connected()">
@@ -147,7 +136,7 @@ const SLA_LATE = 15;
                   }
 
                   <ul class="ticket-items">
-                    @for (item of batch.items; track item.orderId + item.id) {
+                    @for (item of batchItems(batch); track item.ids[0]!.orderId + item.ids[0]!.id) {
                       <li class="ticket-item" [attr.data-item-status]="item.status">
                         <span class="qty">{{ item.quantity }}</span>
                         <!-- La estación cierra el bloque del plato, debajo del
@@ -183,7 +172,7 @@ const SLA_LATE = 15;
                             <button
                               type="button"
                               class="item-btn"
-                              (click)="advanceItem(item.orderId, item.id, step.next)"
+                              (click)="advanceJunto(item, step.next)"
                             >
                               {{ step.action }}
                             </button>
@@ -207,7 +196,7 @@ const SLA_LATE = 15;
                         class="batch-btn"
                         (click)="advanceBatch(batch, step.next)"
                       >
-                        {{ step.action }} · {{ batch.number }}º envío →
+                        {{ step.action }} {{ batch.number }}º ENVÍO →
                       </button>
                     }
                   }
@@ -215,7 +204,7 @@ const SLA_LATE = 15;
 
                 @if (column.next !== null) {
                   <button type="button" class="ticket-btn" (click)="advanceCard(ticket, column.next)">
-                    {{ column.action }} · todo →
+                    {{ column.action }} TODO →
                   </button>
                 }
               </article>
@@ -240,7 +229,7 @@ const SLA_LATE = 15;
                   </header>
 
                   <ul class="ticket-items">
-                    @for (item of visibleItems(ticket); track item.orderId + item.id) {
+                    @for (item of visibleItems(ticket); track item.ids[0]!.orderId + item.ids[0]!.id) {
                       <li class="ticket-item" [attr.data-item-status]="item.status">
                         <span class="qty">{{ item.quantity }}</span>
                         <span class="item-body">
@@ -254,7 +243,7 @@ const SLA_LATE = 15;
                             <button
                               type="button"
                               class="item-btn"
-                              (click)="advanceItem(item.orderId, item.id, step.next)"
+                              (click)="advanceJunto(item, step.next)"
                             >
                               {{ step.action }}
                             </button>
@@ -270,7 +259,7 @@ const SLA_LATE = 15;
                       class="ticket-btn"
                       (click)="advanceCard(ticket, column.next)"
                     >
-                      {{ column.action }} · todo →
+                      {{ column.action }} TODO →
                     </button>
                   }
                 </article>
@@ -340,7 +329,7 @@ const SLA_LATE = 15;
               }
 
               <ul class="ticket-items">
-                @for (item of batch.items; track item.orderId + item.id) {
+                @for (item of batchItems(batch); track item.ids[0]!.orderId + item.ids[0]!.id) {
                   <li class="ticket-item" [attr.data-item-status]="item.status">
                     <span class="qty">{{ item.quantity }}</span>
                     <span class="item-body">
@@ -356,7 +345,7 @@ const SLA_LATE = 15;
               @if (card.batches.length > 1) {
                 @if (nextFor(batch.status); as step) {
                   <button type="button" class="batch-btn" (click)="advanceBatch(batch, step.next)">
-                    {{ step.action }} · {{ batch.number }}º envío →
+                    {{ step.action }} {{ batch.number }}º ENVÍO →
                   </button>
                 }
               }
@@ -364,7 +353,7 @@ const SLA_LATE = 15;
 
             @if (nextStepFor(card); as step) {
               <button type="button" class="ticket-btn" (click)="advanceCard(card, step.next)">
-                {{ step.action }} · todo →
+                {{ step.action }} TODO →
               </button>
             }
           </article>
@@ -382,7 +371,7 @@ const SLA_LATE = 15;
                 <button type="button" class="fold-btn" (click)="toggle(card.key)">Plegar</button>
               </header>
               <ul class="ticket-items">
-                @for (item of visibleItems(card); track item.orderId + item.id) {
+                @for (item of visibleItems(card); track item.ids[0]!.orderId + item.ids[0]!.id) {
                   <li class="ticket-item" [attr.data-item-status]="item.status">
                     <span class="qty">{{ item.quantity }}</span>
                     <span class="item-body"><span class="item-name">{{ item.name }}</span></span>
@@ -391,7 +380,7 @@ const SLA_LATE = 15;
               </ul>
               @if (nextStepFor(card); as step) {
                 <button type="button" class="ticket-btn" (click)="advanceCard(card, step.next)">
-                  {{ step.action }} · todo →
+                  {{ step.action }} TODO →
                 </button>
               }
             </article>
@@ -616,6 +605,20 @@ export class KdsComponent implements OnDestroy {
     await this.advanceItems(batch.items, next);
   }
 
+  /**
+   * Avanza un plato junto: todas las líneas que lo componen.
+   *
+   * Al tocar "aceptar" sobre dos empanadas juntas hay que avanzar las dos, o
+   * una queda atrás sin que nadie lo note — y la mesa recibe una sola.
+   */
+  protected async advanceJunto(plato: PlatoJunto, next: string): Promise<void> {
+    for (const { orderId, id } of plato.ids) {
+      if (canTransition(plato.status as OrderStatus, next as OrderStatus)) {
+        await this.store.advanceItem(orderId, id, next);
+      }
+    }
+  }
+
   private async advanceItems(items: TableCard['items'], next: string): Promise<void> {
     for (const item of items) {
       // La misma regla que aplica el servidor, para no mandar lo que va a
@@ -626,12 +629,27 @@ export class KdsComponent implements OnDestroy {
     }
   }
 
-  /** On a section screen, hide the lines that belong to another section. */
-  protected visibleItems(card: TableCard): TableCard['items'] {
+  /**
+   * Los platos de una comanda, filtrados por sección y juntados los iguales.
+   *
+   * La cocina hace comida, no lleva la cuenta de quién pidió qué: dos
+   * empanadas son dos empanadas, vengan del mismo comensal o de dos.
+   * Separadas obligan a sumar de memoria y hacen la comanda el doble de larga.
+   */
+  protected visibleItems(card: TableCard): readonly PlatoJunto[] {
     const section = this.activeSection();
-    if (section === null) return card.items;
-    // Igual que arriba: sin sección se ve en todas las pantallas.
-    return card.items.filter((item) => item.category === section || item.category === null);
+    // Sin sección propia se ve en todas las pantallas: un plato que el dueño
+    // todavía no clasificó no puede desaparecer de la cocina.
+    const suyos =
+      section === null
+        ? card.items
+        : card.items.filter((i) => i.category === section || i.category === null);
+    return juntarIguales(suyos);
+  }
+
+  /** Lo mismo para un envío suelto dentro de la comanda. */
+  protected batchItems(batch: { items: TableCard['items'] }): readonly PlatoJunto[] {
+    return juntarIguales(batch.items);
   }
 
   /**

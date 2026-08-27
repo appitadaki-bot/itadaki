@@ -31,38 +31,6 @@
   color: white;
   margin: 0.15rem 0 0;
 }
-
-.sections {
-  display: flex;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-}
-
-/* Section filter: a grill screen should not show drinks. */
-.section {
-  border: 1px solid oklch(42% 0.02 40);
-  background: transparent;
-  color: oklch(80% 0.02 70);
-  border-radius: var(--itadaki-radius-action);
-  padding: 0.55rem 1.1rem;
-  font-family: var(--itadaki-font-display);
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  min-height: 44px;
-}
-
-.section[aria-pressed='true'] {
-  background: white;
-  color: var(--itadaki-ink);
-  border-color: white;
-}
-
-.section:focus-visible {
-  outline: 3px solid var(--itadaki-accent-bright);
-  outline-offset: 2px;
-}
-
 .head-right {
   display: flex;
   align-items: center;
@@ -233,19 +201,26 @@
   color: var(--itadaki-ink-strong);
 }
 
-.table-word {
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--itadaki-ink-subtle);
-}
-
+/*
+ * "MESA 4" se lee como una sola cosa.
+ *
+ * El número medía tres veces la palabra, y eso los partía en dos: se leía un
+ * "mesa" chiquito y un número suelto que había que juntar con la vista. Del
+ * mismo tamaño y peso, se lee de un golpe — que es lo que hace falta cuando
+ * se mira la pantalla de reojo.
+ */
+.table-word,
 .table-number {
-  font-size: 2.1rem;
+  font-size: 1.25rem;
   font-weight: 800;
   line-height: 1;
-  letter-spacing: var(--itadaki-tracking-display);
+  letter-spacing: 0.02em;
+  color: var(--itadaki-ink-strong);
+  text-transform: uppercase;
+}
+
+/* Los dígitos de ancho fijo evitan que el número baile entre mesas. */
+.table-number {
   font-variant-numeric: tabular-nums;
 }
 

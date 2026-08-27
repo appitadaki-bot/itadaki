@@ -89,3 +89,4 @@ export {
   tableVisibleTo,
   tablesFor,
 } from './lib/table-assignment';
+export { type PlatoJunto, juntarIguales } from './lib/juntar-iguales';
