@@ -142,6 +142,38 @@
   .panel { padding: 1.4rem 1.2rem 1.6rem; }
 }
 
+/* El título y lo que se puede hacer con el panel, en la misma línea. */
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.panel-head .panel-title {
+  margin-bottom: 0;
+}
+
+.panel-action {
+  flex: 0 0 auto;
+  border: 1px solid var(--itadaki-border);
+  background: transparent;
+  color: var(--itadaki-ink);
+  border-radius: var(--itadaki-radius-action);
+  padding: 0.5rem 0.9rem;
+  font-family: var(--itadaki-font-display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.panel-action:hover {
+  border-color: var(--itadaki-ink);
+}
+
 .panel-title {
   font-family: var(--itadaki-font-display);
   font-weight: 700;
@@ -1173,7 +1205,39 @@
   margin-bottom: 1rem;
 }
 
+.panel-head /* El título y lo que se puede hacer con el panel, en la misma línea. */
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
 .panel-head .panel-title {
+  margin-bottom: 0;
+}
+
+.panel-action {
+  flex: 0 0 auto;
+  border: 1px solid var(--itadaki-border);
+  background: transparent;
+  color: var(--itadaki-ink);
+  border-radius: var(--itadaki-radius-action);
+  padding: 0.5rem 0.9rem;
+  font-family: var(--itadaki-font-display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.panel-action:hover {
+  border-color: var(--itadaki-ink);
+}
+
+.panel-title {
   margin: 0;
 }
 
@@ -1750,7 +1814,7 @@
    es lo que se hace todos los días. */
 .table-delete {
   padding: 0.45rem 0.8rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--itadaki-border);
   border-radius: var(--itadaki-radius-action);
   background: transparent;
   color: var(--itadaki-ink-subtle);

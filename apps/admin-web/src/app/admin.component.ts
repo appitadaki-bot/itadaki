@@ -370,11 +370,28 @@ const ROLE_NAMES: Record<string, string> = {
       </section>
 
       <section class="panel">
-        <h2 class="panel-title">Mesas y códigos QR</h2>
+        <div class="panel-head">
+          <h2 class="panel-title">Mesas y códigos QR</h2>
+          <!-- Arriba y no al pie: con veinte mesas cargadas, agregar una
+               obligaba a bajar la lista entera para llegar al campo. -->
+          <button type="button" class="panel-action" (click)="nuevaMesa.set(!nuevaMesa())">
+            {{ nuevaMesa() ? 'Cancelar' : '+ Nueva mesa' }}
+          </button>
+        </div>
         <p class="panel-lede">
           Si repartís las mesas, cada mozo abre su app y ve solamente su sector.
           Las que dejes en "todo el salón" las siguen viendo todos.
         </p>
+
+        @if (nuevaMesa()) {
+          <form class="new-form" (submit)="createTable($event)">
+            <label class="field">
+              <span>Nombre de la mesa</span>
+              <input name="label" required maxlength="40" placeholder="Ej: Mesa 8, Barra 2" autofocus />
+            </label>
+            <button type="submit" class="create">Crear mesa</button>
+          </form>
+        }
 
         <!-- El aviso del confirm se ve una vez y se olvida. Esto queda hasta
              que alguien lo resuelva, porque una mesa que no aparece en la app
@@ -476,13 +493,6 @@ const ROLE_NAMES: Record<string, string> = {
             </button>
           }
 
-          <form class="new-form" (submit)="createTable($event)">
-            <label class="field">
-              <span>Nueva mesa</span>
-              <input name="label" required maxlength="40" placeholder="Ej: Mesa 8, Barra 2" />
-            </label>
-            <button type="submit" class="create">Crear mesa</button>
-          </form>
           <p class="muted qr-hint">
             El link es el QR de esa mesa. Vence a las 8 horas y se renueva solo cada vez que abrís esta pantalla.
           </p>
@@ -561,7 +571,12 @@ const ROLE_NAMES: Record<string, string> = {
 
       @if (auth.can('staff:manage')) {
         <section class="panel">
-          <h2 class="panel-title">Tu equipo</h2>
+          <div class="panel-head">
+            <h2 class="panel-title">Tu equipo</h2>
+            <button type="button" class="panel-action" (click)="modal.set('equipo')">
+              + Agregar persona
+            </button>
+          </div>
           <p class="panel-lede">
             Quién entra a cada pantalla. La cocina no toca precios y el mozo no
             edita la carta.
@@ -594,37 +609,6 @@ const ROLE_NAMES: Record<string, string> = {
                 <p class="muted">Todavía sos la única persona con acceso.</p>
               }
             </div>
-
-            <form class="new-form staff-form" (submit)="inviteStaff($event)">
-              <label class="field">
-                <span>Nombre</span>
-                <input name="displayName" required maxlength="60" placeholder="Ej: Nico" />
-              </label>
-              <label class="field">
-                <span>Email</span>
-                <input name="email" type="email" required placeholder="Nico@turestaurante.ar" />
-              </label>
-              <label class="field">
-                <span>Contraseña inicial</span>
-                <input name="password" type="password" required minlength="8" />
-              </label>
-              <label class="field">
-                <span>Puesto</span>
-                <select name="role" required>
-                  <option value="KITCHEN">Cocina — ve y avanza los pedidos</option>
-                  <option value="WAITER">Mozo — pedidos y cuentas</option>
-                  <option value="MANAGER">Encargado — todo menos el equipo</option>
-                </select>
-              </label>
-              <button type="submit" class="create">Dar de alta</button>
-            </form>
-
-            @if (staffError(); as message) {
-              <p class="error-note" role="alert">{{ message }}</p>
-            }
-            <p class="muted qr-hint">
-              Le pasás vos la contraseña; después la puede seguir usando para entrar.
-            </p>
           </details>
         </section>
       }
@@ -882,6 +866,50 @@ const ROLE_NAMES: Record<string, string> = {
           </button>
           </div>
           </form>
+        </div>
+      </div>
+    }
+
+    @if (modal() === 'equipo') {
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="equipo-title">
+        <header class="modal-head">
+          <h2 class="modal-title" id="equipo-title">Agregar persona</h2>
+          <button type="button" class="modal-close" (click)="closeModal()" aria-label="Cerrar">
+            ✕
+          </button>
+        </header>
+
+        <div class="modal-body">
+          <form class="new-form staff-form" (submit)="inviteStaff($event)">
+            <label class="field">
+              <span>Nombre</span>
+              <input name="displayName" required maxlength="60" placeholder="Ej: Nico" autofocus />
+            </label>
+            <label class="field">
+              <span>Email</span>
+              <input name="email" type="email" required placeholder="Nico@turestaurante.ar" />
+            </label>
+            <label class="field">
+              <span>Contraseña inicial</span>
+              <input name="password" type="password" required minlength="8" />
+            </label>
+            <label class="field">
+              <span>Puesto</span>
+              <select name="role" required>
+                <option value="KITCHEN">Cocina — ve y avanza los pedidos</option>
+                <option value="WAITER">Mozo — pedidos y cuentas</option>
+                <option value="MANAGER">Encargado — todo menos el equipo</option>
+              </select>
+            </label>
+            <button type="submit" class="create">Dar de alta</button>
+          </form>
+
+          @if (staffError(); as message) {
+            <p class="error-note" role="alert">{{ message }}</p>
+          }
+          <p class="muted qr-hint">
+            Le pasás vos la contraseña; después la puede seguir usando para entrar.
+          </p>
         </div>
       </div>
     }
@@ -1232,7 +1260,9 @@ export class AdminComponent {
    * En la misma página, el formulario de alta pegado a la lista hacía dudar
    * si un plato se estaba creando o editando.
    */
-  protected readonly modal = signal<'nuevo' | 'editar' | 'opciones' | 'importar' | 'foto' | null>(
+  protected readonly modal = signal<
+    'nuevo' | 'editar' | 'opciones' | 'importar' | 'foto' | 'equipo' | null
+  >(
     null,
   );
 
@@ -1394,6 +1424,7 @@ export class AdminComponent {
 
   protected closeModal(): void {
     this.modal.set(null);
+    this.staffError.set(null);
     this.editError.set(null);
     this.editSaved.set(false);
   }
@@ -1588,6 +1619,9 @@ export class AdminComponent {
     }
   }
 
+  /** El formulario de mesa nueva, cerrado hasta que alguien lo pide. */
+  protected readonly nuevaMesa = signal(false);
+
   protected async createTable(event: Event): Promise<void> {
     event.preventDefault();
     const form = event.target as HTMLFormElement;
@@ -1602,6 +1636,7 @@ export class AdminComponent {
 
     if (response.ok) {
       form.reset();
+      this.nuevaMesa.set(false);
       await this.loadTables();
     }
   }
@@ -1772,6 +1807,7 @@ export class AdminComponent {
     }
 
     form.reset();
+    this.closeModal();
     await this.loadStaff();
   }
 
