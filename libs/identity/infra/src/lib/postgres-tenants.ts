@@ -324,6 +324,43 @@ export class PostgresTenantStore {
     }
   }
 
+  /**
+   * El descuento por pagar en efectivo, en puntos porcentuales enteros.
+   *
+   * Lo lee la pantalla de la cuenta en cada cálculo, así que devuelve cero
+   * ante cualquier problema: un fallo de lectura no puede inventar un
+   * descuento que el local no ofrece, ni cobrarle de más a nadie.
+   */
+  async descuentoEnEfectivo(tenantId: string): Promise<Result<number, TenantError>> {
+    try {
+      const puntos = await this.db.unscoped(async (client) => {
+        const result = await client.query<{ cash_discount_percent: number }>(
+          'SELECT cash_discount_percent FROM tenants WHERE id = $1',
+          [tenantId],
+        );
+        return result.rows[0]?.cash_discount_percent ?? 0;
+      });
+      return ok(puntos);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /** Lo cambia el dueño desde el panel. Cero es no ofrecerlo. */
+  async guardarDescuento(tenantId: string, puntos: number): Promise<Result<void, TenantError>> {
+    try {
+      await this.db.unscoped(async (client) => {
+        await client.query('UPDATE tenants SET cash_discount_percent = $2 WHERE id = $1', [
+          tenantId,
+          puntos,
+        ]);
+      });
+      return ok(undefined);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   /** Slugs already in use, so signup can pick a free one. */
   async takenSlugs(prefix: string): Promise<Result<ReadonlySet<string>, TenantError>> {
     try {
