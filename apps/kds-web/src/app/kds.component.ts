@@ -43,14 +43,6 @@ const COLUMNS: readonly Column[] = [
   { status: 'READY', label: 'listo para servir', next: null, action: 'esperando al mozo' },
 ];
 
-const STATIONS: ReadonlyArray<{ id: string; label: string }> = [
-  { id: 'ALL', label: 'todas' },
-  { id: 'GRILL', label: 'parrilla' },
-  { id: 'COLD', label: 'fríos' },
-  { id: 'BAR', label: 'barra' },
-  { id: 'DESSERT', label: 'postres' },
-];
-
 /** Minutes a ticket may wait before the board flags it. */
 const API_URL = apiUrl();
 
@@ -80,15 +72,25 @@ const SLA_LATE = 15;
         <h1 class="title">Pedidos entrando ahora</h1>
       </div>
 
-      <nav class="stations" aria-label="Estación">
-        @for (station of stations; track station.id) {
+      <!-- Las secciones salen de la carta del local, no de una lista fija:
+           el que tiene wok y no parrilla filtra por lo que él cocina. -->
+      <nav class="sections" aria-label="Sección de la carta">
+        <button
+          type="button"
+          class="section"
+          [attr.aria-pressed]="activeSection() === null"
+          (click)="selectSection(null)"
+        >
+          todas
+        </button>
+        @for (section of sections(); track section) {
           <button
             type="button"
-            class="station"
-            [attr.aria-pressed]="activeStation() === station.id"
-            (click)="selectStation(station.id)"
+            class="section"
+            [attr.aria-pressed]="activeSection() === section"
+            (click)="selectSection(section)"
           >
-            {{ station.label }}
+            {{ section }}
           </button>
         }
       </nav>
@@ -164,14 +166,10 @@ const SLA_LATE = 15;
                           @if (item.notes !== '') {
                             <span class="item-note">{{ item.notes }}</span>
                           }
-                          <!-- Sin chip cuando nadie le asignó estación. Antes
-                               todo plato importado decía FRÍO, que es una
-                               respuesta inventada: el cocinero la lee y decide
-                               con ella. -->
-                          @if (item.station !== null) {
-                            <span class="item-station" [attr.data-station]="item.station">
-                              {{ stationLabel(item.station) }}
-                            </span>
+                          <!-- Sin chip cuando el plato ya no está en la carta:
+                               la comanda vale igual y hay que cocinarla. -->
+                          @if (item.category !== null) {
+                            <span class="item-section">{{ item.category }}</span>
                           }
                         </span>
                         <!-- Sólo la acción contra el margen derecho, siempre en
@@ -420,9 +418,22 @@ export class KdsComponent implements OnDestroy {
   protected readonly auth = inject(AuthStore);
   protected readonly store = inject(KdsStore);
   protected readonly columns = COLUMNS;
-  protected readonly stations = STATIONS;
 
-  protected readonly activeStation = signal('ALL');
+  /** null es "todas": una sección de la carta podría llamarse igual. */
+  protected readonly activeSection = signal<string | null>(null);
+
+  /** Las secciones que hay algo pidiendo ahora, en orden alfabético. */
+  protected readonly sections = computed<readonly string[]>(() =>
+    [
+      ...new Set(
+        this.store
+          .tickets()
+          .flatMap((ticket) => ticket.items)
+          .map((item) => item.category)
+          .filter((category): category is string => category !== null),
+      ),
+    ].sort((a, b) => a.localeCompare(b, 'es')),
+  );
 
   /**
    * Qué tan ancha está la pantalla, para elegir cómo mostrar el tablero.
@@ -442,20 +453,20 @@ export class KdsComponent implements OnDestroy {
   private readonly timer: ReturnType<typeof setInterval>;
 
   /**
-   * Only tickets with at least one item for the active station. A grill screen
+   * Only tickets with at least one item for the active section. A grill screen
    * showing drinks is noise the cook has to filter by eye.
    */
   private readonly visible = computed<readonly TicketDto[]>(() => {
-    const station = this.activeStation();
-    if (station === 'ALL') return this.store.tickets();
+    const section = this.activeSection();
+    if (section === null) return this.store.tickets();
 
-    // Los platos sin estación entran en todas las pantallas. Esconderlos en
+    // Los platos sin sección entran en todas las pantallas. Esconderlos en
     // todas seria peor que mostrarlos de mas: nadie los cocina y nadie se
     // entera, que es como se pierde un pedido.
     return this.store
       .tickets()
       .filter((ticket) =>
-        ticket.items.some((item) => item.station === station || item.station === null),
+        ticket.items.some((item) => item.category === section || item.category === null),
       );
   });
 
@@ -502,8 +513,8 @@ export class KdsComponent implements OnDestroy {
     this.store.disconnect();
   }
 
-  protected selectStation(id: string): void {
-    this.activeStation.set(id);
+  protected selectSection(section: string | null): void {
+    this.activeSection.set(section);
   }
 
   /**
@@ -615,16 +626,12 @@ export class KdsComponent implements OnDestroy {
     }
   }
 
-  /** On a station screen, hide the lines that belong to another station. */
+  /** On a section screen, hide the lines that belong to another section. */
   protected visibleItems(card: TableCard): TableCard['items'] {
-    const station = this.activeStation();
-    if (station === 'ALL') return card.items;
-    // Igual que arriba: sin estación asignada se ve en todas las pantallas.
-    return card.items.filter((item) => item.station === station || item.station === null);
-  }
-
-  protected stationLabel(station: string): string {
-    return STATIONS.find((entry) => entry.id === station)?.label ?? station.toLowerCase();
+    const section = this.activeSection();
+    if (section === null) return card.items;
+    // Igual que arriba: sin sección se ve en todas las pantallas.
+    return card.items.filter((item) => item.category === section || item.category === null);
   }
 
   /**
@@ -692,13 +699,13 @@ export class KdsComponent implements OnDestroy {
    * bloque vacío: directamente no está.
    */
   protected visibleBatches(card: TableCard): readonly CardBatch[] {
-    const station = this.activeStation();
-    if (station === 'ALL') return card.batches;
+    const section = this.activeSection();
+    if (section === null) return card.batches;
 
     return card.batches
       .map((batch) => ({
         ...batch,
-        items: batch.items.filter((item) => item.station === station || item.station === null),
+        items: batch.items.filter((item) => item.category === section || item.category === null),
       }))
       .filter((batch) => batch.items.length > 0);
   }

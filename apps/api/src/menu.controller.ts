@@ -128,7 +128,6 @@ export class MenuController {
         diets: product.diets,
         available: product.available,
         estimatedPrepMinutes: product.estimatedPrepMinutes,
-        station: product.station,
       })),
       // De la base, no del fixture: el punto de cocción del bife lo define
       // cada restaurante, no el repositorio.
@@ -273,7 +272,7 @@ export class MenuController {
     return { id: productId, removed: true };
   }
 
-  /** Moves a dish to another category, or edits its name, price or station. */
+  /** Moves a dish to another category, or edits its name or price. */
   @RequirePermission('menu:write')
   @Patch('products/:id')
   async updateProduct(
@@ -287,9 +286,6 @@ export class MenuController {
         name: z.string().min(1).max(60).optional(),
         description: z.string().max(140).optional(),
         priceMinor: z.number().int().min(0).optional(),
-        // `null` saca la estación; ausente la deja como está. Son cosas
-        // distintas y el editor necesita las dos.
-        station: z.enum(['GRILL', 'COLD', 'BAR', 'DESSERT']).nullish(),
         diets: z.array(z.enum(DIET_TAGS)).max(4).optional(),
         allergens: z.array(z.enum(ALLERGENS)).max(10).optional(),
       })
@@ -318,7 +314,6 @@ export class MenuController {
       categoryId: parsed.data.categoryId ?? current.categoryId,
       name: parsed.data.name ?? current.name,
       description: parsed.data.description ?? current.description,
-      station: parsed.data.station === undefined ? current.station : parsed.data.station,
       diets: parsed.data.diets ?? current.diets,
       allergens: parsed.data.allergens ?? current.allergens,
       price,
@@ -346,9 +341,6 @@ export class MenuController {
       description: z.string().max(140).default(''),
       priceMinor: z.number().int().min(0),
       categoryId: z.string().min(1).max(64),
-      // Sin valor por defecto: elegir uno por el plato lo mandaba a una parte
-      // de la cocina que nadie decidió, y "frío" era la respuesta para todo.
-      station: z.enum(['GRILL', 'COLD', 'BAR', 'DESSERT']).nullish(),
       prepMinutes: z.number().int().min(1).max(120).default(10),
       // Sin esto un plato nace invisible para quien filtra la carta por
       // vegano o sin gluten: el filtro existe desde el principio y no había
@@ -382,7 +374,6 @@ export class MenuController {
       diets: parsed.data.diets,
       estimatedPrepMinutes: parsed.data.prepMinutes,
       available: true,
-      station: parsed.data.station ?? null,
     });
 
     if (saved.isErr()) {
@@ -638,9 +629,6 @@ export class MenuController {
         diets: [],
         estimatedPrepMinutes: 10,
         available: true,
-        // La carta importada no dice a qué parte de la cocina va cada plato,
-        // así que no se inventa: queda sin asignar y el admin la elige.
-        station: null,
       });
 
       if (saved.isErr()) {
