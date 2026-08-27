@@ -12,6 +12,12 @@
  *
  * Se respeta lo que la cadena ya diga: quien escribió `sslmode=disable` a
  * propósito —un túnel, un proxy local— sabe algo que esto no.
+ *
+ * `verify-full` y no `require` porque es lo que `pg` hace hoy con las dos: las
+ * trata igual, y avisa por consola que en su próxima versión mayor `require`
+ * va a pasar a la semántica de libpq —cifrar sin verificar contra quién—. Se
+ * escribe lo que ya estaba pasando, así el día que cambie no nos degrada la
+ * conexión en silencio.
  */
 export function withSslWhenRemote(connectionString: string): string {
   let url: URL;
@@ -27,6 +33,6 @@ export function withSslWhenRemote(connectionString: string): string {
   const local = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
   if (local.includes(url.hostname)) return connectionString;
 
-  url.searchParams.set('sslmode', 'require');
+  url.searchParams.set('sslmode', 'verify-full');
   return url.toString();
 }
