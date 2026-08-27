@@ -35,31 +35,6 @@
 .stage.pannable { cursor: grab; }
 .stage.pannable:active { cursor: grabbing; }
 
-.modes {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.mode {
-  flex: 1;
-  border: 1px solid var(--itadaki-border);
-  background: var(--itadaki-surface);
-  border-radius: var(--itadaki-radius-pill);
-  padding: 0.6rem 0.9rem;
-  font-family: var(--itadaki-font-display);
-  font-weight: 600;
-  font-size: 0.82rem;
-  color: var(--itadaki-ink-muted);
-  cursor: pointer;
-  min-height: 42px;
-}
-
-.mode[aria-pressed='true'] {
-  background: var(--itadaki-ink);
-  border-color: var(--itadaki-ink);
-  color: white;
-}
-
 .layer {
   position: absolute;
   inset: 0;
@@ -70,23 +45,6 @@
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: none;
-}
-
-.blur { will-change: filter; }
-
-.focal {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-}
-
-.focal-ring {
-  display: block;
-  border: 2px solid oklch(100% 0 0 / 0.85);
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px oklch(0% 0 0 / 0.35), inset 0 0 0 1px oklch(0% 0 0 / 0.25);
-  transform: translate(-50%, -50%);
-  position: absolute;
 }
 
 /* Rule-of-thirds guides, drawn over everything. */
@@ -134,41 +92,6 @@
   font-size: 0.76rem;
   color: var(--itadaki-ink-subtle);
   text-align: center;
-}
-
-.controls {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem 1rem;
-}
-
-@media (max-width: 420px) {
-  .controls { grid-template-columns: 1fr; }
-}
-
-.control {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.control-label {
-  font-size: 0.74rem;
-  color: var(--itadaki-ink-muted);
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.control-label b {
-  font-variant-numeric: tabular-nums;
-  color: var(--itadaki-ink-strong);
-}
-
-input[type='range'] {
-  width: 100%;
-  accent-color: var(--itadaki-accent);
-  min-height: 24px;
 }
 
 .actions {
@@ -246,33 +169,12 @@ input[type='range'] {
   outline-offset: 2px;
 }
 
+/* Aire dentro del modal: con el espaciado de una barra lateral angosta la
+   foto y los botones quedaban pegados.
 
-/*
- * Aire entre los controles.
- *
- * Los deslizadores, sus etiquetas y los botones venían con el espaciado de una
- * barra lateral angosta: dentro del modal quedaban pegados y no se distinguía
- * qué etiqueta era de qué control.
- */
-/* Va en `.editor` y no en `:host`: el host es `display: block`, donde `gap`
-   no existe — la separación que esto buscaba nunca se estaba aplicando. */
+   Va en `.editor` y no en `:host`: el host es `display: block`, donde `gap`
+   no existe — la separación que esto buscaba nunca se aplicaba. */
 .editor { gap: 1.4rem; }
-
-.controls { gap: 1.1rem 1.4rem; }
-
-.control-label {
-  margin-bottom: 0.15rem;
-  font-size: 0.8rem;
-  letter-spacing: 0.01em;
-}
-
-/* El valor a la derecha, alineado en columna: leídos uno debajo del otro los
-   números bailaban al cambiar de ancho. */
-.control-label b {
-  float: right;
-  font-variant-numeric: tabular-nums;
-  color: var(--itadaki-accent);
-}
 
 .actions {
   gap: 0.6rem;

@@ -10,7 +10,6 @@ import {
   viewChild,
 } from '@angular/core';
 import {
-  type Adjustments,
   DEFAULT_ADJUSTMENTS,
   type ImageEditParams,
   type LumaGrid,
@@ -21,12 +20,16 @@ import {
 const ANALYSIS_WIDTH = 160;
 
 /**
- * Square-crop editor with a regulable focal point.
+ * Recorte cuadrado: arrastrar y zoom, nada más.
  *
- * The preview is CSS-only: a duplicated layer is blurred and revealed through
- * a radial mask, which stays smooth while dragging. Nothing here rasterises
- * the image — only the parameters are emitted, and the server re-renders from
- * the untouched original.
+ * Tuvo seis controles —nitidez, radio, desenfoque, brillo, saturación y un
+ * punto de foco con su propio modo—. Para poner la foto de un plato en la
+ * carta hay que elegir qué parte se ve; lo demás era un editor de fotos
+ * adentro de un ABM, y cada control extra era una decisión más antes de poder
+ * guardar.
+ *
+ * Acá no se rasteriza nada: se emiten las coordenadas del recorte y el
+ * servidor vuelve a renderizar desde el original intacto.
  */
 @Component({
   selector: 'itd-image-editor',
@@ -48,42 +51,7 @@ const ANALYSIS_WIDTH = 160;
         >
           <img class="layer base" [src]="url" [style.transform]="transform()" alt="" />
 
-          @if (blurIntensity() > 0) {
-            <img
-              class="layer blur"
-              [src]="url"
-              [style.transform]="transform()"
-              [style.filter]="'blur(' + blurPx() + 'px)'"
-              [style.-webkit-mask-image]="maskImage()"
-              [style.mask-image]="maskImage()"
-              alt=""
-            />
-          }
-
-          <div class="focal" [style.left.%]="focalX() * 100" [style.top.%]="focalY() * 100">
-            <span class="focal-ring" [style.width.px]="ringSize()" [style.height.px]="ringSize()"></span>
-          </div>
-
           <div class="grid" aria-hidden="true"></div>
-        </div>
-
-        <div class="modes" role="group" aria-label="Modo de edición">
-          <button
-            type="button"
-            class="mode"
-            [attr.aria-pressed]="mode() === 'frame'"
-            (click)="setMode('frame')"
-          >
-            Encuadrar
-          </button>
-          <button
-            type="button"
-            class="mode"
-            [attr.aria-pressed]="mode() === 'focus'"
-            (click)="setMode('focus')"
-          >
-            Punto de foco
-          </button>
         </div>
 
         @if (showingExisting()) {
@@ -94,66 +62,12 @@ const ANALYSIS_WIDTH = 160;
           <p class="auto-note" role="status">Encuadre sugerido automáticamente · movelo si querés</p>
         }
         <p class="hint">
-          @if (mode() === 'frame') {
-            @if (canPan()) {
-              Arrastrá la foto para encuadrarla · rueda o pellizco para zoom
-            } @else {
-              Hacé zoom para poder mover el encuadre
-            }
+          @if (canPan()) {
+            Arrastrá la foto para encuadrarla · rueda para hacer zoom
           } @else {
-            Tocá donde querés que quede nítido
+            Hacé zoom para poder mover el encuadre
           }
         </p>
-
-        <div class="controls">
-          <label class="control">
-            <span class="control-label">Zoom <b>{{ zoom().toFixed(2) }}×</b></span>
-            <input
-              type="range" min="1" max="4" step="0.01"
-              [value]="zoom()" (input)="setZoom($event)"
-            />
-          </label>
-
-          <label class="control">
-            <span class="control-label">Radio de nitidez <b>{{ percent(sharpRadius()) }}%</b></span>
-            <input
-              type="range" min="0" max="1" step="0.01"
-              [value]="sharpRadius()" (input)="setSharpRadius($event)"
-            />
-          </label>
-
-          <label class="control">
-            <span class="control-label">Desenfoque <b>{{ percent(blurIntensity()) }}%</b></span>
-            <input
-              type="range" min="0" max="1" step="0.01"
-              [value]="blurIntensity()" (input)="setBlurIntensity($event)"
-            />
-          </label>
-
-          <label class="control">
-            <span class="control-label">Nitidez <b>{{ sharpen().toFixed(1) }}</b></span>
-            <input
-              type="range" min="0" max="3" step="0.1"
-              [value]="sharpen()" (input)="setSharpen($event)"
-            />
-          </label>
-
-          <label class="control">
-            <span class="control-label">Brillo <b>{{ brightness().toFixed(2) }}</b></span>
-            <input
-              type="range" min="0.5" max="1.5" step="0.01"
-              [value]="brightness()" (input)="setBrightness($event)"
-            />
-          </label>
-
-          <label class="control">
-            <span class="control-label">Saturación <b>{{ saturation().toFixed(2) }}</b></span>
-            <input
-              type="range" min="0" max="2" step="0.01"
-              [value]="saturation()" (input)="setSaturation($event)"
-            />
-          </label>
-        </div>
 
         @if (showingExisting()) {
           <!--
@@ -177,7 +91,7 @@ const ANALYSIS_WIDTH = 160;
           </label>
           <button type="button" class="ghost" (click)="reset()">Restablecer</button>
           <button type="button" class="primary" [disabled]="showingExisting()" (click)="emit()">
-            Aplicar recorte
+            Aplicar
           </button>
         </div>
       } @else {
@@ -208,22 +122,9 @@ export class ImageEditorComponent {
   /** Natural aspect ratio of the loaded photo; drives how far it can pan. */
   private readonly aspect = signal(1);
 
-  /**
-   * Dragging and setting the focal point competed for the same gesture, so a
-   * drag that barely moved silently became a focus tap. An explicit mode makes
-   * each gesture do one thing.
-   */
-  protected readonly mode = signal<'frame' | 'focus'>('frame');
   protected readonly zoom = signal(1);
   protected readonly offsetX = signal(0);
   protected readonly offsetY = signal(0);
-  protected readonly focalX = signal(0.5);
-  protected readonly focalY = signal(0.5);
-  protected readonly sharpRadius = signal(0.4);
-  protected readonly blurIntensity = signal(0);
-  protected readonly sharpen = signal(0);
-  protected readonly brightness = signal(1);
-  protected readonly saturation = signal(1);
 
   private file: File | null = null;
   private objectUrl: string | null = null;
@@ -234,10 +135,6 @@ export class ImageEditorComponent {
   protected readonly transform = computed(
     () => `translate(${this.offsetX()}%, ${this.offsetY()}%) scale(${this.zoom()})`,
   );
-
-  protected readonly blurPx = computed(() => (this.blurIntensity() * 22).toFixed(1));
-
-  protected readonly ringSize = computed(() => Math.max(24, this.sharpRadius() * 320));
 
   /**
    * How far the photo may travel, in percent of the stage, per axis.
@@ -265,15 +162,6 @@ export class ImageEditorComponent {
   protected readonly canPan = computed(() => {
     const limits = this.panLimits();
     return limits.x > 0.5 || limits.y > 0.5;
-  });
-
-  /** Transparent inside the sharp radius so the crisp layer shows through. */
-  protected readonly maskImage = computed(() => {
-    const inner = (this.sharpRadius() * 100).toFixed(1);
-    const outer = Math.min(100, this.sharpRadius() * 100 + 45).toFixed(1);
-    return `radial-gradient(circle at ${(this.focalX() * 100).toFixed(1)}% ${(
-      this.focalY() * 100
-    ).toFixed(1)}%, transparent ${inner}%, black ${outer}%)`;
   });
 
   constructor() {
@@ -306,14 +194,6 @@ export class ImageEditorComponent {
     this.reset();
   }
 
-  protected setMode(next: 'frame' | 'focus'): void {
-    this.mode.set(next);
-  }
-
-  protected percent(value: number): string {
-    return Math.round(value * 100).toString();
-  }
-
   protected onFile(event: Event): void {
     const input = event.target as HTMLInputElement;
     const picked = input.files?.[0];
@@ -340,7 +220,7 @@ export class ImageEditorComponent {
     const grid = await this.sampleLuma(url);
     if (grid === null) return;
 
-    const { crop, focal } = proposeFrame(grid);
+    const { crop } = proposeFrame(grid);
 
     // The stage shows a centred square; convert the proposed offset into the
     // pan the viewport needs to reveal it.
@@ -356,8 +236,6 @@ export class ImageEditorComponent {
       else this.offsetY.set(shiftPercent);
     }
 
-    this.focalX.set(focal.x);
-    this.focalY.set(focal.y);
     this.autoFramed.set(true);
   }
 
@@ -428,11 +306,6 @@ export class ImageEditorComponent {
   }
 
   protected onPointerDown(event: PointerEvent): void {
-    if (this.mode() === 'focus') {
-      this.setFocalFrom(event);
-      return;
-    }
-
     this.dragging = true;
     this.lastX = event.clientX;
     this.lastY = event.clientY;
@@ -440,7 +313,7 @@ export class ImageEditorComponent {
   }
 
   protected onPointerMove(event: PointerEvent): void {
-    if (!this.dragging || this.mode() === 'focus') return;
+    if (!this.dragging) return;
 
     const dx = event.clientX - this.lastX;
     const dy = event.clientY - this.lastY;
@@ -465,25 +338,11 @@ export class ImageEditorComponent {
     this.dragging = false;
   }
 
-  /** Places the sharp point where the pointer landed, in stage coordinates. */
-  private setFocalFrom(event: PointerEvent): void {
-    const box = this.stage()?.nativeElement.getBoundingClientRect();
-    if (box === undefined) return;
-
-    this.focalX.set(Math.max(0, Math.min(1, (event.clientX - box.left) / box.width)));
-    this.focalY.set(Math.max(0, Math.min(1, (event.clientY - box.top) / box.height)));
-  }
-
   protected onWheel(event: WheelEvent): void {
     event.preventDefault();
     this.zoom.update((current) =>
       Math.max(1, Math.min(4, current - Math.sign(event.deltaY) * 0.08)),
     );
-    this.clampOffsets();
-  }
-
-  protected setZoom(event: Event): void {
-    this.zoom.set(Number((event.target as HTMLInputElement).value));
     this.clampOffsets();
   }
 
@@ -494,47 +353,11 @@ export class ImageEditorComponent {
     this.offsetY.update((current) => Math.max(-limits.y, Math.min(limits.y, current)));
   }
 
-  protected setSharpRadius(event: Event): void {
-    this.sharpRadius.set(Number((event.target as HTMLInputElement).value));
-  }
-
-  protected setBlurIntensity(event: Event): void {
-    this.blurIntensity.set(Number((event.target as HTMLInputElement).value));
-  }
-
-  protected setSharpen(event: Event): void {
-    this.sharpen.set(Number((event.target as HTMLInputElement).value));
-  }
-
-  protected setBrightness(event: Event): void {
-    this.brightness.set(Number((event.target as HTMLInputElement).value));
-  }
-
-  protected setSaturation(event: Event): void {
-    this.saturation.set(Number((event.target as HTMLInputElement).value));
-  }
-
   protected reset(): void {
     this.autoFramed.set(false);
     this.zoom.set(1);
     this.offsetX.set(0);
     this.offsetY.set(0);
-    this.focalX.set(0.5);
-    this.focalY.set(0.5);
-    this.sharpRadius.set(0.4);
-    this.blurIntensity.set(0);
-    this.sharpen.set(0);
-    this.brightness.set(1);
-    this.saturation.set(1);
-  }
-
-  private adjustments(): Adjustments {
-    return {
-      ...DEFAULT_ADJUSTMENTS,
-      sharpen: this.sharpen(),
-      brightness: this.brightness(),
-      saturation: this.saturation(),
-    };
   }
 
   /** Converts viewport state into normalised crop coordinates for the server. */
@@ -550,15 +373,8 @@ export class ImageEditorComponent {
       file: this.file,
       params: {
         crop: { x: clamp(centreX), y: clamp(centreY), size },
-        depthOfField:
-          this.blurIntensity() > 0
-            ? {
-                focal: { x: this.focalX(), y: this.focalY() },
-                sharpRadius: this.sharpRadius(),
-                blurIntensity: this.blurIntensity(),
-              }
-            : null,
-        adjustments: this.adjustments(),
+        depthOfField: null,
+        adjustments: DEFAULT_ADJUSTMENTS,
       },
     });
   }
