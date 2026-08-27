@@ -1,5 +1,6 @@
 export {
   type BillReader,
+  type CobroPorMedio,
   type BillWriter,
   type BillRepositoryError,
   type ExchangeRateProvider,

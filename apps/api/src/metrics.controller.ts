@@ -9,6 +9,7 @@ import {
 import { lineTotal } from '@itadaki/ordering/domain';
 import { Money } from '@itadaki/shared/domain';
 import { RequirePermission, TenantId } from './auth';
+import { BillsService } from './bills.service';
 import { PostgresSummaryStore } from '@itadaki/ordering/infra';
 import { database } from './database';
 import { OrdersService } from './orders.service';
@@ -20,7 +21,10 @@ import { log } from './logger';
 export class MetricsController {
   private readonly summaries = new PostgresSummaryStore(database);
 
-  constructor(private readonly orders: OrdersService) {}
+  constructor(
+    private readonly orders: OrdersService,
+    private readonly bills: BillsService,
+  ) {}
 
   /** Lo que suma un pedido, en unidades menores. */
   private totalDe(order: CompletedOrder): number {
@@ -108,9 +112,28 @@ export class MetricsController {
     // número, y uno que no cierra con las ventas que se muestran al lado.
     const ticket = pedidos === 0 ? null : Money.of(Math.round(facturado / pedidos), 'ARS');
 
+    /*
+     * Cómo se cobró, según el mozo.
+     *
+     * Va aparte del resto porque mide otra cosa: los pedidos cuentan lo que
+     * salió de la cocina, y esto lo que entró en la caja. Un fallo al leerlo
+     * deja la lista vacía en vez de tumbar la pantalla entera — el resto de
+     * las métricas sirve igual.
+     */
+    const cobros = await this.bills.store.cobrosPorMedio(tenantId, from);
+
     return {
       windowDays: window,
       orders: pedidos,
+      cobros: cobros.isOk()
+        ? cobros.value.map((fila) => ({
+            medio: fila.medio,
+            cuentas: fila.cuentas,
+            descuento: toMoneyDto(
+              Money.of(fila.descuentoMinor, 'ARS').unwrapOr(Money.zero('ARS')),
+            ),
+          }))
+        : [],
       averageTicket: ticket !== null && ticket.isOk() ? toMoneyDto(ticket.value) : null,
       medianPrepMinutes: medianPrepMinutes(sales) ?? resumidos?.medianPrepMinutes ?? null,
       ordersByHour: horas,

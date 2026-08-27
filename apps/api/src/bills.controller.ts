@@ -266,7 +266,23 @@ export class BillsController {
   @RequirePermission('orders:advance')
   @TableScoped()
   @Post(':sessionId/settle')
-  async settle(@Param('sessionId') sessionId: string, @Scope() scope: DinerScope) {
+  async settle(
+    @Param('sessionId') sessionId: string,
+    @Body() body: unknown,
+    @Scope() scope: DinerScope,
+  ) {
+    /*
+     * Con qué se cobró, según el mozo.
+     *
+     * Opcional a propósito: el botón viejo no lo manda, y una mesa cobrada
+     * sin declararlo tiene que poder cerrarse igual. Queda en `null`, que es
+     * "nadie lo dijo" — distinto de inventar un medio de pago.
+     */
+    const cobro = z
+      .object({ cobradoCon: z.enum(['CARD', 'CASH', 'COUNTER']).optional() })
+      .safeParse(body ?? {});
+    const cobradoCon = cobro.success ? (cobro.data.cobradoCon ?? null) : null;
+
     const state = await this.sessionInScope(scope, sessionId);
 
     // La mesa que nunca pidió la cuenta igual consumió: se arma acá y se cobra,
@@ -278,9 +294,28 @@ export class BillsController {
       return this.describe(bill, 'ARS');
     }
 
+    /*
+     * El descuento se recalcula acá, no se cree lo que mande el cliente.
+     *
+     * Es plata: aceptar un monto del teléfono del mozo dejaría que cualquiera
+     * declare el descuento que quiera. Se calcula igual que en la pantalla de
+     * la cuenta, desde el porcentaje que el dueño configuró.
+     */
+    const puntos = await this.tenants.store.descuentoEnEfectivo(scope.tenantId);
+    const configurado = descuentoDe((puntos.isOk() ? puntos.value : 0) / 100);
+    const descuento = configurado.isOk() ? configurado.value : { porcentaje: 0 };
+
+    const consumo = billSubtotal(bill);
+    const rebaja =
+      aplicaA(cobradoCon) && consumo.isOk()
+        ? montoDelDescuento(descuento, consumo.value)
+        : ok(Money.zero(bill.currency));
+
     const settled = await this.bills.store.save(scope.tenantId, {
       ...bill,
       status: 'SETTLED',
+      cobradoCon,
+      descuentoMinor: rebaja.isOk() ? rebaja.value.amountInMinorUnits : 0,
     });
     if (settled.isErr()) {
       throw new HttpException(settled.error, HttpStatus.BAD_GATEWAY);
@@ -421,6 +456,10 @@ export class BillsController {
       currency: bill.currency,
       // Drives the UI: an open bill still tracks the table, a settled one is done.
       status: bill.status,
+      // Con qué se cobró y cuánto se descontó, para que el panel pueda
+      // mostrarlo y las métricas contarlo.
+      cobradoCon: bill.cobradoCon ?? null,
+      descuentoMinor: bill.descuentoMinor ?? 0,
       closedAt: bill.closedAt.toISOString(),
       subtotal: toMoneyDto(base),
       display: converted.isOk() ? toMoneyDto(converted.value) : null,
