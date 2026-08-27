@@ -535,3 +535,107 @@
     transition: none;
   }
 }
+
+/*
+ * Volver y la cuenta, en la misma fila.
+ *
+ * Son las dos salidas de esta pantalla —una hacia atrás, otra hacia el final—
+ * y arriba no compiten con el botón de enviar, que es lo que se hace acá.
+ */
+.head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/*
+ * "Ver la cuenta" en ladrillo.
+ *
+ * Abajo era un enlace chiquito que se perdía entre dos botones. Arriba, y con
+ * color, se ve sin robarle peso a enviar el pedido.
+ */
+.ir-a-la-cuenta {
+  flex-shrink: 0;
+  padding: 0.5rem 0.95rem;
+  border-radius: var(--itadaki-radius-pill);
+  border: 1px solid var(--itadaki-accent-line);
+  background: var(--itadaki-accent-tint);
+  color: var(--itadaki-accent-deep);
+  font-family: var(--itadaki-font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease);
+}
+
+@media (hover: hover) {
+  .ir-a-la-cuenta:hover {
+    background: var(--itadaki-accent-tint-strong);
+    border-color: var(--itadaki-accent);
+  }
+}
+
+.ir-a-la-cuenta:active {
+  transform: scale(0.97);
+}
+
+/*
+ * Seguir el pedido, en negro.
+ *
+ * Cuando la mesa ya envió, esto es lo único que queda por hacer: no hay otra
+ * acción con la que competir, así que puede pesar como la principal.
+ */
+.cta.cta-seguir {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background: var(--itadaki-ink);
+  color: white;
+  border: none;
+}
+
+@media (hover: hover) {
+  .cta.cta-seguir:hover {
+    background: var(--itadaki-ink-strong);
+  }
+}
+
+/*
+ * El aviso de que otro envió, flotando sobre la lista.
+ *
+ * Es una noticia, no una acción: en el pie quedaba amontonada con los botones
+ * y empujaba el total. Acá aparece donde la persona está mirando —los platos
+ * que acaban de desaparecer— sin mover nada de lugar.
+ */
+.aviso-flotante {
+  position: fixed;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  max-width: min(20rem, calc(100vw - 3rem));
+  margin: 0;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--itadaki-radius-card);
+  background: var(--itadaki-status-ready-bg);
+  border: 1px solid var(--itadaki-status-ready);
+  color: var(--itadaki-status-ready-fg);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: var(--itadaki-shadow-panel);
+  /* No intercepta toques: es un cartel, y debajo hay una lista que se usa. */
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .aviso-flotante {
+    animation: itadaki-pop-in var(--itadaki-settle) var(--itadaki-ease-out) both;
+  }
+}
