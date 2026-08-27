@@ -211,7 +211,7 @@ const ROLE_NAMES: Record<string, string> = {
               <button
                 type="button"
                 class="product-foto"
-                [attr.aria-label]="'Poner la foto de ' + product.name"
+                [attr.aria-label]="(thumb(product) ? 'Editar la foto de ' : 'Poner la foto de ') + product.name"
                 (click)="irALaFoto(product.id)"
               >
                 @if (thumb(product); as url) {
@@ -221,7 +221,9 @@ const ROLE_NAMES: Record<string, string> = {
                     {{ initials(product.name) }}
                   </span>
                 }
-                <span class="product-foto-pista">{{ thumb(product) ? 'cambiar' : 'poner foto' }}</span>
+                <span class="product-foto-pista">
+                  {{ thumb(product) ? 'Editar foto' : 'Poner foto' }}
+                </span>
               </button>
 
               <button
