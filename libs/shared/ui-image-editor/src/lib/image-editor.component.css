@@ -88,8 +88,7 @@
 
 
 /* La fila de botones usa todo el ancho del modal, no la columna de la foto:
-   con los tres al ancho de su texto igual no entraban en 380px y "Aplicar"
-   caía a un segundo renglón. */
+   en 380px los tres no entran y el último cae a un segundo renglón. */
 .actions {
   width: 100%;
 }
@@ -104,7 +103,7 @@
  * una línea: se apilan en vez de desbordar. */
 .actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
   gap: 0.6rem;
 }
@@ -116,6 +115,7 @@
   border-radius: var(--itadaki-radius-pill);
   padding: 0.85rem 1.15rem;
   text-align: center;
+  white-space: nowrap;
   font-family: var(--itadaki-font-display);
   font-weight: 600;
   font-size: 0.85rem;
@@ -193,18 +193,3 @@
   padding-top: 1.1rem;
   border-top: 1px solid var(--itadaki-border);
 }
-
-
-/*
- * Con ancho de sobra, la foto a un lado y los ajustes al otro.
- *
- * En una sola columna la foto empuja los deslizadores fuera de la pantalla: hay
- * que hacer scroll para mover el brillo y volver a subir para ver qué cambió,
- * que es exactamente lo que no se puede hacer cuando se está ajustando algo a
- * ojo. Al lado, se mueve un control y se ve el efecto en el mismo golpe de
- * vista.
- *
- * El corte es por el ancho del editor y no por el de la ventana: el mismo
- * componente se usa en el modal ancho y en paneles angostos, y el que sabe si
- * entran dos columnas es el contenedor, no la pantalla.
- */
