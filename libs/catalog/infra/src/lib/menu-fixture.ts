@@ -37,7 +37,6 @@ export const PRODUCTS: readonly Product[] = [
     diets: [],
     estimatedPrepMinutes: 8,
     available: true,
-    station: 'GRILL',
   },
   {
     id: 'e2',
@@ -51,7 +50,6 @@ export const PRODUCTS: readonly Product[] = [
     diets: ['VEGETARIAN', 'GLUTEN_FREE'],
     estimatedPrepMinutes: 6,
     available: false,
-    station: 'GRILL',
   },
   {
     id: 'a1',
@@ -65,7 +63,6 @@ export const PRODUCTS: readonly Product[] = [
     diets: ['GLUTEN_FREE', 'LACTOSE_FREE'],
     estimatedPrepMinutes: 14,
     available: true,
-    station: 'GRILL',
   },
   {
     id: 'a2',
@@ -79,7 +76,6 @@ export const PRODUCTS: readonly Product[] = [
     diets: ['GLUTEN_FREE', 'LACTOSE_FREE'],
     estimatedPrepMinutes: 12,
     available: true,
-    station: 'GRILL',
   },
   {
     id: 'm1',
@@ -93,7 +89,6 @@ export const PRODUCTS: readonly Product[] = [
     diets: [],
     estimatedPrepMinutes: 11,
     available: true,
-    station: 'GRILL',
   },
   {
     id: 'b1',
@@ -107,7 +102,6 @@ export const PRODUCTS: readonly Product[] = [
     diets: ['VEGAN', 'VEGETARIAN', 'GLUTEN_FREE', 'LACTOSE_FREE'],
     estimatedPrepMinutes: 2,
     available: true,
-    station: 'BAR',
   },
   {
     id: 'p1',
@@ -121,7 +115,6 @@ export const PRODUCTS: readonly Product[] = [
     diets: ['VEGETARIAN', 'GLUTEN_FREE'],
     estimatedPrepMinutes: 4,
     available: true,
-    station: 'DESSERT',
   },
 ];
 

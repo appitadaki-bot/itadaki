@@ -10,8 +10,8 @@ const plato = (
   id: string,
   status: string,
   name = 'plato',
-  station = 'PARRILLA',
-): BoardTicket['items'][number] => ({ id, status, name, quantity: 1, notes: '', station });
+  category = 'Parrilla',
+): BoardTicket['items'][number] => ({ id, status, name, quantity: 1, notes: '', category });
 
 const comanda = (overrides: Partial<BoardTicket> = {}): BoardTicket => ({
   id: 'o1',
@@ -101,7 +101,7 @@ describe('lo que la cocina ve de una mesa', () => {
     // Con la limonada lista y el vacío sin empezar, la mesa no está lista.
     const cards = groupByTable([
       comanda({
-        items: [plato('i1', 'READY', 'limonada', 'BARRA'), plato('i2', 'SENT', 'vacío')],
+        items: [plato('i1', 'READY', 'limonada', 'Bebidas'), plato('i2', 'SENT', 'vacío')],
       }),
     ]);
 

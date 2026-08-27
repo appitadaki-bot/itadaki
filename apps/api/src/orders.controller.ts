@@ -38,8 +38,14 @@ export class OrdersController {
   /**
    * Kitchen board feed: everything still in play.
    *
-   * Station is resolved from the catalog rather than stored on the snapshot —
-   * moving a dish between stations must affect tickets already in flight.
+   * La categoría se resuelve del catálogo y no del pedido guardado: mover un
+   * plato de sección tiene que verse también en las comandas en curso.
+   *
+   * Es la categoría de la carta —entradas, parrilla, postres— y no una
+   * clasificación aparte para la cocina. Había una, `station`, que nadie
+   * cargaba: el importador la ponía en "frío" para todos y el tablero mostraba
+   * FRÍO en el café y en la empanada. La sección ya la escribe el restaurante
+   * para su carta, así que dice lo mismo sin pedir trabajo extra.
    */
   @RequirePermission('orders:read')
   @Get()
@@ -51,8 +57,16 @@ export class OrdersController {
     }
 
     const catalog = await this.catalog.products.list(tenantId, {});
-    const stations = new Map(
-      catalog.isOk() ? catalog.value.map((product) => [product.id, product.station]) : [],
+    const categorias = await this.catalog.categories.list(tenantId);
+    const nombrePorId = new Map(
+      categorias.isOk() ? categorias.value.map((categoria) => [categoria.id, categoria.name]) : [],
+    );
+
+    // Del plato a su sección, ya con el nombre que la cocina va a leer.
+    const seccionPorPlato = new Map(
+      catalog.isOk()
+        ? catalog.value.map((product) => [product.id, nombrePorId.get(product.categoryId) ?? null])
+        : [],
     );
 
     // The board is read by table, not by session: a cook needs "7", not a UUID.
@@ -73,9 +87,9 @@ export class OrdersController {
         tableId: tables.get(order.sessionId) ?? null,
         items: dto.items.map((item, index) => ({
           ...item,
-          // Sin estación asignada viaja en `null`, y la cocina no le pone
-          // chip. Antes caía en 'COLD' y toda carta importada se veía fría.
-          station: stations.get(order.items[index]?.product.productId ?? '') ?? null,
+          // Nulo si el plato salió de la carta: la comanda vieja sigue
+          // siendo válida, y la cocina la muestra sin chip.
+          category: seccionPorPlato.get(order.items[index]?.product.productId ?? '') ?? null,
         })),
       };
     });

@@ -15,9 +15,6 @@ export type Allergen = (typeof ALLERGENS)[number];
 export const DIET_TAGS = ['VEGAN', 'VEGETARIAN', 'GLUTEN_FREE', 'LACTOSE_FREE'] as const;
 export type DietTag = (typeof DIET_TAGS)[number];
 
-export const STATIONS = ['GRILL', 'COLD', 'BAR', 'DESSERT'] as const;
-export type Station = (typeof STATIONS)[number];
-
 /** One rendered variant of a product image. */
 export interface ImageVariant {
   readonly url: string;
@@ -47,15 +44,6 @@ export interface Product {
   readonly diets: readonly DietTag[];
   readonly estimatedPrepMinutes: number;
   readonly available: boolean;
-  /**
-   * A qué parte de la cocina va, o `null` mientras nadie lo dijo.
-   *
-   * Sin `null` había que elegir un valor al crear un plato, y toda carta
-   * importada entraba entera como fría: en la pantalla de cocina el café, la
-   * empanada y el helado decían lo mismo. Un plato sin estación asignada es
-   * una verdad que el tablero puede mostrar; una estación inventada, no.
-   */
-  readonly station: Station | null;
 }
 
 /** Diner-facing filters. A product matches only if it satisfies every criterion. */
