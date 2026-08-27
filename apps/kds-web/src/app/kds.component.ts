@@ -77,12 +77,32 @@ const SLA_LATE = 15;
         <!-- Sin título: la pantalla muestra pedidos entrando, y decirlo arriba
              ocupa el lugar que necesitan las comandas. En una cocina lo que se
              mira son las tarjetas. -->
-        <p class="eyebrow">KDS · COCINA EN VIVO</p>
+        <p class="eyebrow">KDS · COCINA</p>
       </div>
 
-      <!-- Sin chips de filtro: una cocina que no separa por puesto los tenía
-           ocupando el ancho de la pantalla sin usarlos nunca. El filtro por
-           sección sigue existiendo por dentro, en "todas". -->
+      <!-- Las secciones salen de la carta del local, no de una lista fija: el
+           que tiene wok y no parrilla filtra por lo que él cocina. -->
+      <nav class="sections" aria-label="Sección de la carta">
+        <button
+          type="button"
+          class="section"
+          [attr.aria-pressed]="activeSection() === null"
+          (click)="selectSection(null)"
+        >
+          TODAS
+        </button>
+        @for (section of sections(); track section) {
+          <button
+            type="button"
+            class="section"
+            [attr.aria-pressed]="activeSection() === section"
+            (click)="selectSection(section)"
+          >
+            {{ section.toUpperCase() }}
+          </button>
+        }
+      </nav>
+
 
       <div class="head-right">
         <p class="live" [class.off]="!store.connected()">
@@ -157,9 +177,6 @@ const SLA_LATE = 15;
                           }
                           <!-- Sin chip cuando el plato ya no está en la carta:
                                la comanda vale igual y hay que cocinarla. -->
-                          @if (item.category !== null) {
-                            <span class="item-section">{{ item.category }}</span>
-                          }
                         </span>
                         <!-- Sólo la acción contra el margen derecho, siempre en
                              el mismo lugar: el botón entre medio se corría según
@@ -419,7 +436,10 @@ export class KdsComponent implements OnDestroy {
           .tickets()
           .flatMap((ticket) => ticket.items)
           .map((item) => item.category)
-          .filter((category): category is string => category !== null),
+          // Vacío también se descarta: pasaba el filtro de `null` y dibujaba
+          // un chip sin texto — un cuadrado blanco que no se podía leer ni
+          // entender.
+          .filter((category): category is string => category !== null && category.trim() !== ''),
       ),
     ].sort((a, b) => a.localeCompare(b, 'es')),
   );

@@ -28,7 +28,14 @@ import { TrackingStore } from './tracking.store';
   styleUrl: './cart.page.css',
   template: `
     <header class="pad">
-      <itd-back to="/carta" label="La carta" />
+      <!-- Volver y la cuenta en la misma fila: son las dos salidas de esta
+           pantalla, una hacia atrás y otra hacia el final. -->
+      <div class="head-row">
+        <itd-back to="/carta" label="La carta" />
+        @if (session.isJoined()) {
+          <a class="ir-a-la-cuenta" routerLink="/cuenta">Ver la cuenta →</a>
+        }
+      </div>
       <!-- Compartido solo si de verdad se entro a la mesa. El nombre de la
            mesa sale del token del QR, que queda guardado con solo escanear:
            mostrarlo sin sesion prometia un pedido compartido que no existia, y
@@ -42,9 +49,19 @@ import { TrackingStore } from './tracking.store';
       </p>
       <h1 class="title">Carrito</h1>
       @if (session.isJoined() && session.connected()) {
-        <p class="live"><span class="live-dot" aria-hidden="true"></span>Se actualiza en vivo</p>
+        <p class="live"><span class="live-dot" aria-hidden="true"></span>En vivo</p>
       }
     </header>
+
+    <!-- Flotando sobre la lista y no en el pie: es una noticia, no una acción,
+         y abajo quedaba amontonada con los botones. Acá aparece donde la
+         persona está mirando —los platos que acaban de desaparecer— y se va
+         solo. -->
+    @if (sentByOther()) {
+      <p class="aviso-flotante" role="status">
+        Alguien de la mesa envió el pedido a la cocina
+      </p>
+    }
 
     @if (session.isJoined()) {
       <main class="list">
@@ -165,23 +182,14 @@ import { TrackingStore } from './tracking.store';
               @if (state.kind === 'failed') {
                 <p class="error-note" role="alert">{{ state.message }} — probá de nuevo</p>
               }
-              @if (sentByOther()) {
-                <!-- El carrito se vació sin que esta persona tocara nada:
-                     alguien más de la mesa envió mientras elegía. Sin esto,
-                     los platos desaparecen de la pantalla sin explicación. -->
-                <p class="sent-note" role="status">
-                  Alguien de la mesa envió el pedido a la cocina
-                </p>
-              }
               @if (tracking.hasOrders()) {
                 <!-- El pedido es de la mesa: seguirlo no puede depender de
                      quién apretó enviar. Antes, el que no lo mandó veía el
                      carrito vacío y ninguna puerta al estado. -->
-                <a class="cta cta-link" routerLink="/estado">
+                <a class="cta cta-seguir" routerLink="/estado">
                   Seguir el pedido de la mesa →
                 </a>
               }
-              <a class="link foot-link" routerLink="/cuenta">Ver la cuenta</a>
             }
           }
         }
@@ -384,13 +392,39 @@ export class CartPage {
    * app los perdió.
    */
   private readonly hadLines = signal(false);
+
+  /** Se apaga solo: un cartel flotante que no se va tapa la pantalla. */
+  private readonly avisoVisible = signal(true);
+
   protected readonly sentByOther = computed(
-    () => this.hadLines() && this.tableLineCount() === 0 && this.orders.submitState().kind === 'idle',
+    () =>
+      this.avisoVisible() &&
+      this.hadLines() &&
+      this.tableLineCount() === 0 &&
+      this.orders.submitState().kind === 'idle',
   );
 
   /** Recuerda que había platos, para notar cuándo desaparecieron. */
   private readonly watchCart = effect(() => {
-    if (this.tableLineCount() > 0) this.hadLines.set(true);
+    if (this.tableLineCount() > 0) {
+      this.hadLines.set(true);
+      // Vuelve a estar disponible: si la mesa sigue pidiendo y otro envía de
+      // nuevo, el aviso tiene que aparecer otra vez.
+      this.avisoVisible.set(true);
+    }
+  });
+
+  /**
+   * Apaga el aviso unos segundos después de aparecer.
+   *
+   * Como texto en el pie se podía quedar puesto; como cartel sobre la lista
+   * taparía los platos hasta que la persona cambie de pantalla.
+   */
+  private readonly ocultarAviso = effect((onCleanup) => {
+    if (!this.sentByOther()) return;
+
+    const reloj = setTimeout(() => this.avisoVisible.set(false), 6000);
+    onCleanup(() => clearTimeout(reloj));
   });
 
   protected sendLabel(kind: string): string {
