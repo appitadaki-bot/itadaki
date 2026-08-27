@@ -45,9 +45,9 @@ updates:
     # con otros dieciséis paquetes.
     # TypeScript y zone.js no se mueven solos: los fija Angular.
     #
-    # `@angular/build@19` acepta `typescript >=5.5 <5.9` y `zone.js ~0.15`. Una
-    # subida menor alcanza para salirse de ese rango, y ahí `npm ci` termina en
-    # ERESOLVE: no compila nadie, ni CI ni los cuatro despliegues. Ya pasó con
+    # `@angular/build@21` acepta un rango angosto de TypeScript, y `zone.js`
+    # otro. Una subida menor alcanza para salirse, y ahí `npm ci` termina en
+    # ERESOLVE: no compila nadie, ni CI ni los cinco despliegues. Ya pasó con
     # 5.7 → 5.9, con la regla de mayores puesta y sin frenarlo.
     #
     # Se mueven el día que se mueva Angular, en la misma migración y probando
