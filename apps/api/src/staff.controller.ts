@@ -8,8 +8,15 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ROLES, type Role, validateCredentials } from '@itadaki/identity/domain';
+import {
+  ROLES,
+  type Role,
+  nuevoPin,
+  usuarioLibre,
+  validateCredentials,
+} from '@itadaki/identity/domain';
 import { hashPassword } from '@itadaki/identity/infra';
+import { log } from './logger';
 import { z } from 'zod';
 import { Auth, type AuthContext, RequirePermission, TenantId,
   forgetActiveState,
@@ -32,6 +39,68 @@ export class StaffController {
   constructor(private readonly staff: StaffService) {}
 
   /** Roles the panel may offer, so the UI never invents one the API rejects. */
+  /**
+   * Le genera —o le regenera— usuario y PIN a alguien del personal.
+   *
+   * El PIN se devuelve una sola vez, en claro, para que el dueño se lo dicte.
+   * Después queda hasheado y nadie puede volver a leerlo: si se pierde, se
+   * genera otro. Eso es más simple que recuperarlo y evita el correo, que es
+   * justamente lo que el mozo no tiene.
+   */
+  @RequirePermission('staff:manage')
+  @Post(':id/pin')
+  async generarPin(@Param('id') userId: string, @TenantId() tenantId: string) {
+    const gente = await this.staff.store.listForTenant(tenantId);
+    if (gente.isErr()) {
+      throw new HttpException(gente.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    const persona = gente.value.find((quien) => quien.id === userId);
+    if (persona === undefined) {
+      throw new HttpException({ kind: 'NOT_FOUND' }, HttpStatus.NOT_FOUND);
+    }
+
+    // El dueño entra con mail y contraseña: es quien cambia precios, ve la
+    // facturación y da de baja gente, y un PIN de seis dígitos dictado en el
+    // salón no protege eso.
+    if (persona.role === 'OWNER') {
+      throw new HttpException({ kind: 'DUENO_NO_USA_PIN' }, HttpStatus.BAD_REQUEST);
+    }
+
+    /*
+     * El usuario se elige una sola vez y después no cambia.
+     *
+     * Al regenerar el PIN, el usuario que ya tenía figura entre los tomados
+     * —es el suyo— así que buscar uno libre le daba "mozo2" y lo dejaba sin
+     * poder entrar con el nombre que le habían dictado. Se conserva el que
+     * tiene, y sólo se inventa uno cuando todavía no hay ninguno.
+     */
+    const suyo = await this.staff.store.usuarioDe(tenantId, userId);
+    const yaTiene = suyo.isOk() ? suyo.value : null;
+
+    let usuario = yaTiene;
+    if (usuario === null) {
+      const tomados = await this.staff.store.usuariosTomados(tenantId);
+      usuario = usuarioLibre(persona.displayName, tomados.isOk() ? tomados.value : new Set());
+    }
+
+    const pin = nuevoPin();
+    const guardado = await this.staff.store.guardarPin(
+      tenantId,
+      userId,
+      usuario,
+      await hashPassword(pin),
+    );
+    if (guardado.isErr()) {
+      throw new HttpException(guardado.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    log.info('PIN generado para alguien del personal', { tenantId, userId });
+
+    // La única vez que el PIN sale en claro.
+    return { usuario, pin };
+  }
+
   @RequirePermission('staff:manage')
   @Get('roles')
   roles() {

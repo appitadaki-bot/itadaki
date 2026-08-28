@@ -1,7 +1,7 @@
 import { type StaffUser } from '@itadaki/identity/domain';
 import { type Result, err, ok } from '@itadaki/shared/domain';
 import { hashPassword } from './password';
-import { type StaffError, type StaffWithHash } from './postgres-staff';
+import { type StaffConPin, type StaffError, type StaffWithHash } from './postgres-staff';
 
 /**
  * La misma que crea el seed, para que las instrucciones sirvan en los dos modos.
@@ -99,6 +99,82 @@ export class InMemoryStaffStore {
     this.rows.set(user.email.toLowerCase(), user);
     const { passwordHash: _, ...sinHash } = user;
     return ok(sinHash);
+  }
+
+  /** Usuario y PIN de quien no entra con mail, por id de persona. */
+  private static readonly pines = new Map<
+    string,
+    { username: string; pinHash: string; intentos: number; trabadoHasta: Date | null }
+  >();
+
+  async findByUsername(
+    tenantId: string,
+    username: string,
+  ): Promise<Result<StaffConPin, StaffError>> {
+    await this.sembrar();
+
+    for (const [userId, datos] of InMemoryStaffStore.pines) {
+      if (datos.username !== username.toLowerCase()) continue;
+
+      const persona = [...this.rows.values()].find(
+        (u) => u.id === userId && u.tenantId === tenantId,
+      );
+      if (persona === undefined) continue;
+
+      const { passwordHash: _, ...sinHash } = persona;
+      return ok({ ...sinHash, ...datos });
+    }
+
+    return err({ kind: 'NOT_FOUND', email: username });
+  }
+
+  async registrarIntento(
+    _tenantId: string,
+    userId: string,
+    acerto: boolean,
+    trabarHasta: Date | null,
+  ): Promise<Result<void, StaffError>> {
+    const datos = InMemoryStaffStore.pines.get(userId);
+    if (datos === undefined) return ok(undefined);
+
+    InMemoryStaffStore.pines.set(userId, {
+      ...datos,
+      intentos: acerto ? 0 : datos.intentos + 1,
+      trabadoHasta: acerto ? null : trabarHasta,
+    });
+    return ok(undefined);
+  }
+
+  async guardarPin(
+    _tenantId: string,
+    userId: string,
+    username: string,
+    pinHash: string,
+  ): Promise<Result<void, StaffError>> {
+    InMemoryStaffStore.pines.set(userId, {
+      username,
+      pinHash,
+      intentos: 0,
+      trabadoHasta: null,
+    });
+    return ok(undefined);
+  }
+
+  async usuarioDe(_tenantId: string, userId: string): Promise<Result<string | null, StaffError>> {
+    return ok(InMemoryStaffStore.pines.get(userId)?.username ?? null);
+  }
+
+  async usuariosTomados(tenantId: string): Promise<Result<ReadonlySet<string>, StaffError>> {
+    await this.sembrar();
+
+    const mios = new Set<string>();
+    for (const [userId, datos] of InMemoryStaffStore.pines) {
+      const suyo = [...this.rows.values()].some(
+        (u) => u.id === userId && u.tenantId === tenantId,
+      );
+      if (suyo) mios.add(datos.username);
+    }
+    return ok(mios);
   }
 
   async isActive(tenantId: string, userId: string): Promise<boolean> {
