@@ -2593,6 +2593,41 @@ export class AdminComponent {
     return set.variants.find((v) => v.width === 300 && v.format === 'webp')?.url ?? '';
   }
 
+  /**
+   * Por qué no entró la foto, con lo que el servidor haya dicho.
+   *
+   * Antes todo lo que no fuera "no es una imagen" salía como "no pudimos
+   * procesar la imagen", y ahí terminaba: el motivo venía en la respuesta y se
+   * tiraba. Con una foto que falla y nada que leer, lo único que queda es
+   * probar otra a ver si esa anda.
+   */
+  private porQueFalloLaFoto(
+    error: { kind?: string; bytes?: number; limit?: number; detail?: string } | null,
+  ): string {
+    if (error === null) return 'no pudimos procesar la imagen';
+
+    switch (error.kind) {
+      case 'UNSUPPORTED_TYPE':
+        return 'ese archivo no es una imagen válida';
+      case 'SIN_ALMACENAMIENTO':
+        return 'falta configurar dónde se guardan las fotos — se perderían en el próximo despliegue';
+      case 'TOO_LARGE': {
+        const mb = (n: number): string => (n / 1024 / 1024).toFixed(1);
+        return error.bytes === undefined || error.limit === undefined
+          ? 'la foto pesa de más'
+          : `la foto pesa ${mb(error.bytes)} MB y el máximo es ${mb(error.limit)} MB`;
+      }
+      case 'EMPTY_FILE':
+        return 'ese archivo está vacío';
+      case 'INVALID_PARAMS':
+        return 'el recorte quedó fuera de la foto — probá con Restablecer';
+      default:
+        // Lo que haya dicho el servidor, tal cual: es más útil que "algo
+        // salió mal", aunque no esté escrito para el dueño del local.
+        return error.detail ?? 'no pudimos procesar la imagen';
+    }
+  }
+
   /** Sends the original plus the parameters — never a rasterised canvas. */
   protected async upload(event: { params: ImageEditParams; file: File }): Promise<void> {
     const productId = this.selected();
@@ -2617,14 +2652,13 @@ export class AdminComponent {
     });
 
     if (!response.ok) {
-      const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
-      this.status.set(
-        detail?.kind === 'UNSUPPORTED_TYPE'
-          ? 'error: ese archivo no es una imagen válida'
-          : detail?.kind === 'SIN_ALMACENAMIENTO'
-            ? 'error: falta configurar dónde se guardan las fotos — se perderían en el próximo despliegue'
-            : 'error: no pudimos procesar la imagen',
-      );
+      const detail = (await response.json().catch(() => null)) as {
+        kind?: string;
+        bytes?: number;
+        limit?: number;
+        detail?: string;
+      } | null;
+      this.status.set(`error: ${this.porQueFalloLaFoto(detail)}`);
       return;
     }
 

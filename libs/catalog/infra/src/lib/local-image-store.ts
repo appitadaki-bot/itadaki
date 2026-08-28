@@ -175,6 +175,10 @@ export class SharpImageRenderer implements ImageRenderer {
         ),
       );
     } catch (error) {
+      // También al log del servidor: el detalle que viaja al panel se ve una
+      // vez y se pierde con la pantalla, y esto es lo único que queda para
+      // saber por qué una foto en particular no entró.
+      console.error('[imagenes] falló el render', { tenantId, imageId, error });
       return err({ kind: 'CONFLICT', detail: `render failed: ${String(error)}` });
     }
   }
