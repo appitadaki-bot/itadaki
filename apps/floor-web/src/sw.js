@@ -31,6 +31,18 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
+  // Sólo lo nuestro.
+  //
+  // El service worker vuelve a pedir con `fetch()` todo lo que intercepta, y
+  // eso cambia con qué regla de la CSP se mide: una fuente de Google entra por
+  // `font-src`, que la permite, pero al re-pedirla desde acá pasa a `connect-src`,
+  // que no. El navegador la bloquea y la pantalla queda sin tipografía —o sin
+  // cargar, si algo la espera.
+  //
+  // Cachear lo de otros dominios tampoco era el objetivo: lo que este worker
+  // tiene que sostener sin señal es la aplicación, y eso sale todo de acá.
+  if (url.origin !== self.location.origin) return;
+
   // Never get between the dev server and the browser: it recompiles chunks
   // under new hashes, and a cached index.html would point at files that no
   // longer exist — a blank screen that survives a reload.
