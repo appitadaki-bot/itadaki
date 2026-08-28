@@ -7,6 +7,11 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import {
+  MEDIOS_QUE_ELIGE_EL_MOZO,
+  type MedioDeCobro,
+  nombreDelMedio,
+} from '@itadaki/billing/domain';
 import { type PlatoJunto, juntarIguales } from '@itadaki/ordering/domain';
 import { AuthStore, LoginComponent } from '@itadaki/shared/ui-auth';
 import { FloorStore, type CallDto, type Pickup } from './floor.store';
@@ -195,21 +200,21 @@ const CALL_LABELS: Record<string, string> = {
                      salir de una intención. -->
                 @if (cobrando() === mesa.sessionId) {
                   <p class="cobro-ask">¿Con qué pagaron?</p>
+                  <!-- Recorridos y no escritos a mano: agregar un medio en un
+                       solo lugar tiene que alcanzar. Crédito y débito van
+                       separados porque al dueño le cuestan distinto, y eso
+                       sólo lo sabe quien pasó el posnet. -->
                   <div class="cobro-row">
-                    <button
-                      type="button"
-                      class="cobro efectivo"
-                      (click)="charge(mesa.sessionId, 'CASH')"
-                    >
-                      Efectivo
-                    </button>
-                    <button
-                      type="button"
-                      class="cobro"
-                      (click)="charge(mesa.sessionId, 'CARD')"
-                    >
-                      Tarjeta
-                    </button>
+                    @for (medio of mediosDeCobro; track medio) {
+                      <button
+                        type="button"
+                        class="cobro"
+                        [class.efectivo]="medio === 'CASH'"
+                        (click)="charge(mesa.sessionId, medio)"
+                      >
+                        {{ nombreDelMedio(medio) }}
+                      </button>
+                    }
                   </div>
                   <button type="button" class="cobro-volver" (click)="cobrando.set(null)">
                     Volver
@@ -440,7 +445,13 @@ export class FloorComponent implements OnDestroy {
   /** Qué mesa está eligiendo con qué se cobró. */
   protected readonly cobrando = signal<string | null>(null);
 
-  protected async charge(sessionId: string, cobradoCon?: 'CASH' | 'CARD'): Promise<void> {
+  /** Los medios entre los que elige el mozo, efectivo primero. */
+  protected readonly mediosDeCobro = MEDIOS_QUE_ELIGE_EL_MOZO;
+
+  /** El mismo nombre que ve el dueño en sus métricas. */
+  protected readonly nombreDelMedio = nombreDelMedio;
+
+  protected async charge(sessionId: string, cobradoCon?: MedioDeCobro): Promise<void> {
     this.confirming.set(null);
     this.cobrando.set(null);
     await this.store.chargeTable(sessionId, cobradoCon);

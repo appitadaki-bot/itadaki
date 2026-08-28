@@ -7,6 +7,7 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { nombreDelMedio } from '@itadaki/billing/domain';
 import { AuthStore } from '@itadaki/shared/ui-auth';
 
 interface MoneyDto {
@@ -21,6 +22,22 @@ interface ProductStat {
   readonly revenue: MoneyDto;
 }
 
+/**
+ * Lo que entró con cada medio de pago.
+ *
+ * Lo declara el mozo al cerrar la mesa, no la mesa al pedir la cuenta: el
+ * comensal dice cómo *piensa* pagar antes de que el mozo llegue, y eso cambia.
+ * Un número que el dueño cruza con su caja tiene que venir de quien tuvo la
+ * plata en la mano.
+ */
+export interface CobroDto {
+  /** `null` en las cuentas que se cobraron sin declarar con qué. */
+  readonly medio: string | null;
+  readonly cuentas: number;
+  readonly cobrado: MoneyDto;
+  readonly descuento: MoneyDto;
+}
+
 export interface MetricsDto {
   readonly windowDays: number;
   readonly orders: number;
@@ -28,6 +45,7 @@ export interface MetricsDto {
   readonly medianPrepMinutes: number | null;
   readonly ordersByHour: readonly number[];
   readonly cancelled: number;
+  readonly cobros: readonly CobroDto[];
   readonly topProducts: readonly ProductStat[];
   readonly bottomProducts: readonly ProductStat[];
 }
@@ -102,6 +120,40 @@ const WINDOWS: ReadonlyArray<{ days: number; label: string }> = [
               }}
               en el período.
             </p>
+          }
+
+          <!-- Cómo entró la plata.
+               Va aparte de los pedidos porque mide otra cosa: los pedidos
+               cuentan lo que salió de la cocina, esto lo que entró en la caja.
+               Y separado por medio porque no cuestan lo mismo: el crédito
+               cobra más comisión que el débito y se acredita más tarde, la
+               transferencia entra casi entera pero se concilia a mano. -->
+          @if (cobros().length > 0) {
+            <h3 class="section-title">Cómo te pagaron</h3>
+            <ul class="cobros">
+              @for (cobro of cobros(); track cobro.medio) {
+                <li class="cobro-row">
+                  <span class="cobro-medio">{{ nombreDelMedio(cobro.medio) }}</span>
+                  <span class="cobro-monto">{{ money(cobro.cobrado) }}</span>
+                  <span class="cobro-cuentas">
+                    {{ cobro.cuentas }} cuenta{{ cobro.cuentas > 1 ? 's' : '' }}
+                    @if (cobro.descuento.amountInMinorUnits > 0) {
+                      · {{ money(cobro.descuento) }} de descuento
+                    }
+                  </span>
+                </li>
+              }
+            </ul>
+            @if (sinDeclarar() > 0) {
+              <!-- El hueco se dice, no se reparte: repartirlo a ojo entre los
+                   otros medios sería inventar un número en el reporte que el
+                   dueño cruza con su caja. -->
+              <p class="cobros-nota">
+                {{ sinDeclarar() }} cuenta{{ sinDeclarar() > 1 ? 's' : '' }} se
+                cobró sin decir con qué. Al cerrar la mesa, el salón pregunta
+                cómo pagaron.
+              </p>
+            }
           }
 
           <h3 class="section-title">Lo que más se vende</h3>
@@ -197,6 +249,30 @@ export class MetricsComponent {
   private readonly peak = computed(() =>
     Math.max(1, ...(this.data()?.topProducts ?? []).map((product) => product.unitsSold)),
   );
+
+  /**
+   * Los medios ordenados por lo que entró con cada uno.
+   *
+   * De mayor a menor y no en el orden en que los devuelve la base: el dueño
+   * mira esto para saber por dónde le entra la plata, y esa respuesta tiene
+   * que estar en la primera línea.
+   *
+   * Las cuentas sin declarar quedan afuera de la lista: se dicen aparte, en
+   * una nota, porque no son un medio de pago sino un dato que falta.
+   */
+  protected readonly cobros = computed<readonly CobroDto[]>(() =>
+    [...(this.data()?.cobros ?? [])]
+      .filter((cobro) => cobro.medio !== null)
+      .sort((a, b) => b.cobrado.amountInMinorUnits - a.cobrado.amountInMinorUnits),
+  );
+
+  /** Cuántas cuentas se cobraron sin que nadie dijera con qué. */
+  protected readonly sinDeclarar = computed<number>(
+    () => (this.data()?.cobros ?? []).find((cobro) => cobro.medio === null)?.cuentas ?? 0,
+  );
+
+  /** El mismo nombre que ve el mozo en el salón. */
+  protected readonly nombreDelMedio = nombreDelMedio;
 
   protected readonly totalRevenue = computed<MoneyDto | null>(() => {
     const current = this.data();

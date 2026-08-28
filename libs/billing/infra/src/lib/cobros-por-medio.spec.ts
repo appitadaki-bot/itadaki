@@ -1,4 +1,5 @@
 import { type Bill } from '@itadaki/billing/domain';
+import { Money } from '@itadaki/shared/domain';
 import { InMemoryBillStore } from './in-memory-bills';
 
 /**
@@ -103,5 +104,87 @@ describe('agrupar los cobros por medio de pago', () => {
     if (cobros.isErr()) throw new Error('expected ok');
 
     expect(cobros.value).toEqual([]);
+  });
+});
+
+/**
+ * Cuánta plata entró con cada medio.
+ *
+ * Contar cuentas no alcanza: cinco mesas en efectivo y cinco en crédito puede
+ * ser el mismo número de cuentas y plata muy distinta. Y el crédito le cuesta
+ * al dueño más comisión que el débito, así que la diferencia entre los dos es
+ * justamente lo que quiere mirar.
+ */
+const unaLinea = (minor: number) => ({
+  id: `l-${Math.random()}`,
+  dinerId: 'd1',
+  name: 'Plato',
+  quantity: 1,
+  unitTotal: Money.of(minor, 'ARS').unwrapOr(Money.zero('ARS')),
+});
+
+describe('cuánta plata entró con cada medio', () => {
+  it('suma lo cobrado de cada cuenta', async () => {
+    const store = new InMemoryBillStore();
+    await store.save('t1', unaCuenta({ cobradoCon: 'CREDIT', lines: [unaLinea(300_000)] }));
+    await store.save('t1', unaCuenta({ cobradoCon: 'CREDIT', lines: [unaLinea(200_000)] }));
+
+    const cobros = await store.cobrosPorMedio('t1', ayer);
+    if (cobros.isErr()) throw new Error('expected ok');
+
+    expect(cobros.value.find((c) => c.medio === 'CREDIT')?.cobradoMinor).toBe(500_000);
+  });
+
+  it('separa crédito de débito', async () => {
+    // La razón de todo esto: al dueño no le cuestan lo mismo.
+    const store = new InMemoryBillStore();
+    await store.save('t1', unaCuenta({ cobradoCon: 'CREDIT', lines: [unaLinea(300_000)] }));
+    await store.save('t1', unaCuenta({ cobradoCon: 'DEBIT', lines: [unaLinea(100_000)] }));
+
+    const cobros = await store.cobrosPorMedio('t1', ayer);
+    if (cobros.isErr()) throw new Error('expected ok');
+
+    expect(cobros.value.find((c) => c.medio === 'CREDIT')?.cobradoMinor).toBe(300_000);
+    expect(cobros.value.find((c) => c.medio === 'DEBIT')?.cobradoMinor).toBe(100_000);
+  });
+
+  it('cuenta la transferencia aparte', async () => {
+    const store = new InMemoryBillStore();
+    await store.save('t1', unaCuenta({ cobradoCon: 'TRANSFER', lines: [unaLinea(250_000)] }));
+
+    const cobros = await store.cobrosPorMedio('t1', ayer);
+    if (cobros.isErr()) throw new Error('expected ok');
+
+    expect(cobros.value.find((c) => c.medio === 'TRANSFER')?.cobradoMinor).toBe(250_000);
+  });
+
+  it('descuenta lo que el local resignó en efectivo', async () => {
+    // Sin esto las métricas dirían que entró más de lo que entró, justo en
+    // las cuentas donde el descuento se hizo a propósito.
+    const store = new InMemoryBillStore();
+    await store.save(
+      't1',
+      unaCuenta({ cobradoCon: 'CASH', lines: [unaLinea(500_000)], descuentoMinor: 50_000 }),
+    );
+
+    const cobros = await store.cobrosPorMedio('t1', ayer);
+    if (cobros.isErr()) throw new Error('expected ok');
+
+    const efectivo = cobros.value.find((c) => c.medio === 'CASH');
+    expect(efectivo?.cobradoMinor).toBe(450_000);
+    expect(efectivo?.descuentoMinor).toBe(50_000);
+  });
+
+  it('las cuentas viejas con "CARD" siguen apareciendo', async () => {
+    // Cobradas cuando efectivo y tarjeta eran las únicas opciones. No se
+    // puede saber si fueron crédito o débito, y adivinarlo mancharía el
+    // número que el dueño cruza con su caja: se muestran como están.
+    const store = new InMemoryBillStore();
+    await store.save('t1', unaCuenta({ cobradoCon: 'CARD', lines: [unaLinea(400_000)] }));
+
+    const cobros = await store.cobrosPorMedio('t1', ayer);
+    if (cobros.isErr()) throw new Error('expected ok');
+
+    expect(cobros.value.find((c) => c.medio === 'CARD')?.cobradoMinor).toBe(400_000);
   });
 });

@@ -1,4 +1,4 @@
-import { type PaymentMethod } from '@itadaki/ordering/domain';
+import { type MedioDeCobro } from './medio-de-cobro';
 import { type CurrencyCode, type ExchangeRate, Money, type MoneyError, type Result, ok } from '@itadaki/shared/domain';
 
 /**
@@ -51,10 +51,19 @@ export interface Bill {
    * querer cruzar con su caja tiene que venir de quien tuvo la plata en la
    * mano.
    *
+   * Es una pregunta distinta de la del llamado: ahí la mesa dice si va a pagar
+   * con tarjeta, lo justo para saber si llevar el posnet. Acá el mozo ya pasó
+   * el posnet y sabe si fue crédito o débito, que al dueño le cuestan
+   * distinto.
+   *
    * `null` en las cuentas cobradas antes de que esto existiera, y en las que
    * se liberan sin cobrar.
+   *
+   * `'CARD'` aparece en las cuentas cobradas cuando efectivo y tarjeta eran
+   * las dos únicas opciones. No se puede saber si fue crédito o débito, así
+   * que se dejan como están: repartirlas a ojo sería inventar un número.
    */
-  readonly cobradoCon?: PaymentMethod | null;
+  readonly cobradoCon?: MedioDeCobro | 'CARD' | null;
 
   /**
    * Cuánto se descontó por pagar en efectivo, en unidades menores.

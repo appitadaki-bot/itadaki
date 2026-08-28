@@ -130,3 +130,23 @@ describe('la propina no la paga el mozo', () => {
     expect(conDescuento.value.amountInMinorUnits).toBe(consumo.amountInMinorUnits);
   });
 });
+
+describe('el descuento con los medios separados', () => {
+  it('sigue siendo sólo por efectivo', () => {
+    // El descuento existe porque el efectivo le ahorra comisión al local.
+    // Ninguno de los otros se la ahorra, así que ninguno lo lleva.
+    expect(aplicaA('CASH')).toBe(true);
+    expect(aplicaA('DEBIT')).toBe(false);
+    expect(aplicaA('CREDIT')).toBe(false);
+  });
+
+  it('la transferencia no lleva descuento', () => {
+    // Es la que más se presta a la duda: al dueño le entra casi entera, pero
+    // la tiene que conciliar a mano y no es lo que se le prometió a la mesa.
+    expect(aplicaA('TRANSFER')).toBe(false);
+  });
+
+  it('las cuentas viejas con "CARD" tampoco', () => {
+    expect(aplicaA('CARD')).toBe(false);
+  });
+});

@@ -17,6 +17,7 @@ import {
   billSubtotal,
   descuentoDe,
   montoDelDescuento,
+  MEDIOS_DE_COBRO,
   byDinerSplit,
   byItemSplit,
   customSplit,
@@ -279,9 +280,24 @@ export class BillsController {
      * "nadie lo dijo" — distinto de inventar un medio de pago.
      */
     const cobro = z
-      .object({ cobradoCon: z.enum(['CARD', 'CASH', 'COUNTER']).optional() })
+      // Del vocabulario y no de una lista escrita a mano: agregar un medio
+      // en un solo lugar tiene que alcanzar, o el mozo elige uno que el
+      // servidor rechaza.
+      .object({ cobradoCon: z.enum(MEDIOS_DE_COBRO).optional() })
       .safeParse(body ?? {});
-    const cobradoCon = cobro.success ? (cobro.data.cobradoCon ?? null) : null;
+
+    // Un medio que no existe se rechaza en vez de guardarse como "nadie lo
+    // dijo": el mozo declaró algo, y responderle 201 dejándolo en null le hace
+    // creer que quedó registrado. El hueco en las métricas aparecería recién
+    // a fin de mes, cuando ya no se puede reconstruir con qué se cobró.
+    //
+    // No mandar nada sigue siendo válido: es el caso de la mesa que se cobra
+    // sin declarar, y ahí el null es deliberado.
+    if (!cobro.success) {
+      throw new HttpException(cobro.error.issues, HttpStatus.BAD_REQUEST);
+    }
+
+    const cobradoCon = cobro.data.cobradoCon ?? null;
 
     const state = await this.sessionInScope(scope, sessionId);
 
