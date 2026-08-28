@@ -211,6 +211,50 @@ export class AuthStore {
     }
   }
 
+  /**
+   * Entrar con usuario y PIN, para el personal sin mail de trabajo.
+   *
+   * El local viene del link que el dueño compartió, así que quien entra
+   * escribe dos cosas y no tres.
+   */
+  async signInConPin(local: string, usuario: string, pin: string): Promise<boolean> {
+    this.busy.set(true);
+    this.error.set(null);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/login-pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ local, usuario, pin }),
+      });
+
+      if (!response.ok) {
+        const detalle = (await response.json().catch(() => null)) as { kind?: string } | null;
+
+        // La cuenta trabada sí dice qué pasa: quien lo ve es casi siempre
+        // alguien que se equivocó, y dejarlo probando a ciegas no protege
+        // nada — el que ataca ya sabe que agotó los intentos.
+        this.error.set(
+          detalle?.kind === 'CUENTA_TRABADA'
+            ? 'Demasiados intentos. Esperá unos minutos o pedile un PIN nuevo a tu encargado.'
+            : 'Usuario o PIN incorrectos',
+        );
+        return false;
+      }
+
+      const session = (await response.json()) as { token: string; user: StaffProfile };
+      this.token.set(session.token);
+      this.profile.set(session.user);
+      localStorage.setItem(STORAGE_KEY, session.token);
+      return true;
+    } catch {
+      this.error.set('No pudimos conectar con el servidor');
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
   async signIn(email: string, password: string): Promise<boolean> {
     this.busy.set(true);
     this.error.set(null);

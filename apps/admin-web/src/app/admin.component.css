@@ -2307,3 +2307,117 @@
   font-weight: 700;
   color: var(--itadaki-accent-deep);
 }
+
+/* ═══ ACCESO DEL PERSONAL ═══ */
+
+.staff-acciones {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/*
+ * El link por donde entra el equipo.
+ *
+ * Arriba de la lista: es lo primero que hace falta para que alguien entre, y
+ * al pie se leería como una nota más.
+ */
+.link-del-local {
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--itadaki-radius-action);
+  background: var(--itadaki-surface-sunken);
+}
+
+.link-titulo {
+  margin: 0 0 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--itadaki-ink-subtle);
+}
+
+.link-valor {
+  margin: 0 0 0.6rem;
+  font-family: var(--itadaki-font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--itadaki-ink-strong);
+  /* Un link largo en un panel angosto se sale: se corta donde entre. */
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Los datos de acceso recién creados.
+ *
+ * En el color de la marca y no en verde: el verde diría "listo", y esto es
+ * algo que todavía hay que hacer —copiarlo y mandarlo— antes de que el PIN
+ * deje de ser legible para siempre.
+ */
+.pin-nuevo {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--itadaki-radius-card);
+  background: var(--itadaki-accent-tint);
+  border: 1px solid var(--itadaki-accent-line);
+}
+
+.pin-titulo {
+  margin: 0 0 0.7rem;
+  font-family: var(--itadaki-font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--itadaki-accent-deep);
+}
+
+.pin-datos {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35rem 0.9rem;
+  margin: 0 0 0.75rem;
+  align-items: baseline;
+}
+
+.pin-datos dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--itadaki-accent-deep);
+  opacity: 0.75;
+}
+
+.pin-datos dd {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--itadaki-ink-strong);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * El PIN, grande y separado.
+ *
+ * Se dicta en voz alta: los dígitos de ancho fijo y el espaciado hacen que se
+ * lean de a uno, sin que el dueño pierda la cuenta a mitad del número.
+ */
+.pin-numero {
+  font-family: var(--itadaki-font-display);
+  font-size: 1.6rem !important;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pin-aviso {
+  margin: 0 0 0.85rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--itadaki-accent-deep);
+}
+
+.pin-acciones {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

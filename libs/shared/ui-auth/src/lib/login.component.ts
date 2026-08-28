@@ -45,6 +45,69 @@ import { AuthStore } from './auth.store';
             {{ auth.busy() ? 'Guardando…' : 'Guardar y entrar' }}
           </button>
         </form>
+      } @else if (conPin()) {
+      <!-- El personal entra con usuario y PIN. Aparece cuando el link trae un
+           local: sin eso no sabríamos de qué restaurante es. -->
+      <form class="card" (submit)="entrarConPin($event)">
+        <header class="head">
+          <p class="eyebrow">{{ context() }}</p>
+          <h1 class="title">ITADAKI</h1>
+          <p class="lede">Entrá con el usuario y el PIN que te dieron.</p>
+        </header>
+
+        <label class="field">
+          <span>Usuario</span>
+          <input
+            name="usuario"
+            type="text"
+            autocomplete="username"
+            autocapitalize="none"
+            maxlength="30"
+            required
+            placeholder="Ej: nico"
+            [value]="usuario()"
+            (input)="onUsuario($event)"
+          />
+        </label>
+
+        <label class="field">
+          <span>PIN</span>
+          <!-- Teclado numérico y seis dígitos: se tipea de parado, con una
+               mano ocupada. -->
+          <input
+            name="pin"
+            type="password"
+            inputmode="numeric"
+            autocomplete="current-password"
+            maxlength="6"
+            required
+            placeholder="000000"
+            [value]="pin()"
+            (input)="onPin($event)"
+          />
+        </label>
+
+        @if (auth.error(); as error) {
+          <p class="error" role="alert">{{ error }}</p>
+        }
+
+        <button class="cta" type="submit" [disabled]="auth.busy()">
+          {{ auth.busy() ? 'Entrando…' : 'Entrar' }}
+        </button>
+
+        <!-- No hay "olvidé mi PIN": el personal no tiene mail de trabajo, así
+             que no hay a dónde mandar un link. Se lo pide a quien lo dio de
+             alta, que está en el mismo local. -->
+        <p class="switch">
+          ¿Perdiste el PIN? Pedile uno nuevo a tu encargado.
+        </p>
+
+        <p class="switch">
+          <button type="button" class="link" (click)="conPin.set(false)">
+            Entrar con mail y contraseña
+          </button>
+        </p>
+      </form>
       } @else {
       <form class="card" (submit)="submit($event)">
         <header class="head">
@@ -174,10 +237,53 @@ export class LoginComponent {
   /** 'reset' when the page was opened from a reset link. */
   protected readonly mode = signal<'auth' | 'reset'>('auth');
 
+  /**
+   * De qué restaurante es quien entra, sacado del link.
+   *
+   * El dueño comparte `.../parrilla-don-pepe` y el slug es el id del local:
+   * no hay nada que crear ni administrar, y el mozo escribe dos datos en vez
+   * de tres.
+   */
+  protected readonly local = signal('');
+
+  /** Si se muestra la pantalla de usuario y PIN. */
+  protected readonly conPin = signal(false);
+
+  protected readonly usuario = signal('');
+  protected readonly pin = signal('');
+
+  protected onUsuario(evento: Event): void {
+    this.usuario.set((evento.target as HTMLInputElement).value);
+  }
+
+  /** Sólo dígitos: quien lo dicta a veces lo separa, "48 13 02". */
+  protected onPin(evento: Event): void {
+    this.pin.set((evento.target as HTMLInputElement).value.replace(/\D/g, ''));
+  }
+
+  protected async entrarConPin(evento: Event): Promise<void> {
+    evento.preventDefault();
+    if (this.auth.busy()) return;
+
+    await this.auth.signInConPin(this.local(), this.usuario().trim(), this.pin());
+  }
+
   private readonly googleSlot = viewChild<ElementRef<HTMLElement>>('googleSlot');
   private resetToken = '';
 
   constructor() {
+    /*
+     * El primer tramo de la dirección es el restaurante.
+     *
+     * Sirve tanto `/parrilla-don-pepe` como `/parrilla-don-pepe/lo-que-sea`.
+     * Sin ese tramo se muestra el login con mail, que es como entra el dueño.
+     */
+    const tramo = globalThis.location.pathname.split('/').filter(Boolean)[0] ?? '';
+    if (/^[a-z0-9-]{2,60}$/.test(tramo)) {
+      this.local.set(tramo);
+      this.conPin.set(true);
+    }
+
     const params = new URLSearchParams(globalThis.location.search);
     const token = params.get('reset');
     if (token !== null && token !== '') {

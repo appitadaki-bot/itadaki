@@ -7,6 +7,7 @@ import {
   effect,
   inject,
   signal,
+  type WritableSignal,
 } from '@angular/core';
 import { type ImageEditParams } from '@itadaki/catalog/domain';
 import { ImageEditorComponent } from '@itadaki/shared/ui-image-editor';
@@ -604,6 +605,17 @@ const ROLE_NAMES: Record<string, string> = {
           <details class="details manage-staff" open>
             <summary>Ver el equipo</summary>
 
+            <!-- El link con el que entra el personal. Va acá y también junto a
+                 cada PIN recién generado: acá para cuando alguien lo pierda,
+                 y allá para mandar los tres datos de una. -->
+            <div class="link-del-local">
+              <p class="link-titulo">Por acá entra tu equipo</p>
+              <p class="link-valor">{{ linkDelLocal() }}</p>
+              <button type="button" class="secondary" (click)="copiarLink()">
+                {{ copiadoLink() ? 'Copiado ✓' : 'Copiar el link' }}
+              </button>
+            </div>
+
             <div class="staff-list">
               @for (member of staff(); track member.id) {
                 <div class="staff-row" [class.inactive]="!member.active">
@@ -616,19 +628,63 @@ const ROLE_NAMES: Record<string, string> = {
                   @if (member.id === auth.profile()?.id) {
                     <span class="staff-you">Vos</span>
                   } @else {
-                    <button
-                      type="button"
-                      class="staff-toggle"
-                      (click)="toggleStaff(member)"
-                    >
-                      {{ member.active ? 'Dar de baja' : 'Reactivar' }}
-                    </button>
+                    <div class="staff-acciones">
+                      <!-- El mismo botón sirve para tres cosas: el que olvidó
+                           su PIN, el que se trabó probando, y el que se fue
+                           del local —a ése no se le dicta el nuevo. -->
+                      @if (member.role !== 'OWNER') {
+                        <button
+                          type="button"
+                          class="staff-toggle"
+                          [disabled]="generandoPin() === member.id"
+                          (click)="generarPin(member)"
+                        >
+                          {{ generandoPin() === member.id ? 'Generando…' : 'PIN nuevo' }}
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="staff-toggle"
+                        (click)="toggleStaff(member)"
+                      >
+                        {{ member.active ? 'Dar de baja' : 'Reactivar' }}
+                      </button>
+                    </div>
                   }
                 </div>
               } @empty {
                 <p class="muted">Todavía sos la única persona con acceso.</p>
               }
             </div>
+
+            <!-- El PIN se ve una sola vez: después queda cifrado y nadie puede
+                 volver a leerlo. Por eso el cartel se queda hasta que el dueño
+                 lo cierra, en vez de irse solo mientras busca el teléfono. -->
+            @if (pinNuevo(); as datos) {
+              <div class="pin-nuevo" role="status">
+                <p class="pin-titulo">Datos de acceso de {{ datos.nombre }}</p>
+                <dl class="pin-datos">
+                  <dt>Link</dt>
+                  <dd>{{ linkDelLocal() }}</dd>
+                  <dt>Usuario</dt>
+                  <dd>{{ datos.usuario }}</dd>
+                  <dt>PIN</dt>
+                  <dd class="pin-numero">{{ datos.pin }}</dd>
+                </dl>
+                <p class="pin-aviso">
+                  Anotalo o mandáselo ahora: el PIN no se puede volver a ver.
+                  Si se pierde, generás otro.
+                </p>
+                <div class="pin-acciones">
+                  <button type="button" class="create" (click)="copiarAcceso(datos)">
+                    {{ copiado() ? 'Copiado ✓' : 'Copiar los tres datos' }}
+                  </button>
+                  <button type="button" class="secondary" (click)="pinNuevo.set(null)">
+                    Listo
+                  </button>
+                </div>
+              </div>
+            }
           </details>
         </section>
       }
@@ -2228,6 +2284,88 @@ export class AdminComponent {
       this.ejemploConsumo.amountInMinorUnits - this.ejemploAhorro().amountInMinorUnits,
     currency: this.ejemploConsumo.currency,
   }));
+
+  /* ── El acceso del personal ── */
+
+  /** Qué persona está esperando su PIN, para apagar sólo ese botón. */
+  protected readonly generandoPin = signal<string | null>(null);
+
+  /** El PIN recién creado. Se ve una vez y después no existe más. */
+  protected readonly pinNuevo = signal<{
+    nombre: string;
+    usuario: string;
+    pin: string;
+  } | null>(null);
+
+  protected readonly copiado = signal(false);
+  protected readonly copiadoLink = signal(false);
+
+  /**
+   * Por dónde entra el personal.
+   *
+   * El slug del restaurante ya es su identificador, así que el link no hay que
+   * crearlo ni administrarlo: sale de lo que el local ya tiene.
+   */
+  protected readonly linkDelLocal = computed(() => {
+    const slug = this.auth.profile()?.tenantId ?? '';
+    return `${globalThis.location.origin}/${slug}`;
+  });
+
+  protected async generarPin(member: { id: string; displayName: string }): Promise<void> {
+    this.generandoPin.set(member.id);
+    this.copiado.set(false);
+
+    try {
+      const respuesta = await fetch(`${API}/staff/${member.id}/pin`, {
+        method: 'POST',
+        headers: this.auth.headers(),
+      });
+      if (!respuesta.ok) return;
+
+      const { usuario, pin } = (await respuesta.json()) as { usuario: string; pin: string };
+      this.pinNuevo.set({ nombre: member.displayName, usuario, pin });
+    } catch {
+      // Sin conexión no se generó nada: el PIN viejo sigue sirviendo.
+    } finally {
+      this.generandoPin.set(null);
+    }
+  }
+
+  /** Los tres datos juntos, listos para mandar por WhatsApp. */
+  protected async copiarAcceso(datos: {
+    nombre: string;
+    usuario: string;
+    pin: string;
+  }): Promise<void> {
+    const texto = [
+      `Entrá por acá: ${this.linkDelLocal()}`,
+      `Usuario: ${datos.usuario}`,
+      `PIN: ${datos.pin}`,
+    ].join('\n');
+
+    await this.alPortapapeles(texto, this.copiado);
+  }
+
+  protected async copiarLink(): Promise<void> {
+    await this.alPortapapeles(this.linkDelLocal(), this.copiadoLink);
+  }
+
+  /**
+   * Copia y avisa que copió.
+   *
+   * Sin el aviso nadie sabe si funcionó, y termina copiando tres veces por las
+   * dudas. Vuelve solo a los dos segundos.
+   */
+  private async alPortapapeles(texto: string, marca: WritableSignal<boolean>): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(texto);
+      marca.set(true);
+      setTimeout(() => marca.set(false), 2000);
+    } catch {
+      // Sin permiso al portapapeles, el texto está a la vista para copiarlo
+      // a mano: no hay nada que avisar.
+    }
+  }
 
   /* ── Las reseñas de Google ── */
 
