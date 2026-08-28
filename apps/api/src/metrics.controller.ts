@@ -129,6 +129,9 @@ export class MetricsController {
         ? cobros.value.map((fila) => ({
             medio: fila.medio,
             cuentas: fila.cuentas,
+            cobrado: toMoneyDto(
+              Money.of(fila.cobradoMinor, 'ARS').unwrapOr(Money.zero('ARS')),
+            ),
             descuento: toMoneyDto(
               Money.of(fila.descuentoMinor, 'ARS').unwrapOr(Money.zero('ARS')),
             ),

@@ -1,5 +1,6 @@
 import { Money, type MoneyError, type Result, err, ok } from '@itadaki/shared/domain';
 import { type PaymentMethod } from '@itadaki/ordering/domain';
+import { type MedioDeCobro } from './medio-de-cobro';
 
 /**
  * El descuento que el local hace por pagar en efectivo.
@@ -43,7 +44,7 @@ export function descuentoDe(porcentaje: number): Result<DescuentoEnEfectivo, Des
  * descuento sería prometer algo que quizás no corresponda cuando llegue el
  * momento. `UNDECIDED` es literalmente "no sabemos".
  */
-export function aplicaA(metodo: PaymentMethod | null): boolean {
+export function aplicaA(metodo: MedioDeCobro | 'CARD' | PaymentMethod | null): boolean {
   return metodo === 'CASH';
 }
 

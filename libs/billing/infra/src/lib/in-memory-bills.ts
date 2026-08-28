@@ -5,8 +5,15 @@ import {
   type CobroPorMedio,
   type ExchangeRateProvider,
 } from '@itadaki/billing/application';
-import { type Bill, isSettled } from '@itadaki/billing/domain';
-import { type CurrencyCode, type ExchangeRate, type Result, err, ok } from '@itadaki/shared/domain';
+import { type Bill, billSubtotal, cobradoDeLaCuenta, isSettled } from '@itadaki/billing/domain';
+import {
+  type CurrencyCode,
+  type ExchangeRate,
+  Money,
+  type Result,
+  err,
+  ok,
+} from '@itadaki/shared/domain';
 
 export class InMemoryBillStore implements BillReader, BillWriter {
   private readonly rows = new Map<string, Bill>();
@@ -37,16 +44,26 @@ export class InMemoryBillStore implements BillReader, BillWriter {
     tenantId: string,
     desde: Date,
   ): Promise<Result<readonly CobroPorMedio[], BillRepositoryError>> {
-    const juntos = new Map<string | null, { cuentas: number; descuentoMinor: number }>();
+    const juntos = new Map<
+      string | null,
+      { cuentas: number; descuentoMinor: number; cobradoMinor: number }
+    >();
 
     for (const bill of this.deTenant(tenantId)) {
       if (bill.status !== 'SETTLED' || bill.closedAt < desde) continue;
 
       const medio = bill.cobradoCon ?? null;
-      const previo = juntos.get(medio) ?? { cuentas: 0, descuentoMinor: 0 };
+      const previo = juntos.get(medio) ?? { cuentas: 0, descuentoMinor: 0, cobradoMinor: 0 };
       juntos.set(medio, {
         cuentas: previo.cuentas + 1,
         descuentoMinor: previo.descuentoMinor + (bill.descuentoMinor ?? 0),
+        // Como en Postgres: el consumo menos el descuento, sin la propina.
+        cobradoMinor:
+          previo.cobradoMinor +
+          cobradoDeLaCuenta(
+            billSubtotal(bill).unwrapOr(Money.zero(bill.currency)).amountInMinorUnits,
+            bill.descuentoMinor ?? 0,
+          ),
       });
     }
 

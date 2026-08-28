@@ -11,6 +11,14 @@ export interface CobroPorMedio {
   readonly medio: string | null;
   readonly cuentas: number;
   readonly descuentoMinor: number;
+  /**
+   * Cuánto entró en la caja con ese medio, en unidades menores.
+   *
+   * Es lo que el dueño cruza con su caja: el consumo menos el descuento, sin
+   * la propina, que no es del local. Cero en las cuentas cobradas antes de
+   * que esto se guardara.
+   */
+  readonly cobradoMinor: number;
 }
 
 export interface BillReader {

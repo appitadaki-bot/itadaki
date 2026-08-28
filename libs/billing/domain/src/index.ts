@@ -33,3 +33,12 @@ export {
   descuentoDe,
   montoDelDescuento,
 } from './lib/descuento';
+export {
+  type MedioDeCobro,
+  MEDIOS_DE_COBRO,
+  MEDIOS_QUE_ELIGE_EL_MOZO,
+  NOMBRE_DEL_MEDIO,
+  cobradoDeLaCuenta,
+  esMedioDeCobro,
+  nombreDelMedio,
+} from './lib/medio-de-cobro';

@@ -1,5 +1,6 @@
 import { apiUrl, socketUrl } from '@itadaki/shared/domain';
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { type MedioDeCobro } from '@itadaki/billing/domain';
 import { AuthStore } from '@itadaki/shared/ui-auth';
 import { OutboxDb } from '@itadaki/shared/offline';
 import { type TableAssignment, tableVisibleTo } from '@itadaki/ordering/domain';
@@ -342,7 +343,7 @@ export class FloorStore {
    * El `settle` de la API cierra la sesión también, así que no hace falta
    * liberar aparte.
    */
-  async chargeTable(sessionId: string, cobradoCon?: 'CASH' | 'CARD'): Promise<void> {
+  async chargeTable(sessionId: string, cobradoCon?: MedioDeCobro): Promise<void> {
     this.actionError.set(null);
     try {
       const response = await fetch(`${API}/bills/${sessionId}/settle`, {

@@ -224,3 +224,57 @@
   padding: 0.75rem 0.9rem;
   font-weight: 600;
 }
+
+/* ═══ CÓMO TE PAGARON ═══
+ *
+ * Una lista y no barras: los medios de pago no se comparan entre sí como se
+ * comparan los platos que más salen —el dueño quiere el monto exacto de cada
+ * uno para cruzarlo con su caja, no ver cuál es más largo. */
+
+.cobros {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.cobro-row {
+  display: grid;
+  /* El nombre a la izquierda, el monto a la derecha y el detalle debajo: los
+     montos alineados en columna se comparan de un vistazo. */
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 0 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--itadaki-border);
+}
+
+.cobro-medio {
+  font-family: var(--itadaki-font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--itadaki-ink-strong);
+}
+
+.cobro-monto {
+  font-family: var(--itadaki-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--itadaki-ink-strong);
+  /* Los dígitos de ancho fijo hacen que los montos se alineen entre filas. */
+  font-variant-numeric: tabular-nums;
+}
+
+.cobro-cuentas {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  color: var(--itadaki-ink-subtle);
+}
+
+.cobros-nota {
+  margin: 0 0 1.25rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--itadaki-ink-subtle);
+}
