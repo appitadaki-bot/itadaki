@@ -314,7 +314,23 @@ const ROLE_NAMES: Record<string, string> = {
            está armado el salón, y quien entra acá a configurar el local lo
            primero que quiere resolver es eso. -->
       <section class="panel">
-        <h2 class="panel-title">Descuento por pagar en efectivo</h2>
+        <div class="panel-head">
+          <h2 class="panel-title">Descuento por pagar en efectivo</h2>
+          <!-- Una casilla de siempre con role de interruptor: el navegador ya
+               sabe marcarla, enfocarla y anunciarla; el CSS le da la forma. -->
+          <label class="switch">
+            <input
+              type="checkbox"
+              role="switch"
+              [checked]="descuentoActivo()"
+              (change)="alternarDescuento()"
+              aria-label="Activar el descuento por pagar en efectivo"
+            />
+            <span class="switch-pista" aria-hidden="true"></span>
+          </label>
+        </div>
+
+        @if (descuentoActivo()) {
         <p class="panel-lede">
           Si lo activás, la mesa lo ve al elegir cómo paga y el total baja solo.
           El mozo cobra lo que dice la pantalla, sin hacer cuentas.
@@ -366,6 +382,7 @@ const ROLE_NAMES: Record<string, string> = {
 
         @if (descuentoError(); as error) {
           <p class="error" role="alert">{{ error }}</p>
+        }
         }
       </section>
 
@@ -2181,6 +2198,15 @@ export class AdminComponent {
   protected readonly descuentoError = signal<string | null>(null);
 
   /**
+   * Si el panel muestra sus controles.
+   *
+   * No es un dato nuevo: el descuento ya se apaga poniéndolo en cero, así que
+   * el interruptor lee eso y no hace falta guardar nada más. Prenderlo abre
+   * los controles; apagarlo guarda cero, que es lo que apaga de verdad.
+   */
+  protected readonly descuentoActivo = signal(false);
+
+  /**
    * Una mesa de veinte mil, para el ejemplo.
    *
    * Un porcentaje suelto no dice cuánto resigna el local hasta que uno hace
@@ -2276,6 +2302,7 @@ export class AdminComponent {
       };
       this.descuento.set(ajustes.descuentoEfectivo);
       this.descuentoGuardado.set(ajustes.descuentoEfectivo);
+      this.descuentoActivo.set(ajustes.descuentoEfectivo > 0);
       this.resenaUrl.set(ajustes.resenaUrl ?? '');
       this.resenaGuardada.set(ajustes.resenaUrl ?? '');
       this.resenaOfrecidas.set(ajustes.resenaOfrecidas);
@@ -2284,6 +2311,18 @@ export class AdminComponent {
       // Sin conexión el formulario queda en cero: no se anuncia un descuento
       // que no sabemos si existe.
     }
+  }
+
+  /** Prender abre los controles; apagar guarda cero y los cierra. */
+  protected async alternarDescuento(): Promise<void> {
+    if (!this.descuentoActivo()) {
+      this.descuentoActivo.set(true);
+      return;
+    }
+
+    this.descuento.set(0);
+    await this.guardarDescuento();
+    if (this.descuentoError() === null) this.descuentoActivo.set(false);
   }
 
   protected async guardarDescuento(): Promise<void> {
