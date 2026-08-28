@@ -672,10 +672,12 @@
   color: var(--itadaki-ink-subtle);
 }
 
+/* Neutro como los otros dos: copiar un link no rompe nada, y en la fila el
+   único que merece color es el que borra. */
 .table-copy {
-  border: 1px solid var(--itadaki-accent);
+  border: 1px solid var(--itadaki-border);
   background: transparent;
-  color: var(--itadaki-accent);
+  color: var(--itadaki-ink-muted);
   border-radius: var(--itadaki-radius-action);
   padding: 0.45rem 0.9rem;
   font-family: inherit;
@@ -1822,12 +1824,13 @@
 
 /* Borrar se apaga hasta que se lo busca: no compite con copiar el link, que
    es lo que se hace todos los días. */
+/* El único de la fila que no se deshace, y el único con color. */
 .table-delete {
   padding: 0.45rem 0.8rem;
-  border: 1px solid var(--itadaki-border);
+  border: 1px solid var(--itadaki-status-late);
   border-radius: var(--itadaki-radius-action);
   background: transparent;
-  color: var(--itadaki-ink-subtle);
+  color: var(--itadaki-status-late);
   font: inherit;
   font-size: 0.8rem;
   font-weight: 600;
@@ -1836,8 +1839,8 @@
 }
 
 .table-delete:hover {
-  border-color: var(--itadaki-status-late);
-  color: var(--itadaki-status-late);
+  background: var(--itadaki-status-late);
+  color: white;
 }
 
 /* Los documentos legales, al pie de toda pantalla. */
