@@ -9,6 +9,10 @@ import {
   uniqueSlug,
   validateCredentials,
   validatePassword,
+  estaTrabada,
+  nombreDeUsuario,
+  pareceUnPin,
+  trasElIntento,
 } from '@itadaki/identity/domain';
 import {
   RESET_TOKEN_MINUTES,
@@ -203,6 +207,98 @@ export class AuthController {
     }
 
     return { verificado: true };
+  }
+
+  /**
+   * Entrar con usuario y PIN, para el personal sin mail de trabajo.
+   *
+   * El restaurante viene en el link que el dueño le pasó —el slug es el id
+   * del local— así que el mozo escribe dos cosas y no tres.
+   *
+   * Lo que se traba es la cuenta y no la dirección de red: quien prueba PINes
+   * a ciegas cambia de IP cuando quiere, pero no cambia de usuario.
+   */
+  @Public()
+  @RateLimit('login')
+  @Post('login-pin')
+  async loginConPin(@Body() body: unknown) {
+    const parsed = z
+      .object({
+        local: z.string().min(1).max(80),
+        usuario: z.string().min(1).max(30),
+        pin: z.string().min(1).max(20),
+      })
+      .safeParse(body);
+    if (!parsed.success) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const usuario = nombreDeUsuario(parsed.data.usuario);
+    if (usuario.isErr() || !pareceUnPin(parsed.data.pin)) {
+      // Un usuario mal formado y un PIN equivocado responden igual: separarlos
+      // diría cuáles usuarios existen.
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const encontrado = await this.staff.store.findByUsername(parsed.data.local, usuario.value);
+    if (encontrado.isErr()) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const persona = encontrado.value;
+    const ahora = new Date();
+
+    if (estaTrabada(persona.trabadoHasta, ahora)) {
+      // Acá sí se dice qué pasa: quien está trabado es casi siempre el mozo
+      // que se equivocó, y dejarlo probando a ciegas no protege nada — el
+      // atacante ya sabe que agotó los intentos.
+      throw new HttpException(
+        { kind: 'CUENTA_TRABADA', hasta: persona.trabadoHasta },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    if (!persona.active) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const acerto = await verifyPassword(parsed.data.pin.trim(), persona.pinHash);
+    const resultado = trasElIntento(persona.intentos, acerto, ahora);
+
+    await this.staff.store.registrarIntento(
+      parsed.data.local,
+      persona.id,
+      acerto,
+      resultado.trabadoHasta,
+    );
+
+    if (!acerto) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const expiresAt = Date.now() + SESSION_HOURS * 3_600_000;
+    const token = signToken(
+      {
+        userId: persona.id,
+        tenantId: persona.tenantId,
+        role: persona.role,
+        displayName: persona.displayName,
+        expiresAt,
+      },
+      AUTH_SECRET,
+    );
+
+    return {
+      token,
+      expiresAt,
+      user: {
+        id: persona.id,
+        displayName: persona.displayName,
+        role: persona.role,
+        tenantId: persona.tenantId,
+        permissions: permissionsOf(persona.role),
+      },
+    };
   }
 
   @Public()

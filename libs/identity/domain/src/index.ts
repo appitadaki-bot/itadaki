@@ -48,3 +48,15 @@ export {
   nuevoVencimiento,
 } from './lib/pago-recibido';
 export { type ResenaError, linkDeResena, pideResenas } from './lib/resena-google';
+export {
+  type UsuarioError,
+  INTENTOS_ANTES_DE_TRABAR,
+  LARGO_DEL_PIN,
+  MINUTOS_TRABADA,
+  estaTrabada,
+  trasElIntento,
+  nombreDeUsuario,
+  nuevoPin,
+  pareceUnPin,
+  usuarioLibre,
+} from './lib/usuario-y-pin';

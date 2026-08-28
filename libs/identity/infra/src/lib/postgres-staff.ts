@@ -14,10 +14,24 @@ interface StaffRow {
   password_hash: string;
   role: string;
   active: boolean;
+  username: string | null;
+  pin_hash: string | null;
+  pin_intentos: number | null;
+  pin_trabado_hasta: string | null;
 }
 
 export interface StaffWithHash extends StaffUser {
   readonly passwordHash: string;
+}
+
+/** Alguien del personal que entra con usuario y PIN. */
+export interface StaffConPin extends StaffUser {
+  readonly username: string;
+  readonly pinHash: string;
+  /** Cuántos PIN fallidos seguidos lleva. */
+  readonly intentos: number;
+  /** Hasta cuándo está trabada la cuenta, o null si no lo está. */
+  readonly trabadoHasta: Date | null;
 }
 
 export class PostgresStaffStore {
@@ -104,6 +118,140 @@ export class PostgresStaffStore {
    * Narrow on purpose: a signed token already carries who the person is, so
    * the only open question is whether they were let go since it was issued.
    */
+  /**
+   * Busca a alguien del personal por su usuario, dentro de su restaurante.
+   *
+   * Con el tenant en alcance, a diferencia del login por mail: ese ocurre
+   * antes de saber de qué local se trata y por eso necesita la función que ve
+   * por encima de RLS. Acá el local ya se sabe —viene en el link— así que la
+   * búsqueda queda encerrada donde corresponde.
+   */
+  async findByUsername(
+    tenantId: string,
+    username: string,
+  ): Promise<Result<StaffConPin, StaffError>> {
+    try {
+      const rows = await this.db.withTenant(tenantId, async (client) => {
+        const result = await client.query<StaffRow>(
+          'SELECT * FROM staff_users WHERE lower(username) = lower($1)',
+          [username],
+        );
+        return result.rows;
+      });
+
+      const row = rows[0];
+      if (row === undefined || row.username === null || row.pin_hash === null) {
+        return err({ kind: 'NOT_FOUND', email: username });
+      }
+
+      return ok({
+        id: row.id,
+        tenantId: row.tenant_id,
+        email: row.email,
+        displayName: row.display_name,
+        role: row.role as Role,
+        active: row.active,
+        username: row.username,
+        pinHash: row.pin_hash,
+        intentos: row.pin_intentos ?? 0,
+        trabadoHasta: row.pin_trabado_hasta === null ? null : new Date(row.pin_trabado_hasta),
+      });
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /**
+   * Guarda el resultado de un intento de PIN.
+   *
+   * Se traba la cuenta y no la dirección de red: quien prueba PINes a ciegas
+   * cambia de IP cuando quiere, pero no cambia de usuario. El contador se
+   * borra al acertar, así que el mozo que se equivocó dos veces no arrastra
+   * eso todo el turno.
+   */
+  async registrarIntento(
+    tenantId: string,
+    userId: string,
+    acerto: boolean,
+    trabarHasta: Date | null,
+  ): Promise<Result<void, StaffError>> {
+    try {
+      await this.db.withTenant(tenantId, async (client) => {
+        if (acerto) {
+          await client.query(
+            'UPDATE staff_users SET pin_intentos = 0, pin_trabado_hasta = NULL WHERE id = $1',
+            [userId],
+          );
+          return;
+        }
+
+        await client.query(
+          `UPDATE staff_users
+              SET pin_intentos = pin_intentos + 1,
+                  pin_trabado_hasta = $2
+            WHERE id = $1`,
+          [userId, trabarHasta],
+        );
+      });
+      return ok(undefined);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /** Le pone o le cambia el usuario y el PIN a alguien del personal. */
+  async guardarPin(
+    tenantId: string,
+    userId: string,
+    username: string,
+    pinHash: string,
+  ): Promise<Result<void, StaffError>> {
+    try {
+      await this.db.withTenant(tenantId, async (client) => {
+        await client.query(
+          `UPDATE staff_users
+              SET username = $2, pin_hash = $3, pin_intentos = 0, pin_trabado_hasta = NULL
+            WHERE id = $1`,
+          [userId, username, pinHash],
+        );
+      });
+      return ok(undefined);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /** El usuario que ya tiene esta persona, o null si todavía no tiene. */
+  async usuarioDe(tenantId: string, userId: string): Promise<Result<string | null, StaffError>> {
+    try {
+      const nombre = await this.db.withTenant(tenantId, async (client) => {
+        const result = await client.query<{ username: string | null }>(
+          'SELECT username FROM staff_users WHERE id = $1',
+          [userId],
+        );
+        return result.rows[0]?.username ?? null;
+      });
+      return ok(nombre);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /** Los usuarios ya tomados en este restaurante, para elegir uno libre. */
+  async usuariosTomados(tenantId: string): Promise<Result<ReadonlySet<string>, StaffError>> {
+    try {
+      const nombres = await this.db.withTenant(tenantId, async (client) => {
+        const result = await client.query<{ username: string }>(
+          'SELECT username FROM staff_users WHERE username IS NOT NULL',
+        );
+        return result.rows.map((fila) => fila.username);
+      });
+      return ok(new Set(nombres));
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   async isActive(tenantId: string, userId: string): Promise<boolean> {
     try {
       return await this.db.withTenant(tenantId, async (client) => {
