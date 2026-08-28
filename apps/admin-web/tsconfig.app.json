@@ -18,8 +18,13 @@
   "angularCompilerOptions": { "strictTemplates": true },
   "files": ["src/main.ts"],
   "include": ["src/**/*.ts", "../../libs/shared/ui-image-editor/**/*.ts", "../../libs/shared/ui-auth/**/*.ts"],
-  // Los tests no se compilan en el bundle: usan los globales de Jest,
-  // que no existen en el navegador. Las otras apps ya lo excluían.
-  "exclude": ["src/**/*.spec.ts"]
+  // Los tests no entran al bundle: usan los globales de Jest, que no existen
+  // en el navegador.
+  //
+  // Los dos patrones son necesarios: `exclude` se resuelve contra el
+  // directorio de este archivo, así que `**/*.spec.ts` no alcanza lo que el
+  // `include` trae subiendo con `../../`. Un test dentro de una lib
+  // compartida rompía el build de esta app aunque el archivo no fuera suyo.
+  "exclude": ["**/*.spec.ts", "../../libs/**/*.spec.ts"]
 
 }
