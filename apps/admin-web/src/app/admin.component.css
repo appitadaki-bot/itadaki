@@ -1244,6 +1244,54 @@
   overflow-y: auto;
 }
 
+/* ── La pregunta antes de algo que no se deshace ── */
+
+.modal.confirma {
+  width: min(420px, calc(100vw - 2rem));
+}
+
+.confirma-detalle {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--itadaki-ink-subtle);
+}
+
+/* Al pie y a la derecha: cancelar queda primero en el camino del pulgar. */
+.confirma-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+.confirma-acciones .ghost,
+.confirma-ok {
+  border: 1px solid var(--itadaki-border);
+  background: transparent;
+  color: var(--itadaki-ink);
+  border-radius: var(--itadaki-radius-action);
+  padding: 0.6rem 1.1rem;
+  font-family: var(--itadaki-font-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.confirma-ok {
+  border-color: var(--itadaki-ink);
+  background: var(--itadaki-ink);
+  color: white;
+}
+
+/* Lo que no tiene vuelta atrás, del color con el que ya se avisa en la fila. */
+.confirma-ok.peligro {
+  border-color: var(--itadaki-status-late);
+  background: var(--itadaki-status-late);
+}
+
 /* El encabezado de la sección, con la acción a la derecha. */
 .panel-head {
   display: flex;
@@ -2420,4 +2468,75 @@
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+/* ═══ EL TELÉFONO ═══
+ *
+ * El panel se abre tanto desde la computadora del local como desde el
+ * teléfono del dueño, que es donde mira los números un domingo. Lo que sigue
+ * es lo que no entraba en 390px de ancho: filas de botones que no envolvían,
+ * grillas de cinco columnas y textos largos que empujaban la página a lo
+ * ancho. Nada de esto cambia cómo se ve en una pantalla grande. */
+
+@media (max-width: 700px) {
+  /* Cuatro acciones por mesa no entran en una línea de teléfono. Envuelven y
+     se reparten el ancho, en vez de estirar la fila fuera de la pantalla. */
+  .table-actions {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    width: 100%;
+  }
+
+  .table-actions > * {
+    flex: 1 1 auto;
+  }
+
+  /* Si el nombre del panel y su acción no entran juntos, la acción baja. */
+  .panel-head,
+  .modal-head {
+    flex-wrap: wrap;
+  }
+
+  /* El nombre del plato al que sigue puede ser largo; que no empuje la cruz. */
+  .foto-siguiente {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  :host {
+    padding: 1.25rem 0.9rem 2.5rem;
+  }
+
+  /* El nombre de la categoría toma la línea entera y sus controles van
+     debajo: en cinco columnas el campo quedaba de dos letras. */
+  .cat-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .cat-name {
+    flex: 1 1 100%;
+  }
+
+  /* La tabla de la carta importada tiene columnas que no se pueden apretar
+     más sin perder qué dice cada una: se desliza dentro de su caja, sin
+     arrastrar la página entera. */
+  .preview-list {
+    overflow-x: auto;
+  }
+
+  .preview-row {
+    min-width: 26rem;
+  }
+
+  /* Un email o un link sin espacios no se puede cortar solo, y estira la
+     fila hasta que la pantalla scrollea de costado. */
+  .staff-meta,
+  .panel-lede,
+  .qr-hint,
+  .muted {
+    overflow-wrap: anywhere;
+  }
 }

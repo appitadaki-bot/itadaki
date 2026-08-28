@@ -193,3 +193,11 @@
   padding-top: 1.1rem;
   border-top: 1px solid var(--itadaki-border);
 }
+
+/* En un teléfono los tres no entran en el ancho del modal: ahí sí se apilan,
+   que es mejor que empujar la ventana de costado. */
+@media (max-width: 560px) {
+  .actions {
+    flex-wrap: wrap;
+  }
+}
