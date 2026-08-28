@@ -37,6 +37,16 @@ const TABS: ReadonlyArray<{ id: AdminTab; label: string; hint: string }> = [
 
 const API = apiUrl();
 
+/** Una pregunta de sí o no, con el nombre puesto en el botón que la cumple. */
+interface PedidoDeConfirmacion {
+  readonly titulo: string;
+  readonly detalle: string;
+  /** Lo que dice el botón: "Borrar la mesa" y no "Aceptar". */
+  readonly accion: string;
+  /** Si lo que sigue no se deshace, para pintarlo distinto. */
+  readonly peligro: boolean;
+}
+
 /** Lo que propone el interruptor al prenderse; el local lo cambia y confirma. */
 const DESCUENTO_SUGERIDO = 10;
 
@@ -738,6 +748,34 @@ const ROLE_NAMES: Record<string, string> = {
       <div class="scrim" (click)="closeModal()" aria-hidden="true"></div>
     }
 
+    <!-- Lo que preguntaba el confirm del navegador, con la letra y los
+         colores del panel. Además dice qué hace el botón —"Borrar la mesa" y
+         no "Aceptar"—, que es lo que uno lee cuando ya se arrepintió. -->
+    @if (confirma(); as pedido) {
+      <div class="scrim" (click)="responder(false)" aria-hidden="true"></div>
+      <div class="modal confirma" role="alertdialog" aria-modal="true" aria-labelledby="confirma-title">
+        <header class="modal-head">
+          <h2 class="modal-title" id="confirma-title">{{ pedido.titulo }}</h2>
+        </header>
+
+        <div class="modal-body">
+          <p class="confirma-detalle">{{ pedido.detalle }}</p>
+
+          <div class="confirma-acciones">
+            <button type="button" class="ghost" (click)="responder(false)">Cancelar</button>
+            <button
+              type="button"
+              class="confirma-ok"
+              [class.peligro]="pedido.peligro"
+              (click)="responder(true)"
+            >
+              {{ pedido.accion }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
     @if (modal() === 'nuevo') {
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="nuevo-title">
         <header class="modal-head">
@@ -1252,11 +1290,14 @@ export class AdminComponent {
   protected async removeTable(table: RestaurantTable): Promise<void> {
     this.tableError.set(null);
 
-    const ok = globalThis.confirm(
-      `Borrar ${table.label}?\n\n` +
+    const ok = await this.preguntar({
+      titulo: `Borrar ${table.label}`,
+      detalle:
         'El QR pegado en esa mesa deja de funcionar. Las ventas que ya pasaron por ' +
         'ella se conservan.',
-    );
+      accion: 'Borrar la mesa',
+      peligro: true,
+    });
     if (!ok) return;
 
     const response = await this.auth.apiFetch(`${API}/tables/${table.id}`, {
@@ -1485,6 +1526,35 @@ export class AdminComponent {
     this.modal.set('nuevo');
   }
 
+  /**
+   * La pregunta que está en pantalla, o null.
+   *
+   * Reemplaza a `confirm()`, que en el navegador sale con la tipografía del
+   * sistema, sin los colores del panel y con el dominio arriba de todo. Un
+   * solo lugar para las cuatro preguntas que hace el panel.
+   */
+  protected readonly confirma = signal<PedidoDeConfirmacion | null>(null);
+  private resolverConfirma: ((ok: boolean) => void) | null = null;
+
+  private preguntar(pedido: PedidoDeConfirmacion): Promise<boolean> {
+    // Si ya había una pregunta abierta, se da por cancelada: sin esto su
+    // promesa no se resolvería nunca y quien la esperaba quedaría colgado.
+    if (this.resolverConfirma !== null) this.responder(false);
+
+    this.confirma.set(pedido);
+    return new Promise((resolver) => {
+      this.resolverConfirma = resolver;
+    });
+  }
+
+  /** Cierra la pregunta y le contesta a quien la hizo. */
+  protected responder(ok: boolean): void {
+    this.confirma.set(null);
+    const resolver = this.resolverConfirma;
+    this.resolverConfirma = null;
+    resolver?.(ok);
+  }
+
   protected closeModal(): void {
     this.modal.set(null);
     this.staffError.set(null);
@@ -1495,6 +1565,11 @@ export class AdminComponent {
   /** Cerrar con Escape: es lo que espera cualquiera con un modal abierto. */
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
+    // La pregunta primero: es la que está más arriba en pantalla.
+    if (this.confirma() !== null) {
+      this.responder(false);
+      return;
+    }
     if (this.modal() !== null) this.closeModal();
   }
 
@@ -1529,11 +1604,14 @@ export class AdminComponent {
   protected async borrarPlato(dish: MenuProduct): Promise<void> {
     this.editError.set(null);
 
-    const ok = globalThis.confirm(
-      `Borrar ${dish.name}?\n\n` +
+    const ok = await this.preguntar({
+      titulo: `Borrar ${dish.name}`,
+      detalle:
         'Se va con su foto y sus opciones. Si sólo se te acabó, marcalo sin stock ' +
         'y desaparece de la carta sin perder nada.',
-    );
+      accion: 'Borrar el plato',
+      peligro: true,
+    });
     if (!ok) return;
 
     const response = await this.auth.apiFetch(`${API}/menu/products/${dish.id}`, {
@@ -1887,13 +1965,16 @@ export class AdminComponent {
       const aviso =
         suyas.length === 0
           ? ''
-          : `\n\nAtiende ${suyas.length === 1 ? 'la' : 'las'} ${suyas.join(', ')}. ` +
+          : ` Atiende ${suyas.length === 1 ? 'la' : 'las'} ${suyas.join(', ')}. ` +
             `${suyas.length === 1 ? 'Esa mesa queda' : 'Esas mesas quedan'} sin mozo asignado ` +
             `hasta que ${suyas.length === 1 ? 'la' : 'las'} pases a otro.`;
 
-      const ok = globalThis.confirm(
-        `Dar de baja a ${member.displayName}?\n\nNo va a poder entrar hasta que lo reactives.${aviso}`,
-      );
+      const ok = await this.preguntar({
+        titulo: `Dar de baja a ${member.displayName}`,
+        detalle: `No va a poder entrar hasta que lo reactives.${aviso}`,
+        accion: 'Dar de baja',
+        peligro: true,
+      });
       if (!ok) return;
     }
 
@@ -1911,10 +1992,13 @@ export class AdminComponent {
    * first and says plainly what breaks.
    */
   protected async rotate(table: RestaurantTable): Promise<void> {
-    const ok = globalThis.confirm(
-      `Renovar el QR de ${table.label}?\n\n` +
+    const ok = await this.preguntar({
+      titulo: `Renovar el QR de ${table.label}`,
+      detalle:
         'Los códigos ya impresos de esta mesa dejan de funcionar y hay que imprimirlos de nuevo.',
-    );
+      accion: 'Renovar el QR',
+      peligro: false,
+    });
     if (!ok) return;
 
     const response = await this.auth.apiFetch(`${API}/tables/${table.id}/rotate`, {

@@ -1244,6 +1244,54 @@
   overflow-y: auto;
 }
 
+/* ── La pregunta antes de algo que no se deshace ── */
+
+.modal.confirma {
+  width: min(420px, calc(100vw - 2rem));
+}
+
+.confirma-detalle {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--itadaki-ink-subtle);
+}
+
+/* Al pie y a la derecha: cancelar queda primero en el camino del pulgar. */
+.confirma-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+}
+
+.confirma-acciones .ghost,
+.confirma-ok {
+  border: 1px solid var(--itadaki-border);
+  background: transparent;
+  color: var(--itadaki-ink);
+  border-radius: var(--itadaki-radius-action);
+  padding: 0.6rem 1.1rem;
+  font-family: var(--itadaki-font-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.confirma-ok {
+  border-color: var(--itadaki-ink);
+  background: var(--itadaki-ink);
+  color: white;
+}
+
+/* Lo que no tiene vuelta atrás, del color con el que ya se avisa en la fila. */
+.confirma-ok.peligro {
+  border-color: var(--itadaki-status-late);
+  background: var(--itadaki-status-late);
+}
+
 /* El encabezado de la sección, con la acción a la derecha. */
 .panel-head {
   display: flex;
