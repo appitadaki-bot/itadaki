@@ -2168,15 +2168,18 @@
  * "10%" no dice cuánto resigna el local hasta que uno hace la cuenta, y esa
  * cuenta con la calculadora del teléfono es lo que este renglón evita.
  */
+/* Verde y no terracota: el tinte de la marca es el mismo que usan los
+   errores del panel, y esto no avisa de nada roto — dice cuánto paga la mesa
+   si el descuento queda como está. */
 .descuento-ejemplo {
   margin: 0.9rem 0 0;
   padding: 0.75rem 0.9rem;
   border-radius: var(--itadaki-radius-action);
-  background: var(--itadaki-accent-tint);
-  border: 1px solid var(--itadaki-accent-line);
+  background: var(--itadaki-status-ready-bg);
+  border: 1px solid var(--itadaki-status-ready);
   font-size: 0.88rem;
   line-height: 1.5;
-  color: var(--itadaki-accent-deep);
+  color: var(--itadaki-status-ready-fg);
 }
 
 /* Apagado cuando está en cero: dice qué falta, sin celebrar nada. */
