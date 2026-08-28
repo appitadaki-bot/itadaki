@@ -160,8 +160,7 @@ export class AuthGuard implements CanActivate {
     const token = header.startsWith('Bearer ') ? header.slice(7) : '';
 
     if (token === '') {
-      // No se loguea: es el caso más común y el menos interesante — un
-      // visitante sin loguearse o el frontend antes de cargar el token.
+      log.warn('sin sesión', { path });
       throw new UnauthorizedException({ kind: 'NO_SESSION' });
     }
 

@@ -13,10 +13,9 @@ import {
 
 /**
  * `AuthGuard` no tenía test propio — sólo la función `stillEmployed` que usa
- * por dentro (ver `revocation.spec.ts`). Este archivo cubre los tres
- * rechazos que ahora quedan logueados (`sesión inválida`, `acceso
- * revocado`, `permiso insuficiente`) y confirma que el cuarto (`NO_SESSION`,
- * sin token) queda deliberadamente sin loguear.
+ * por dentro (ver `revocation.spec.ts`). Este archivo cubre los cuatro
+ * rechazos que quedan logueados: `sin sesión`, `sesión inválida`, `acceso
+ * revocado` y `permiso insuficiente`.
  */
 class TestableGuard extends AuthGuard {
   constructor(permission: Permission | undefined) {
@@ -52,13 +51,17 @@ describe('AuthGuard', () => {
     warn.mockRestore();
   });
 
-  it('rejects a missing token without logging — the common, uninteresting case', async () => {
+  it('logs a request with no token at all', async () => {
     const guard = new TestableGuard(undefined);
 
     await expect(guard.canActivate(contextFor(requestWith()))).rejects.toBeInstanceOf(
       UnauthorizedException,
     );
-    expect(warn).not.toHaveBeenCalled();
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    const line = warn.mock.calls[0]?.[0] as string;
+    expect(line).toContain('sin sesión');
+    expect(line).toContain('"path":"/api/orders"');
   });
 
   it('logs a forged or malformed token', async () => {
