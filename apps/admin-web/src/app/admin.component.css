@@ -2307,3 +2307,74 @@
   font-weight: 700;
   color: var(--itadaki-accent-deep);
 }
+
+/* ═══ EL TELÉFONO ═══
+ *
+ * El panel se abre tanto desde la computadora del local como desde el
+ * teléfono del dueño, que es donde mira los números un domingo. Lo que sigue
+ * es lo que no entraba en 390px de ancho: filas de botones que no envolvían,
+ * grillas de cinco columnas y textos largos que empujaban la página a lo
+ * ancho. Nada de esto cambia cómo se ve en una pantalla grande. */
+
+@media (max-width: 700px) {
+  /* Cuatro acciones por mesa no entran en una línea de teléfono. Envuelven y
+     se reparten el ancho, en vez de estirar la fila fuera de la pantalla. */
+  .table-actions {
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    width: 100%;
+  }
+
+  .table-actions > * {
+    flex: 1 1 auto;
+  }
+
+  /* Si el nombre del panel y su acción no entran juntos, la acción baja. */
+  .panel-head,
+  .modal-head {
+    flex-wrap: wrap;
+  }
+
+  /* El nombre del plato al que sigue puede ser largo; que no empuje la cruz. */
+  .foto-siguiente {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  :host {
+    padding: 1.25rem 0.9rem 2.5rem;
+  }
+
+  /* El nombre de la categoría toma la línea entera y sus controles van
+     debajo: en cinco columnas el campo quedaba de dos letras. */
+  .cat-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .cat-name {
+    flex: 1 1 100%;
+  }
+
+  /* La tabla de la carta importada tiene columnas que no se pueden apretar
+     más sin perder qué dice cada una: se desliza dentro de su caja, sin
+     arrastrar la página entera. */
+  .preview-list {
+    overflow-x: auto;
+  }
+
+  .preview-row {
+    min-width: 26rem;
+  }
+
+  /* Un email o un link sin espacios no se puede cortar solo, y estira la
+     fila hasta que la pantalla scrollea de costado. */
+  .staff-meta,
+  .panel-lede,
+  .qr-hint,
+  .muted {
+    overflow-wrap: anywhere;
+  }
+}
