@@ -1,126 +1,139 @@
-import { type ExecutionContext, HttpException } from '@nestjs/common';
-import { type Reflector } from '@nestjs/core';
-import { type AuthedRequest } from './auth';
-import { LIMITS, type LimitName, RateLimitGuard } from './rate-limit.guard';
+import { type Cubo, consumir, limitadorPorIp, purgar } from './rate-limit';
 
-class TestableGuard extends RateLimitGuard {
-  constructor(name: LimitName | undefined) {
-    super({ getAllAndOverride: () => name } as unknown as Reflector);
-  }
-}
+const cupo = { limite: 3, ventanaMs: 60_000 };
 
-const headers: string[] = [];
-
-const contextFor = (request: Partial<AuthedRequest>): ExecutionContext =>
-  ({
-    getHandler: () => undefined,
-    getClass: () => undefined,
-    switchToHttp: () => ({
-      getRequest: () => request,
-      getResponse: () => ({
-        setHeader: (name: string, value: string) => headers.push(`${name}: ${value}`),
-      }),
-    }),
-  }) as unknown as ExecutionContext;
-
-const from = (ip: string, email?: string): Partial<AuthedRequest> =>
-  ({ ip, body: email === undefined ? {} : { email } }) as Partial<AuthedRequest>;
-
-describe('RateLimitGuard', () => {
-  beforeEach(() => {
-    headers.length = 0;
-  });
-
-  it('lets an unlimited route through untouched', () => {
-    const guard = new TestableGuard(undefined);
-    for (let i = 0; i < 500; i += 1) {
-      expect(guard.canActivate(contextFor(from('1.2.3.4')))).toBe(true);
+describe('el tope por IP', () => {
+  it('deja pasar hasta el límite', () => {
+    let cubo: Cubo | undefined;
+    for (let intento = 1; intento <= 3; intento += 1) {
+      const paso = consumir(cubo, 1_000, cupo);
+      expect(paso.permitido).toBe(true);
+      cubo = paso.cubo;
     }
   });
 
-  it('allows a normal number of login attempts', () => {
-    const guard = new TestableGuard('login');
-    // Someone retyping a password a few times must never be blocked.
-    for (let i = 0; i < LIMITS.login.limit; i += 1) {
-      expect(guard.canActivate(contextFor(from('1.2.3.4', 'ana@x.ar')))).toBe(true);
-    }
-  });
-
-  it('stops a password guessing run', () => {
-    const guard = new TestableGuard('login');
-    for (let i = 0; i < LIMITS.login.limit; i += 1) {
-      guard.canActivate(contextFor(from('1.2.3.4', 'ana@x.ar')));
+  it('frena el que se pasa, y dice cuánto esperar', () => {
+    let cubo: Cubo | undefined;
+    for (let intento = 1; intento <= 3; intento += 1) {
+      cubo = consumir(cubo, 1_000, cupo).cubo;
     }
 
-    expect(() => guard.canActivate(contextFor(from('1.2.3.4', 'ana@x.ar')))).toThrow(HttpException);
+    const frenado = consumir(cubo, 1_000, cupo);
+    expect(frenado.permitido).toBe(false);
+    expect(frenado.esperarSegundos).toBe(60);
   });
 
-  it('answers 429 with a retry hint', () => {
-    const guard = new TestableGuard('login');
-    for (let i = 0; i < LIMITS.login.limit; i += 1) {
-      guard.canActivate(contextFor(from('1.2.3.4', 'ana@x.ar')));
+  /** Frenar para siempre no es un tope, es una expulsión. */
+  it('repone al vencer la ventana', () => {
+    let cubo: Cubo | undefined;
+    for (let intento = 1; intento <= 3; intento += 1) {
+      cubo = consumir(cubo, 1_000, cupo).cubo;
     }
 
-    try {
-      guard.canActivate(contextFor(from('1.2.3.4', 'ana@x.ar')));
-      throw new Error('expected a rejection');
-    } catch (error) {
-      expect((error as HttpException).getStatus()).toBe(429);
-      expect(headers.some((header) => header.startsWith('Retry-After:'))).toBe(true);
+    expect(consumir(cubo, 62_000, cupo).permitido).toBe(true);
+  });
+
+  /**
+   * Lo que separa un contador de una pérdida de memoria: sin esto queda una
+   * entrada por cada IP que pasó alguna vez.
+   */
+  it('olvida a los que ya no cuentan', () => {
+    const cubos = new Map<string, Cubo>([
+      ['vieja', { usados: 3, vence: 500 }],
+      ['activa', { usados: 1, vence: 90_000 }],
+    ]);
+
+    purgar(cubos, 1_000);
+
+    expect([...cubos.keys()]).toEqual(['activa']);
+  });
+});
+
+describe('el middleware', () => {
+  const hacer = () => {
+    const enviado: { codigo?: number; cuerpo?: unknown; headers: Record<string, string> } = {
+      headers: {},
+    };
+    const respuesta = {
+      status(codigo: number) {
+        enviado.codigo = codigo;
+        return respuesta;
+      },
+      setHeader(nombre: string, valor: string) {
+        enviado.headers[nombre] = valor;
+      },
+      json(cuerpo: unknown) {
+        enviado.cuerpo = cuerpo;
+      },
+    };
+    return { enviado, respuesta };
+  };
+
+  it('frena al undécimo intento de entrar', () => {
+    const limitar = limitadorPorIp(() => 1_000);
+    let pasaron = 0;
+
+    for (let intento = 1; intento <= 11; intento += 1) {
+      const { enviado, respuesta } = hacer();
+      limitar({ ip: '1.2.3.4', url: '/api/auth/login' }, respuesta, () => {
+        pasaron += 1;
+      });
+      if (intento === 11) {
+        expect(enviado.codigo).toBe(429);
+        expect(enviado.headers['Retry-After']).toBe('60');
+      }
     }
+
+    expect(pasaron).toBe(10);
   });
 
-  it('logs a rejection with the limit name and ip, never the email', () => {
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const guard = new TestableGuard('login');
-    for (let i = 0; i < LIMITS.login.limit; i += 1) {
-      guard.canActivate(contextFor(from('1.2.3.4', 'ana@x.ar')));
+  /** Mirar la carta no puede dejar a esa mesa sin poder entrar. */
+  it('cuenta aparte lo de entrar y lo demás', () => {
+    const limitar = limitadorPorIp(() => 1_000);
+
+    for (let intento = 1; intento <= 20; intento += 1) {
+      const { respuesta } = hacer();
+      limitar({ ip: '1.2.3.4', url: '/api/menu' }, respuesta, () => undefined);
     }
 
-    expect(() => guard.canActivate(contextFor(from('1.2.3.4', 'ana@x.ar')))).toThrow(HttpException);
+    let paso = false;
+    const { respuesta } = hacer();
+    limitar({ ip: '1.2.3.4', url: '/api/auth/login' }, respuesta, () => {
+      paso = true;
+    });
 
-    expect(warn).toHaveBeenCalledTimes(1);
-    const line = warn.mock.calls[0]?.[0] as string;
-    expect(line).toContain('"limit":"login"');
-    expect(line).toContain('"ip":"1.2.3.4"');
-    expect(line).not.toContain('ana@x.ar');
-
-    warn.mockRestore();
+    expect(paso).toBe(true);
   });
 
-  it('does not lock out a colleague on the same connection', () => {
-    const guard = new TestableGuard('login');
-    for (let i = 0; i < LIMITS.login.limit; i += 1) {
-      guard.canActivate(contextFor(from('1.2.3.4', 'ana@x.ar')));
+  /** El orquestador de Render la consulta cada pocos segundos. */
+  it('no le cuenta a salud', () => {
+    const limitar = limitadorPorIp(() => 1_000);
+    let pasaron = 0;
+
+    for (let intento = 1; intento <= 400; intento += 1) {
+      const { respuesta } = hacer();
+      limitar({ ip: '1.2.3.4', url: '/api/health' }, respuesta, () => {
+        pasaron += 1;
+      });
     }
 
-    // A whole restaurant shares one IP; keying on the address too is what
-    // keeps one person's typo from blocking the rest of the staff.
-    expect(guard.canActivate(contextFor(from('1.2.3.4', 'beto@x.ar')))).toBe(true);
+    expect(pasaron).toBe(400);
   });
 
-  it('keeps separate budgets per network for diner traffic', () => {
-    const guard = new TestableGuard('diner');
-    for (let i = 0; i < LIMITS.diner.limit; i += 1) {
-      guard.canActivate(contextFor(from('1.2.3.4')));
+  it('una IP no gasta la cuota de otra', () => {
+    const limitar = limitadorPorIp(() => 1_000);
+
+    for (let intento = 1; intento <= 10; intento += 1) {
+      const { respuesta } = hacer();
+      limitar({ ip: '1.1.1.1', url: '/api/auth/login' }, respuesta, () => undefined);
     }
 
-    expect(() => guard.canActivate(contextFor(from('1.2.3.4')))).toThrow(HttpException);
-    expect(guard.canActivate(contextFor(from('5.6.7.8')))).toBe(true);
-  });
+    let paso = false;
+    const { respuesta } = hacer();
+    limitar({ ip: '9.9.9.9', url: '/api/auth/login' }, respuesta, () => {
+      paso = true;
+    });
 
-  it('gives a table room to browse a menu', () => {
-    // Six phones tapping through a carte is ordinary traffic, not abuse.
-    expect(LIMITS.diner.limit).toBeGreaterThanOrEqual(60);
-  });
-
-  it('keeps reset mails scarce', () => {
-    // Each attempt sends mail to someone's inbox, so the budget is small.
-    expect(LIMITS.passwordReset.limit).toBeLessThanOrEqual(5);
-  });
-
-  it('survives a request with no address at all', () => {
-    const guard = new TestableGuard('diner');
-    expect(guard.canActivate(contextFor({} as Partial<AuthedRequest>))).toBe(true);
+    expect(paso).toBe(true);
   });
 });

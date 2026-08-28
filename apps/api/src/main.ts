@@ -8,6 +8,7 @@ import { USING_DEV_SECRET } from './auth';
 import { databaseAvailable } from './database';
 import { axiomEnabled, log } from './logger';
 import { ErrorFilter } from './error.filter';
+import { limitadorPorIp } from './rate-limit';
 import { sentryEnabled } from './sentry';
 
 const PORT = Number(process.env['PORT'] ?? 3000);
@@ -44,6 +45,12 @@ function allowedOrigins(): string[] {
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Detrás del proxy de Render, `request.ip` sin esto es la IP del proxy: el
+  // tope por IP caería sobre todos los comensales a la vez. Con esto se lee
+  // `X-Forwarded-For`, que ese mismo proxy escribe.
+  app.set('trust proxy', 1);
+
   const origins = allowedOrigins();
   app.enableCors({
     origin: origins,
@@ -74,6 +81,9 @@ async function bootstrap(): Promise<void> {
     }
     next();
   });
+
+  // Un tope de pedidos por IP, antes de que nada mire la base.
+  app.use(limitadorPorIp());
 
   // Renders unhandled errors as a plain 500 instead of leaking a stack trace.
   app.useGlobalFilters(new ErrorFilter());
