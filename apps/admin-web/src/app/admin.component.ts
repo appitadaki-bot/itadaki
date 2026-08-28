@@ -37,6 +37,9 @@ const TABS: ReadonlyArray<{ id: AdminTab; label: string; hint: string }> = [
 
 const API = apiUrl();
 
+/** Lo que propone el interruptor al prenderse; el local lo cambia y confirma. */
+const DESCUENTO_SUGERIDO = 10;
+
 interface MenuProduct {
   id: string;
   name: string;
@@ -2313,9 +2316,17 @@ export class AdminComponent {
     }
   }
 
-  /** Prender abre los controles; apagar guarda cero y los cierra. */
+  /**
+   * Prender abre los controles; apagar guarda cero y los cierra.
+   *
+   * Prender propone 10 en vez de dejar el campo en cero, que es el valor que
+   * significa apagado: el interruptor diría "prendido" y la pantalla, "no
+   * aparece en ningún lado". Se propone y no se guarda — el número lo elige
+   * el local, y el botón sigue siendo el que lo confirma.
+   */
   protected async alternarDescuento(): Promise<void> {
     if (!this.descuentoActivo()) {
+      if (this.descuento() === 0) this.descuento.set(DESCUENTO_SUGERIDO);
       this.descuentoActivo.set(true);
       return;
     }
