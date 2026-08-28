@@ -142,17 +142,60 @@
   .panel { padding: 1.4rem 1.2rem 1.6rem; }
 }
 
-/* El título y lo que se puede hacer con el panel, en la misma línea. */
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-
+/* El título del panel y su acción, en la misma línea. El `.panel-head` de
+   más abajo pone el resto. */
 .panel-head .panel-title {
   margin-bottom: 0;
+}
+
+/* El interruptor: la casilla de siempre, con otra forma. */
+.switch {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-pista {
+  display: block;
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--itadaki-border);
+  transition: background var(--itadaki-quick) var(--itadaki-ease);
+  position: relative;
+}
+
+.switch-pista::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  transition: transform var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.switch input:checked + .switch-pista {
+  background: var(--itadaki-ink);
+}
+
+.switch input:checked + .switch-pista::after {
+  transform: translateX(20px);
+}
+
+.switch input:focus-visible + .switch-pista {
+  outline: 3px solid var(--itadaki-accent-bright);
+  outline-offset: 2px;
 }
 
 /* Negro como "Crear mesa" y "Ver e imprimir los QR": es la acción del panel,
@@ -668,14 +711,12 @@
   cursor: pointer;
 }
 
-/* Con borde y no en negro: el negro del panel es "+ Nueva mesa", que es lo
-   que se hace seguido. Imprimir los QR se hace una vez, al abrir el local. */
 .print-all {
   width: 100%;
   margin-top: 0.75rem;
-  border: 1px solid var(--itadaki-border);
-  background: transparent;
-  color: var(--itadaki-ink);
+  border: none;
+  background: var(--itadaki-ink);
+  color: white;
   border-radius: var(--itadaki-radius-action);
   padding: 0.75rem 1rem;
   font-family: var(--itadaki-font-display);
@@ -685,9 +726,6 @@
   min-height: 44px;
 }
 
-.print-all:hover {
-  border-color: var(--itadaki-ink);
-}
 
 .staff-list {
   display: flex;
@@ -1211,44 +1249,6 @@
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1rem;
-}
-
-.panel-head /* El título y lo que se puede hacer con el panel, en la misma línea. */
-.panel-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-
-.panel-head .panel-title {
-  margin-bottom: 0;
-}
-
-/* Negro como "Crear mesa" y "Ver e imprimir los QR": es la acción del panel,
-   no un botón secundario. */
-.panel-action {
-  flex: 0 0 auto;
-  border: none;
-  background: var(--itadaki-ink);
-  color: white;
-  border-radius: var(--itadaki-radius-action);
-  padding: 0.5rem 0.9rem;
-  font-family: var(--itadaki-font-display);
-  font-weight: 600;
-  font-size: 0.8rem;
-  cursor: pointer;
-  min-height: 40px;
-  white-space: nowrap;
-}
-
-.panel-action:hover {
-  background: var(--itadaki-ink-strong);
-}
-
-.panel-title {
-  margin: 0;
 }
 
 /* La flecha suelta salió: la fila ya dice "Editar →" al final, y dos flechas
