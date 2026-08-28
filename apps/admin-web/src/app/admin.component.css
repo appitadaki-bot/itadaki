@@ -155,11 +155,13 @@
   margin-bottom: 0;
 }
 
+/* Negro como "Crear mesa" y "Ver e imprimir los QR": es la acción del panel,
+   no un botón secundario. */
 .panel-action {
   flex: 0 0 auto;
-  border: 1px solid var(--itadaki-border);
-  background: transparent;
-  color: var(--itadaki-ink);
+  border: none;
+  background: var(--itadaki-ink);
+  color: white;
   border-radius: var(--itadaki-radius-action);
   padding: 0.5rem 0.9rem;
   font-family: var(--itadaki-font-display);
@@ -171,7 +173,7 @@
 }
 
 .panel-action:hover {
-  border-color: var(--itadaki-ink);
+  background: var(--itadaki-ink-strong);
 }
 
 .panel-title {
@@ -666,12 +668,14 @@
   cursor: pointer;
 }
 
+/* Con borde y no en negro: el negro del panel es "+ Nueva mesa", que es lo
+   que se hace seguido. Imprimir los QR se hace una vez, al abrir el local. */
 .print-all {
   width: 100%;
   margin-top: 0.75rem;
-  border: none;
-  background: var(--itadaki-ink);
-  color: white;
+  border: 1px solid var(--itadaki-border);
+  background: transparent;
+  color: var(--itadaki-ink);
   border-radius: var(--itadaki-radius-action);
   padding: 0.75rem 1rem;
   font-family: var(--itadaki-font-display);
@@ -679,6 +683,10 @@
   font-weight: 600;
   cursor: pointer;
   min-height: 44px;
+}
+
+.print-all:hover {
+  border-color: var(--itadaki-ink);
 }
 
 .staff-list {
@@ -1218,11 +1226,13 @@
   margin-bottom: 0;
 }
 
+/* Negro como "Crear mesa" y "Ver e imprimir los QR": es la acción del panel,
+   no un botón secundario. */
 .panel-action {
   flex: 0 0 auto;
-  border: 1px solid var(--itadaki-border);
-  background: transparent;
-  color: var(--itadaki-ink);
+  border: none;
+  background: var(--itadaki-ink);
+  color: white;
   border-radius: var(--itadaki-radius-action);
   padding: 0.5rem 0.9rem;
   font-family: var(--itadaki-font-display);
@@ -1234,7 +1244,7 @@
 }
 
 .panel-action:hover {
-  border-color: var(--itadaki-ink);
+  background: var(--itadaki-ink-strong);
 }
 
 .panel-title {
