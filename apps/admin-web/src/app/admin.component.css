@@ -668,14 +668,12 @@
   cursor: pointer;
 }
 
-/* Con borde y no en negro: el negro del panel es "+ Nueva mesa", que es lo
-   que se hace seguido. Imprimir los QR se hace una vez, al abrir el local. */
 .print-all {
   width: 100%;
   margin-top: 0.75rem;
-  border: 1px solid var(--itadaki-border);
-  background: transparent;
-  color: var(--itadaki-ink);
+  border: none;
+  background: var(--itadaki-ink);
+  color: white;
   border-radius: var(--itadaki-radius-action);
   padding: 0.75rem 1rem;
   font-family: var(--itadaki-font-display);
@@ -685,9 +683,6 @@
   min-height: 44px;
 }
 
-.print-all:hover {
-  border-color: var(--itadaki-ink);
-}
 
 .staff-list {
   display: flex;
