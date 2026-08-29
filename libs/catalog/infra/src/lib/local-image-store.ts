@@ -164,13 +164,30 @@ export class SharpImageRenderer implements ImageRenderer {
         ),
       );
 
+      /*
+       * La marca de cuándo se renderizó.
+       *
+       * Los archivos se sirven con `immutable` y un año de caché —es lo
+       * correcto, las variantes de una foto no cambian— pero al reencuadrar se
+       * escriben archivos nuevos en la misma ruta. Sin algo que distinga la
+       * URL, el navegador que ya vio la foto vieja no vuelve a preguntar
+       * nunca: el dueño reencuadra tres veces, el servidor guarda las tres, y
+       * la carta sigue mostrando la primera.
+       *
+       * Va en la URL que se guarda, y no puesto por cada pantalla al vuelo:
+       * así lo aprovechan la carta, el panel y cualquier otra que las lea,
+       * y sobrevive a recargar la página.
+       */
+      const version = Date.now();
+
       // The URL must match the route that serves it (`/images/:id/:file`);
       // the tenant travels as a query parameter, not a path segment.
       return ok(
         toImageSet(
           rendered,
           (variant) =>
-            `${this.publicBase}/${imageId}/${variant.width}.${variant.format}?tenant=${tenantId}`,
+            `${this.publicBase}/${imageId}/${variant.width}.${variant.format}` +
+            `?tenant=${tenantId}&v=${version}`,
           '',
         ),
       );
