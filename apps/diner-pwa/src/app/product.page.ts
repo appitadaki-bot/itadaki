@@ -9,7 +9,12 @@ import {
 } from '@angular/core';
 import { Location } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { type Modifier, type ModifierGroup, type Product } from '@itadaki/catalog/domain';
+import {
+  type Modifier,
+  type ModifierGroup,
+  type Product,
+  nombresDeAlergenos,
+} from '@itadaki/catalog/domain';
 import { type ModifierSnapshot } from '@itadaki/ordering/domain';
 import { Money } from '@itadaki/shared/domain';
 import { goBack } from './back';
@@ -269,18 +274,9 @@ export class ProductPage {
     this.notes.set((event.target as HTMLInputElement).value);
   }
 
+  /** Los alérgenos como se leen. Del dominio: la cocina muestra los mismos. */
   protected allergenLabels(product: Product): string {
-    const labels: Record<string, string> = {
-      GLUTEN: 'gluten',
-      LACTOSE: 'lactosa',
-      NUTS: 'Frutos secos',
-      PEANUTS: 'Maní',
-      EGG: 'huevo',
-      FISH: 'pescado',
-      SHELLFISH: 'mariscos',
-      SOY: 'soja',
-    };
-    return product.allergens.map((allergen) => labels[allergen] ?? allergen.toLowerCase()).join(', ');
+    return nombresDeAlergenos(product.allergens);
   }
 
   /**

@@ -228,3 +228,56 @@
 }
 
 
+
+/* ═══ CUÁNTO FALTA ═══
+ *
+ * Debajo de la línea de tiempo: primero en qué paso está el pedido, después
+ * cuánto suele tardar. Al revés, el número sería lo primero que se lee y la
+ * mesa lo tomaría como una promesa. */
+
+.espera {
+  margin: 0.9rem 0 0;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--itadaki-ink-subtle);
+}
+
+/*
+ * La demora.
+ *
+ * En el color de la marca y no en rojo: rojo dice "algo salió mal", y una
+ * cocina ocupada un sábado no es una falla. Lo que la mesa necesita acá no es
+ * una alarma, es poder hacer algo.
+ */
+.demorado {
+  margin: 0.9rem 0 0;
+  padding: 0.9rem 1rem;
+  border-radius: var(--itadaki-radius-card);
+  background: var(--itadaki-accent-tint);
+  border: 1px solid var(--itadaki-accent-line);
+  text-align: center;
+}
+
+.demorado-texto {
+  margin: 0 0 0.7rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--itadaki-accent-deep);
+}
+
+.demorado-cta {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: var(--itadaki-radius-action);
+  background: var(--itadaki-accent);
+  color: white;
+  font-family: var(--itadaki-font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.demorado-cta:active {
+  transform: translateY(1px);
+}

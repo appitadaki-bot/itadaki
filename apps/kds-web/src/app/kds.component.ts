@@ -8,6 +8,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { nombresDeAlergenos } from '@itadaki/catalog/domain';
 import { AuthStore, LoginComponent } from '@itadaki/shared/ui-auth';
 import {
   type BoardLayout,
@@ -175,6 +176,14 @@ const SLA_LATE = 15;
                           @if (item.notes !== '') {
                             <span class="item-note">{{ item.notes }}</span>
                           }
+                          <!-- Lo que contiene: la carta ya se lo avisó al
+                               comensal, pero quien decide si sale de la
+                               freidora compartida está acá. -->
+                          @if (item.allergens?.length ? item.allergens : null; as alergenos) {
+                            <span class="item-alergenos">
+                              {{ nombresDeAlergenos(alergenos) }}
+                            </span>
+                          }
                           <!-- Sin chip cuando el plato ya no está en la carta:
                                la comanda vale igual y hay que cocinarla. -->
                         </span>
@@ -253,6 +262,14 @@ const SLA_LATE = 15;
                           <span class="item-name">{{ item.name }}</span>
                           @if (item.notes !== '') {
                             <span class="item-note">{{ item.notes }}</span>
+                          }
+                          <!-- Lo que contiene: la carta ya se lo avisó al
+                               comensal, pero quien decide si sale de la
+                               freidora compartida está acá. -->
+                          @if (item.allergens?.length ? item.allergens : null; as alergenos) {
+                            <span class="item-alergenos">
+                              {{ nombresDeAlergenos(alergenos) }}
+                            </span>
                           }
                         </span>
                         <span class="item-side">
@@ -354,6 +371,11 @@ const SLA_LATE = 15;
                       @if (item.notes !== '') {
                         <span class="item-note">{{ item.notes }}</span>
                       }
+                      @if (item.allergens?.length ? item.allergens : null; as alergenos) {
+                        <span class="item-alergenos">
+                          {{ nombresDeAlergenos(alergenos) }}
+                        </span>
+                      }
                     </span>
                   </li>
                 }
@@ -421,6 +443,9 @@ const SLA_LATE = 15;
   `,
 })
 export class KdsComponent implements OnDestroy {
+  /** Los alérgenos como los lee el cocinero. El mismo texto que ve la mesa. */
+  protected readonly nombresDeAlergenos = nombresDeAlergenos;
+
   protected readonly auth = inject(AuthStore);
   protected readonly store = inject(KdsStore);
   protected readonly columns = COLUMNS;

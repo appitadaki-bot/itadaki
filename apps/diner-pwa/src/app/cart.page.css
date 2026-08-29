@@ -122,6 +122,8 @@
 }
 
 .row {
+  /* Para ubicar la marca del plato recién llegado contra la fila. */
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -706,3 +708,68 @@
   }
 }
 
+
+/* ═══ EL PLATO QUE ACABA DE LLEGAR ═══
+ *
+ * Cuando alguien de la mesa agrega algo, su plato entra deslizándose en las
+ * pantallas de los demás. No es un aviso que hay que leer: es ver a la mesa
+ * pedir, que es lo que esta app hace distinto de una carta en PDF.
+ *
+ * Entra desde la izquierda y no desde arriba: la lista está agrupada por
+ * persona, y bajar empujaría visualmente a los platos de los demás. */
+
+@keyframes entra-el-plato {
+  from {
+    opacity: 0;
+    transform: translateX(-0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.row.recien {
+  animation: entra-el-plato 320ms ease-out;
+}
+
+/*
+ * La marca de "recién llegado".
+ *
+ * Del lado de afuera, contra el borde del grupo: ahí acompaña el color de la
+ * persona que ya está en el encabezado, y no se mete entre el nombre del
+ * plato y su precio.
+ */
+.row.recien::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.35rem;
+  inset-inline-start: -0.6rem;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--itadaki-accent);
+  animation: se-apaga 4s ease-out forwards;
+}
+
+@keyframes se-apaga {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/*
+ * A quien pidió no ver movimiento, no se le muestra.
+ *
+ * Para algunas personas una animación no es un detalle: marea. La información
+ * no se pierde —el plato aparece igual— sólo deja de moverse.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .row.recien,
+  .row.recien::before {
+    animation: none;
+  }
+}
