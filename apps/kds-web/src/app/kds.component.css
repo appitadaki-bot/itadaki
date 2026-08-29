@@ -26,8 +26,8 @@
 .title {
   font-family: var(--itadaki-font-display);
   font-weight: 700;
-  font-size: 1.35rem
-  letter-spacing: var(--itadaki-tracking-title);;
+  font-size: 1.35rem;
+  letter-spacing: var(--itadaki-tracking-title);
   color: white;
   margin: 0.15rem 0 0;
 }
@@ -466,8 +466,8 @@
 .call-table {
   font-family: var(--itadaki-font-display);
   font-weight: 800;
-  font-size: 1.5rem
-  letter-spacing: var(--itadaki-tracking-title);;
+  font-size: 1.5rem;
+  letter-spacing: var(--itadaki-tracking-title);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -665,8 +665,8 @@
 
 .feed-table {
   font-family: var(--itadaki-font-display);
-  font-size: 1.3rem
-  letter-spacing: var(--itadaki-tracking-title);;
+  font-size: 1.3rem;
+  letter-spacing: var(--itadaki-tracking-title);
   font-weight: 800;
 }
 

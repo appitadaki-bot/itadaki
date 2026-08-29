@@ -391,8 +391,8 @@
 /* El número de mesa es lo que el mozo busca al levantar la vista. */
 .trip-table {
   font-family: var(--itadaki-font-display);
-  font-size: 1.35rem
-  letter-spacing: var(--itadaki-tracking-title);;
+  font-size: 1.35rem;
+  letter-spacing: var(--itadaki-tracking-title);
   font-weight: 800;
   line-height: 1;
 }
