@@ -95,7 +95,11 @@ export class ImageEditorComponent {
   /** Photo the subject already has, shown so the editor opens on real content. */
   readonly existingUrl = input<string | null>(null);
 
-  readonly applied = output<{ params: ImageEditParams; file: File }>();
+  /**
+   * `file` es null al reencuadrar una foto ya subida: el original está en
+   * el servidor, y sólo cambian los parámetros del recorte.
+   */
+  readonly applied = output<{ params: ImageEditParams; file: File | null }>();
 
   private readonly stage = viewChild<ElementRef<HTMLElement>>('stage');
 
@@ -344,10 +348,16 @@ export class ImageEditorComponent {
     this.offsetY.set(0);
   }
 
-  /** Converts viewport state into normalised crop coordinates for the server. */
+  /**
+   * Convierte el encuadre de la pantalla en coordenadas para el servidor.
+   *
+   * `file` es null cuando se está reencuadrando una foto que ya está subida:
+   * el original vive en el servidor y no hace falta volver a mandarlo. Antes
+   * eso se iba por un `return` silencioso, así que quien movía el recorte de
+   * una foto existente tocaba "Aplicar" y no pasaba nada —ni un pedido, ni un
+   * aviso— y lo intentaba de nuevo creyendo que había errado el botón.
+   */
   protected emit(): void {
-    if (this.file === null) return;
-
     const size = 1 / this.zoom();
     const centreX = 0.5 - this.offsetX() / 100;
     const centreY = 0.5 - this.offsetY() / 100;

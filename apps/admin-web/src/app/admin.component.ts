@@ -2662,7 +2662,7 @@ export class AdminComponent {
   }
 
   /** Sends the original plus the parameters — never a rasterised canvas. */
-  protected async upload(event: { params: ImageEditParams; file: File }): Promise<void> {
+  protected async upload(event: { params: ImageEditParams; file: File | null }): Promise<void> {
     const productId = this.selected();
     if (productId === null) return;
 
@@ -2673,21 +2673,24 @@ export class AdminComponent {
     this.status.set(null);
 
     try {
-      const buffer = await event.file.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      let binary = '';
-      for (const byte of bytes) binary += String.fromCharCode(byte);
+      const alt = this.products().find((p) => p.id === productId)?.name ?? '';
 
-      const response = await this.auth.apiFetch(`${API}/images`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
-        body: JSON.stringify({
-          imageId: productId,
-          alt: this.products().find((p) => p.id === productId)?.name ?? '',
-          data: btoa(binary),
-          params: event.params,
-        }),
-      });
+      /*
+       * Sin archivo nuevo, se reencuadra la que ya está.
+       *
+       * El original vive en el servidor: mandarlo de nuevo para mover el
+       * recorte sería subir varios megas por un cambio de coordenadas, y el
+       * dueño no tiene el archivo a mano —lo subió la semana pasada desde otro
+       * teléfono—, así que exigirlo era pedirle algo que no puede dar.
+       */
+      const response =
+        event.file === null
+          ? await this.auth.apiFetch(`${API}/images/${productId}/reedit`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
+              body: JSON.stringify({ alt, params: event.params }),
+            })
+          : await this.subirElOriginal(productId, alt, event.file, event.params);
 
       if (!response.ok) {
         const detail = (await response.json().catch(() => null)) as {
@@ -2723,6 +2726,31 @@ export class AdminComponent {
     } finally {
       this.subiendo.set(false);
     }
+  }
+
+  /**
+   * Manda el original y sus parámetros de recorte.
+   *
+   * El archivo tal cual lo eligió el dueño, nunca el canvas rasterizado: el
+   * servidor tiene que poder volver a renderizar desde el original cuando se
+   * cambie el encuadre, y una copia ya recortada perdería lo que quedó afuera.
+   */
+  private async subirElOriginal(
+    productId: string,
+    alt: string,
+    file: File,
+    params: ImageEditParams,
+  ): Promise<Response> {
+    const buffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+
+    return this.auth.apiFetch(`${API}/images`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
+      body: JSON.stringify({ imageId: productId, alt, data: btoa(binary), params }),
+    });
   }
 
   /**
