@@ -38,6 +38,14 @@ const TABS: ReadonlyArray<{ id: AdminTab; label: string; hint: string }> = [
 
 const API = apiUrl();
 
+/**
+ * Cuánto queda en pantalla el aviso de que la foto se guardó.
+ *
+ * Lo que tarda en leerse una línea. Más corto se pierde si el ojo estaba en
+ * la foto; más largo y sigue ahí cuando ya se está subiendo la siguiente.
+ */
+const SEGUNDOS_DEL_AVISO = 4;
+
 /** Una pregunta de sí o no, con el nombre puesto en el botón que la cumple. */
 interface PedidoDeConfirmacion {
   readonly titulo: string;
@@ -920,14 +928,36 @@ const ROLE_NAMES: Record<string, string> = {
             la "Provoleta" y se veía el bife. Con el id en el @if, el editor se
             destruye y nace limpio.
           -->
-          @if (modal() === 'foto' && selected(); as platoId) {
-            <itd-image-editor
-              [subjectId]="platoId"
-              [existingUrl]="currentPhoto()"
-              (applied)="upload($event)"
-            />
-          }
+          <!-- El editor y su cortina de carga, juntos: la cortina se pone
+               encima y no debajo, o el aviso queda al pie del modal, lejos de
+               la foto de la que habla. -->
+          <div class="editor-zona">
+            @if (modal() === 'foto' && selected(); as platoId) {
+              <itd-image-editor
+                [subjectId]="platoId"
+                [existingUrl]="currentPhoto()"
+                (applied)="upload($event)"
+              />
+            }
 
+            <!--
+              Mientras se procesa, tapa la foto.
+
+              Antes era una línea de texto al pie que decía "procesando la
+              imagen…" y se quedaba ahí: no se sabía si seguía trabajando o si
+              se había colgado, y el editor abajo parecía usable cuando no lo
+              era. Una cortina sobre la foto dice las dos cosas a la vez.
+            -->
+            @if (subiendo()) {
+              <div class="cortina" role="status" aria-live="polite">
+                <span class="ruedita" aria-hidden="true"></span>
+                <span class="cortina-texto">Procesando la foto…</span>
+              </div>
+            }
+          </div>
+
+          <!-- El error se queda: es lo único que hay que leer y decidir qué
+               hacer. El "listo" se va solo, porque la foto nueva ya se ve. -->
           @if (status(); as state) {
             <p class="status" [class.error]="state.startsWith('error')">{{ state }}</p>
           }
@@ -1765,6 +1795,9 @@ export class AdminComponent {
     this.editSaved.set(true);
     await this.load();
   }
+  /** Si hay una foto procesándose ahora mismo. */
+  protected readonly subiendo = signal(false);
+
   protected readonly status = signal<string | null>(null);
   protected readonly result = signal<{ variants: Array<{ url: string; width: number; format: string }>; lqip: string } | null>(null);
 
@@ -2633,54 +2666,83 @@ export class AdminComponent {
     const productId = this.selected();
     if (productId === null) return;
 
-    this.status.set('procesando la imagen…');
+    // La cortina se levanta acá y se baja en el `finally`: cualquier salida
+    // —éxito, error, o una excepción de red— tiene que destaparla, o el
+    // editor queda inutilizable con una foto que ya se subió.
+    this.subiendo.set(true);
+    this.status.set(null);
 
-    const buffer = await event.file.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (const byte of bytes) binary += String.fromCharCode(byte);
+    try {
+      const buffer = await event.file.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (const byte of bytes) binary += String.fromCharCode(byte);
 
-    const response = await this.auth.apiFetch(`${API}/images`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
-      body: JSON.stringify({
-        imageId: productId,
-        alt: this.products().find((p) => p.id === productId)?.name ?? '',
-        data: btoa(binary),
-        params: event.params,
-      }),
-    });
+      const response = await this.auth.apiFetch(`${API}/images`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
+        body: JSON.stringify({
+          imageId: productId,
+          alt: this.products().find((p) => p.id === productId)?.name ?? '',
+          data: btoa(binary),
+          params: event.params,
+        }),
+      });
 
-    if (!response.ok) {
-      const detail = (await response.json().catch(() => null)) as {
-        kind?: string;
-        bytes?: number;
-        limit?: number;
-        detail?: string;
-      } | null;
-      this.status.set(`error: ${this.porQueFalloLaFoto(detail)}`);
-      return;
+      if (!response.ok) {
+        const detail = (await response.json().catch(() => null)) as {
+          kind?: string;
+          bytes?: number;
+          limit?: number;
+          detail?: string;
+        } | null;
+        this.status.set(`error: ${this.porQueFalloLaFoto(detail)}`);
+        return;
+      }
+
+      const created = (await response.json()) as {
+        imageSet: { variants: Array<{ url: string; width: number; format: string }>; lqip: string };
+      };
+
+      // Variant URLs never change, so the browser would keep serving the
+      // previous render from cache. A version marker forces a re-fetch.
+      const version = Date.now();
+      this.result.set({
+        ...created.imageSet,
+        variants: created.imageSet.variants.map((variant) => ({
+          ...variant,
+          url: `${variant.url}${variant.url.includes('?') ? '&' : '?'}v=${version}`,
+        })),
+      });
+
+      this.avisarYBorrar('Listo · la foto ya está en la carta');
+      this.photoVersion.set(version);
+
+      // Re-read the menu so the list on the left shows the new thumbnail.
+      await this.load();
+    } finally {
+      this.subiendo.set(false);
     }
-
-    const created = (await response.json()) as {
-      imageSet: { variants: Array<{ url: string; width: number; format: string }>; lqip: string };
-    };
-
-    // Variant URLs never change, so the browser would keep serving the
-    // previous render from cache. A version marker forces a re-fetch.
-    const version = Date.now();
-    this.result.set({
-      ...created.imageSet,
-      variants: created.imageSet.variants.map((variant) => ({
-        ...variant,
-        url: `${variant.url}${variant.url.includes('?') ? '&' : '?'}v=${version}`,
-      })),
-    });
-
-    this.status.set('listo · la foto ya está en la carta');
-    this.photoVersion.set(version);
-
-    // Re-read the menu so the list on the left shows the new thumbnail.
-    await this.load();
   }
+
+  /**
+   * El aviso de que salió bien, que se va solo.
+   *
+   * La foto nueva aparece en el editor y en la lista de la izquierda, así que
+   * el texto sobra apenas se leyó: dejarlo hacía dudar de si correspondía a
+   * esta subida o a la anterior. El error no se va, porque ahí sí hay algo que
+   * decidir.
+   */
+  private avisarYBorrar(mensaje: string): void {
+    this.status.set(mensaje);
+
+    clearTimeout(this.borrarElAviso);
+    this.borrarElAviso = setTimeout(() => {
+      // Sólo si sigue siendo el mismo: un error posterior no se borra por el
+      // reloj de un éxito anterior.
+      if (this.status() === mensaje) this.status.set(null);
+    }, SEGUNDOS_DEL_AVISO * 1000);
+  }
+
+  private borrarElAviso: ReturnType<typeof setTimeout> | undefined;
 }

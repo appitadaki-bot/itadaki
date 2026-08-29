@@ -2540,3 +2540,84 @@
     overflow-wrap: anywhere;
   }
 }
+
+/* ═══ SUBIENDO UNA FOTO ═══
+ *
+ * Antes era una línea de texto al pie del modal que decía "procesando la
+ * imagen…" y se quedaba ahí para siempre: no se sabía si seguía trabajando o
+ * si se había colgado, el editor de abajo parecía usable cuando no lo era, y
+ * el aviso quedaba lejos de la foto de la que hablaba.
+ *
+ * Ahora tapa la foto mientras dura. Eso dice las dos cosas a la vez —que está
+ * trabajando, y que no hay nada que tocar todavía— y se levanta sola. */
+
+.editor-zona {
+  position: relative;
+}
+
+.cortina {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  border-radius: var(--itadaki-radius-card);
+  /* Deja ver la foto debajo: se está trabajando sobre ella, no reemplazándola. */
+  background: color-mix(in oklch, var(--itadaki-surface) 82%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.cortina-texto {
+  font-family: var(--itadaki-font-display);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--itadaki-ink-strong);
+}
+
+/*
+ * La ruedita.
+ *
+ * Un anillo que gira y no una barra de progreso: el servidor renderiza trece
+ * archivos y no informa cuánto lleva, así que una barra tendría que inventar
+ * el porcentaje — y una barra que se queda en 80% preocupa más que una rueda
+ * que sigue girando.
+ */
+.ruedita {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 3px solid var(--itadaki-accent-line);
+  border-top-color: var(--itadaki-accent);
+  animation: gira 800ms linear infinite;
+}
+
+@keyframes gira {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*
+ * A quien pidió no ver movimiento, no se le muestra girando.
+ *
+ * Late en lugar de girar: sigue diciendo "esto está pasando ahora" sin el
+ * movimiento que a algunas personas marea.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .ruedita {
+    animation: late 1.4s ease-in-out infinite;
+  }
+
+  @keyframes late {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+}
