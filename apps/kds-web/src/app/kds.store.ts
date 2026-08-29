@@ -27,6 +27,8 @@ export interface TicketDto {
     readonly quantity: number;
     readonly notes: string;
     readonly category: string | null;
+    /** Lo que contiene, para que la cocina lo vea antes de cocinarlo. */
+    readonly allergens?: readonly string[];
     /** La mesa pidió que este plato salga antes que el resto. */
     readonly primero?: boolean;
   }>;

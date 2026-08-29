@@ -2,6 +2,8 @@ export {
   ALLERGENS,
   type Allergen,
   DIET_TAGS,
+  NOMBRE_DEL_ALERGENO,
+  nombresDeAlergenos,
   type DietTag,
   type ImageSet,
   type ImageVariant,

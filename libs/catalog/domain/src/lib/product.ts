@@ -12,6 +12,39 @@ export const ALLERGENS = [
 ] as const;
 export type Allergen = (typeof ALLERGENS)[number];
 
+/**
+ * Cómo se nombra cada alérgeno en pantalla.
+ *
+ * Acá y no dentro de una pantalla: la carta se lo avisa al comensal y la
+ * comanda se lo avisa a la cocina, y que una diga "maní" y la otra "PEANUTS"
+ * es exactamente el tipo de diferencia que hace dudar de si hablan del mismo
+ * plato. En minúscula porque se leen dentro de una frase: "contiene gluten,
+ * huevo".
+ */
+export const NOMBRE_DEL_ALERGENO: Record<Allergen, string> = {
+  GLUTEN: 'gluten',
+  LACTOSE: 'lactosa',
+  NUTS: 'frutos secos',
+  PEANUTS: 'maní',
+  EGG: 'huevo',
+  FISH: 'pescado',
+  SHELLFISH: 'mariscos',
+  SOY: 'soja',
+};
+
+/**
+ * Los alérgenos de un plato, como se leen.
+ *
+ * Un código que no conocemos se muestra igual, en minúscula: es un dato que
+ * el dueño cargó y que a alguien le puede importar, y esconderlo por no tener
+ * traducción es peor que mostrarlo tal cual.
+ */
+export function nombresDeAlergenos(alergenos: readonly string[]): string {
+  return alergenos
+    .map((alergeno) => NOMBRE_DEL_ALERGENO[alergeno as Allergen] ?? alergeno.toLowerCase())
+    .join(', ');
+}
+
 export const DIET_TAGS = ['VEGAN', 'VEGETARIAN', 'GLUTEN_FREE', 'LACTOSE_FREE'] as const;
 export type DietTag = (typeof DIET_TAGS)[number];
 

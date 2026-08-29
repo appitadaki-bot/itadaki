@@ -90,3 +90,11 @@ export {
   tablesFor,
 } from './lib/table-assignment';
 export { type PlatoJunto, juntarIguales } from './lib/juntar-iguales';
+export {
+  type EstadoDeLaEspera,
+  DE_MAS_PARA_DEMORADO,
+  PEDIDOS_PARA_ESTIMAR,
+  estadoDeLaEspera,
+  minutosEsperando,
+  redondearEspera,
+} from './lib/cuanto-falta';

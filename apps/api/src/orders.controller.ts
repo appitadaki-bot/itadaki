@@ -69,6 +69,22 @@ export class OrdersController {
         : [],
     );
 
+    /*
+     * Del plato a lo que contiene.
+     *
+     * La carta ya avisa los alérgenos al comensal y se pueden filtrar, así
+     * que quien no puede comer gluten no lo pide. Lo que faltaba es el último
+     * tramo: la cocina no lo veía. Y ahí es donde se decide si ese plato sale
+     * de la freidora compartida o con el mismo cuchillo que el pan.
+     *
+     * Va desde la carta y no desde el pedido guardado: es lo que el dueño
+     * declara hoy, y una corrección suya tiene que llegar a la comanda de la
+     * mesa que está esperando, no sólo a los pedidos futuros.
+     */
+    const alergenosPorPlato = new Map(
+      catalog.isOk() ? catalog.value.map((product) => [product.id, product.allergens ?? []]) : [],
+    );
+
     // The board is read by table, not by session: a cook needs "7", not a UUID.
     // Looked up per distinct session so a busy service does one query a table.
     const sessionIds = [...new Set(result.value.map((order) => order.sessionId))];
@@ -90,6 +106,7 @@ export class OrdersController {
           // Nulo si el plato salió de la carta: la comanda vieja sigue
           // siendo válida, y la cocina la muestra sin chip.
           category: seccionPorPlato.get(order.items[index]?.product.productId ?? '') ?? null,
+          allergens: alergenosPorPlato.get(order.items[index]?.product.productId ?? '') ?? [],
         })),
       };
     });

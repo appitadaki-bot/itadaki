@@ -11,6 +11,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { type CartLine, lineTotal } from '@itadaki/ordering/domain';
 import { medirElPie } from './medir-el-pie';
+import { seguirRecienAgregados } from './recien-agregado';
 import { Money } from '@itadaki/shared/domain';
 import { BackLinkComponent } from './back-link.component';
 import { CartStore } from './cart.store';
@@ -80,7 +81,10 @@ import { TrackingStore } from './tracking.store';
             </header>
 
             @for (line of linesOf(group.dinerId); track line.id) {
-              <article class="row">
+              <!-- El plato que acaba de agregar otro entra deslizándose, con el
+                   color de quien lo pidió: la mesa pide junta, y hasta ahora
+                   eso sólo se sabía leyendo la lista. -->
+              <article class="row" [class.recien]="esNueva(line.id)">
                 <div class="row-main">
                   <p class="row-name">{{ line.quantity }}× {{ line.name }}</p>
                   @if (line.modifiers.length > 0) {
@@ -294,6 +298,13 @@ import { TrackingStore } from './tracking.store';
 export class CartPage {
   constructor() {
     medirElPie(this.pie);
+
+    // Mira las líneas cada vez que la sesión cambia —el socket la actualiza
+    // cuando alguien de la mesa agrega algo— y marca las que entraron.
+    effect(() => {
+      const lineas = this.session.session()?.lines ?? [];
+      this.recien.mirar(lineas, this.session.myDinerId());
+    });
   }
 
   protected readonly cart = inject(CartStore);
@@ -312,6 +323,18 @@ export class CartPage {
   protected readonly placedTotal = computed(
     () => this.session.session()?.placedTotal?.amountInMinorUnits ?? 0,
   );
+
+  /**
+   * Los platos que acaban de aparecer, para animarlos al entrar.
+   *
+   * Sólo los ajenos: lo propio ya se vio al tocarlo, y animarlo cuando vuelve
+   * del servidor haría dudar de si se agregó dos veces.
+   */
+  private readonly recien = seguirRecienAgregados();
+
+  protected esNueva(lineId: string): boolean {
+    return this.recien.esNueva(lineId);
+  }
 
   protected linesOf(dinerId: string): readonly SessionLine[] {
     return (this.session.session()?.lines ?? []).filter((line) => line.dinerId === dinerId);

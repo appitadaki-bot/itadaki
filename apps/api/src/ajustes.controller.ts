@@ -1,9 +1,19 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Patch } from '@nestjs/common';
+import { medianPrepMinutes, type CompletedOrder } from '@itadaki/analytics/domain';
 import { descuentoDe } from '@itadaki/billing/domain';
 import { linkDeResena } from '@itadaki/identity/domain';
 import { z } from 'zod';
 import { Public, RequirePermission, Scope, TenantId, type DinerScope, TableScoped } from './auth';
+import { OrdersService } from './orders.service';
 import { TenantsService } from './tenants.service';
+
+/**
+ * Cuántos días de historial se miran para decir cuánto tarda la cocina.
+ *
+ * Dos semanas: suficiente para que una noche mala no mueva el número, y
+ * corto para que una cocina que sumó gente lo refleje pronto.
+ */
+const DIAS_DE_HISTORIAL = 14;
 
 const descuentoSchema = z.object({
   /** En puntos porcentuales enteros: el dueño escribe "10", no "0.1". */
@@ -18,7 +28,10 @@ const descuentoSchema = z.object({
  */
 @Controller('ajustes')
 export class AjustesController {
-  constructor(private readonly tenants: TenantsService) {}
+  constructor(
+    private readonly tenants: TenantsService,
+    private readonly orders: OrdersService,
+  ) {}
 
   /**
    * Lo que el panel muestra en el formulario.
@@ -151,6 +164,52 @@ export class AjustesController {
       // Sin link no se ofrece nada: mejor eso que mandar a un cliente
       // conforme a una página rota.
       resenaUrl: resenas.isOk() ? resenas.value.url : null,
+      // Cuánto tarda este local, para poder contestar "¿cuánto falta?".
+      ...(await this.cuantoTarda(scope.tenantId)),
     };
+  }
+
+  /**
+   * Cuánto tarda la cocina de este local, medido.
+   *
+   * Sale de lo que ya pasó y no de un número configurado: el dueño pondría el
+   * que le gustaría tener, y la mesa lo leería como una promesa incumplida
+   * cada noche ocupada.
+   *
+   * Se miran los últimos días y no toda la historia: una cocina que mejoró
+   * —o que sumó gente— no tiene por qué arrastrar cómo tardaba hace meses.
+   *
+   * Un fallo devuelve nulos y la pantalla no dice nada, que es exactamente lo
+   * que hace cuando el local todavía no tiene historial.
+   */
+  private async cuantoTarda(
+    tenantId: string,
+  ): Promise<{ habitualMinutos: number | null; pedidosMedidos: number }> {
+    const desde = new Date(Date.now() - DIAS_DE_HISTORIAL * 24 * 60 * 60_000);
+    const pedidos = await this.orders.store.listPlacedBetween(tenantId, desde, new Date());
+
+    if (pedidos.isErr()) {
+      return { habitualMinutos: null, pedidosMedidos: 0 };
+    }
+
+    // Sólo los que llegaron a la mesa: un pedido cancelado no midió ninguna
+    // espera, y contarlo como cero acortaría el número para todos.
+    const completados: CompletedOrder[] = pedidos.value
+      .filter((order) => order.status !== 'CANCELLED')
+      .map((order) => ({
+        orderId: order.id,
+        sessionId: order.sessionId,
+        // Del historial, como en las métricas: el pedido no guarda la fecha
+        // suelta, la deja anotada en el paso que la produjo.
+        placedAt: order.history.find((entry) => entry.status === 'SENT')?.at ?? new Date(),
+        deliveredAt: order.history.find((entry) => entry.status === 'DELIVERED')?.at ?? null,
+        // La mediana sólo mira las fechas: cargar los platos y sus precios
+        // acá sería trabajo para un número que no los usa.
+        items: [],
+      }));
+
+    const medidos = completados.filter((order) => order.deliveredAt !== null).length;
+
+    return { habitualMinutos: medianPrepMinutes(completados), pedidosMedidos: medidos };
   }
 }

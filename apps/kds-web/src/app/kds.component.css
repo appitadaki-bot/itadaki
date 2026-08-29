@@ -797,3 +797,28 @@ button {
     box-shadow: 0 0 0 5px oklch(52% 0.16 155 / 0.1);
   }
 }
+
+/* ═══ LO QUE CONTIENE ═══
+ *
+ * La carta ya se lo avisó al comensal y pudo filtrar, así que quien no puede
+ * comer gluten no lo pidió. Lo que faltaba es esto: quien decide si el plato
+ * sale de la freidora compartida —o con el cuchillo que acaba de cortar pan—
+ * está en la cocina, y no lo estaba viendo.
+ *
+ * En ámbar y no en rojo: el rojo de esta pantalla es de las cosas que van
+ * mal, y esto es un dato del plato, no un problema. Pero con fondo propio,
+ * porque leerlo tarde es el único error de esta pantalla que manda a alguien
+ * a una guardia. */
+
+.item-alergenos {
+  display: inline-block;
+  margin-top: 0.2rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.3rem;
+  background: oklch(92% 0.08 85);
+  color: oklch(35% 0.09 70);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
