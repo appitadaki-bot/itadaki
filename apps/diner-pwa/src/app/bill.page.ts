@@ -333,6 +333,14 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
         } @else if (!session.isJoined()) {
           <p class="muted">Unite a la mesa para ver la cuenta.</p>
           <a class="link" routerLink="/unirse">Unirme a la mesa</a>
+        } @else if (store.error(); as error) {
+          <!-- Que no se lea como una mesa vacía.
+               Si abrir la cuenta falló —se cayó la conexión, el servidor
+               contestó mal— decir "todavía no pidieron nada" es contar otra
+               historia: el comensal acaba de pedir y sabe que pidió, así que
+               la pantalla queda como si le mintiera. -->
+          <p class="muted">{{ error }}</p>
+          <button type="button" class="link" (click)="reintentar()">Probar de nuevo</button>
         } @else {
           <!-- A bill needs something to bill: an empty table has no total. -->
           <p class="muted">Todavía no pidieron nada en esta mesa.</p>
@@ -413,17 +421,50 @@ export class BillPage {
   constructor() {
     medirElPie(this.pie);
 
+    // El descuento del local, para saber si mostrar la elección del medio.
+    void this.cargarDescuento();
+  }
+
+  /**
+   * Abre la cuenta apenas se sabe qué mesa es.
+   *
+   * Un `effect` y no una línea en el constructor: al entrar por un link o al
+   * recargar, la sesión se restaura pidiéndosela al servidor, así que en el
+   * momento en que se construye esta pantalla todavía no está. El constructor
+   * leía `session()?.id`, lo encontraba vacío y se iba con un `return` sin
+   * volver a mirar — la mesa aparecía un instante después, ya con su pedido, y
+   * la pantalla seguía diciendo "todavía no pidieron nada".
+   *
+   * Abrir la cuenta es idempotente del lado del servidor: una que ya existe
+   * vuelve igual en vez de emitirse de nuevo. Aun así se pide una sola vez por
+   * mesa, porque el efecto también corre cuando la sesión cambia por otras
+   * razones —alguien más se suma, llega un plato— y eso son varias veces
+   * durante una comida.
+   */
+  private readonly abrirLaCuenta = effect(() => {
+    const id = this.session.session()?.id;
+    if (id === undefined || id === this.pedidaPara) return;
+
+    this.pedidaPara = id;
+    void this.store.close(id).then(() => {
+      this.parts.set(this.store.bill()?.participants.length ?? 2);
+      this.recompute();
+    });
+  });
+
+  /** De qué mesa ya se pidió la cuenta, para no pedirla en cada cambio. */
+  private pedidaPara: string | null = null;
+
+  /** Vuelve a intentar abrir la cuenta, después de un fallo. */
+  protected reintentar(): void {
     const id = this.session.session()?.id;
     if (id === undefined) return;
 
-    // Opening this screen *is* asking for the bill — a diner who tapped "ver la
-    // cuenta" should not land on a second button that says the same thing.
-    // Raising one is idempotent server-side, so an existing bill comes back
-    // unchanged rather than being reissued.
-    // El descuento del local, para saber si mostrar la elección del medio.
-    void this.cargarDescuento();
-
+    // Se limpia la marca para que el efecto vuelva a pedirla: sin esto, el
+    // botón no haría nada porque esta mesa ya figura como pedida.
+    this.pedidaPara = null;
     void this.store.close(id).then(() => {
+      this.pedidaPara = id;
       this.parts.set(this.store.bill()?.participants.length ?? 2);
       this.recompute();
     });

@@ -72,9 +72,19 @@ export class BillStore {
   }
 
   async load(sessionId: string, display: string): Promise<void> {
-    const response = await this.api.fetch(`/bills/${sessionId}?display=${display}`);
-    if (response.ok) {
+    try {
+      const response = await this.api.fetch(`/bills/${sessionId}?display=${display}`);
+      if (!response.ok) {
+        // Un fallo silencioso dejaba la cuenta anterior en pantalla, con los
+        // montos en la moneda que no se eligió: parecía que el cambio no había
+        // hecho nada, y el comensal lo volvía a tocar.
+        this.error.set('No pudimos mostrar la cuenta en esa moneda');
+        return;
+      }
       this.bill.set((await response.json()) as BillDto);
+      this.error.set(null);
+    } catch {
+      this.error.set('Sin conexión');
     }
   }
 
