@@ -83,8 +83,8 @@
 .price {
   font-family: var(--itadaki-font-display);
   font-weight: 600;
-  font-size: 1.15rem
-  letter-spacing: var(--itadaki-tracking-title);;
+  font-size: 1.15rem;
+  letter-spacing: var(--itadaki-tracking-title);
   color: var(--itadaki-ink-strong);
   margin: 0 0 0.6rem;
   font-variant-numeric: tabular-nums;

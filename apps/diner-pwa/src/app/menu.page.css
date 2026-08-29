@@ -471,16 +471,22 @@
   justify-content: center;
   font-family: var(--itadaki-font-display);
   font-weight: 700;
-  font-size: 1.35rem
-  letter-spacing: var(--itadaki-tracking-title);;
-  color: oklch(38% 0.06 33);
-  background: repeating-linear-gradient(
-    135deg,
-    oklch(88% 0.05 33),
-    oklch(88% 0.05 33) 12px,
-    oklch(92% 0.04 33) 12px,
-    oklch(92% 0.04 33) 24px
-  );
+  /* Faltaba el punto y coma acá: sin él, el navegador descartaba esta
+     declaración y la siguiente, así que el placeholder no tenía ni el tamaño
+     ni el espaciado que se le había puesto. */
+  font-size: 1.35rem;
+  letter-spacing: var(--itadaki-tracking-title);
+  color: var(--itadaki-accent-deep);
+  /*
+   * Liso y no rayado.
+   *
+   * Las rayas diagonales dicen "acá falta algo", y en una carta donde muchos
+   * platos todavía no tienen foto eso se lee como una app a medio hacer, no
+   * como un restaurante. Un bloque tranquilo con la inicial se lee como una
+   * decisión: el plato está, y su foto no es lo importante.
+   */
+  background: var(--itadaki-accent-tint);
+  border: 1px solid var(--itadaki-accent-line);
 }
 
 .card-body {
