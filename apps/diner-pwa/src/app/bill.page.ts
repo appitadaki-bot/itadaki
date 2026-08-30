@@ -340,7 +340,14 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
                historia: el comensal acaba de pedir y sabe que pidió, así que
                la pantalla queda como si le mintiera. -->
           <p class="muted">{{ error }}</p>
-          <button type="button" class="link" (click)="reintentar()">Probar de nuevo</button>
+          <!-- Reintentar sólo cuando reintentar puede funcionar. Si la mesa
+               venció, el botón repetiría el mismo fallo para siempre: lo que
+               hace falta es escanear el QR otra vez. -->
+          @if (store.sirveReintentar()) {
+            <button type="button" class="link" (click)="reintentar()">Probar de nuevo</button>
+          } @else {
+            <a class="link" routerLink="/carta">Ver la carta</a>
+          }
         } @else {
           <!-- A bill needs something to bill: an empty table has no total. -->
           <p class="muted">Todavía no pidieron nada en esta mesa.</p>

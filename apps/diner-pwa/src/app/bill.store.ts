@@ -44,6 +44,52 @@ export interface SplitDto {
 export type SplitKind = 'SINGLE_PAYER' | 'EQUAL' | 'BY_DINER' | 'BY_ITEM' | 'CUSTOM_AMOUNT';
 export type TipChoice = { kind: 'NONE' } | { kind: 'PERCENTAGE'; percent: number };
 
+/**
+ * Por qué no se pudo abrir la cuenta, en algo que se pueda leer sentado a una
+ * mesa.
+ *
+ * Cada caso termina en algo que el comensal puede hacer. "No pudimos abrir la
+ * cuenta" era cierto y no servía para nada: quien acaba de pedir no sabe si
+ * esperar, tocar de nuevo, o llamar al mozo.
+ */
+function porQueNoAbre(
+  kind: string | undefined,
+  status: number,
+): { mensaje: string; sirveReintentar: boolean } {
+  switch (kind) {
+    case 'NOTHING_TO_BILL':
+      // La mesa está bien; simplemente no hay nada que cobrar todavía.
+      return {
+        mensaje: 'Todavía no hay nada para cobrar en esta mesa.',
+        sirveReintentar: false,
+      };
+    case 'NOT_FOUND':
+      // La comida terminó, o el mozo cerró la mesa desde el salón. Reintentar
+      // repetiría el mismo fallo para siempre.
+      return {
+        mensaje: 'Esta mesa ya se cerró. Escaneá el QR de nuevo para volver a entrar.',
+        sirveReintentar: false,
+      };
+    case 'INVALID_TABLE_TOKEN':
+    case 'WRONG_TABLE':
+      return {
+        mensaje: 'El código de la mesa venció. Escaneá el QR otra vez.',
+        sirveReintentar: false,
+      };
+    default:
+      // Un problema del servidor no es algo que el comensal pueda resolver:
+      // el mozo sí, y está a unos metros. Pero puede ser pasajero, así que
+      // volver a intentar tiene sentido.
+      return {
+        mensaje:
+          status >= 500
+            ? 'No pudimos abrir la cuenta. Avisale al mozo.'
+            : 'No pudimos abrir la cuenta. Probá de nuevo en un momento.',
+        sirveReintentar: true,
+      };
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class BillStore {
   private readonly api = inject(ApiClient);
@@ -53,19 +99,38 @@ export class BillStore {
   readonly error = signal<string | null>(null);
   readonly busy = signal(false);
 
+  /**
+   * Si el botón de reintentar puede llegar a servir.
+   *
+   * Una mesa cerrada no se arregla tocando de nuevo: lo que hace falta es
+   * escanear el QR. Ofrecer el botón igual invita a repetir un fallo que ya se
+   * sabe que se va a repetir.
+   */
+  readonly sirveReintentar = signal(true);
+
   async close(sessionId: string): Promise<void> {
     this.busy.set(true);
     this.error.set(null);
+    this.sirveReintentar.set(true);
 
     try {
       const response = await this.api.fetch(`/bills/close/${sessionId}`, { method: 'POST' });
       if (!response.ok) {
-        this.error.set('No pudimos abrir la cuenta');
+        // El servidor dice por qué; sin leerlo, tres problemas muy distintos
+        // —la mesa no pidió nada, la sesión venció, el QR ya no vale— salían
+        // con el mismo "no pudimos abrir la cuenta", que no le dice a nadie
+        // qué hacer a continuación.
+        const detalle = (await response.json().catch(() => null)) as { kind?: string } | null;
+        const porQue = porQueNoAbre(detalle?.kind, response.status);
+        this.error.set(porQue.mensaje);
+        this.sirveReintentar.set(porQue.sirveReintentar);
         return;
       }
       this.bill.set((await response.json()) as BillDto);
     } catch {
-      this.error.set('Sin conexión');
+      // Sin señal es lo más pasajero de todo: reintentar es exactamente lo
+      // que corresponde.
+      this.error.set('Sin conexión. Probá de nuevo.');
     } finally {
       this.busy.set(false);
     }
