@@ -113,6 +113,11 @@ const CALL_LABELS: Record<string, string> = {
         </p>
       }
 
+      <!-- Lo que no puede esperar: alguien con la mano levantada, y platos
+           listos enfriándose en el pase. Es lo que el mozo mira cuando levanta
+           la vista, así que va primero y junto. -->
+      <div class="urgente">
+
       <!-- Calls first: a person is waiting, which outranks a plate on the pass.
            Se pliega como el resto, pero arranca abierto cuando hay alguien
            esperando: una persona levantando la mano no puede quedar detrás de
@@ -312,6 +317,13 @@ const CALL_LABELS: Record<string, string> = {
         }
       </section>
 
+      </div>
+
+      <!-- Lo que se consulta, no lo que se hace. Debajo de lo urgente y en
+           columnas cuando hay ancho: son cosas que el mozo busca cuando las
+           necesita, no que mira cada vez que levanta la vista. -->
+      <div class="consulta">
+
       <!-- Contexto, no una tarea: sirve para contestar "¿falta mucho?".
            Plegado por defecto porque con trece mesas activas ocupaba media
            pantalla compitiendo con lo que sí hay que hacer. -->
@@ -398,6 +410,8 @@ const CALL_LABELS: Record<string, string> = {
           }
         </section>
       }
+
+      </div>
     }
   `,
 })

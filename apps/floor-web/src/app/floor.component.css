@@ -4,7 +4,12 @@
   min-height: 100dvh;
   background: var(--itadaki-surface);
   padding: 1rem 1rem calc(2rem + env(safe-area-inset-bottom));
-  max-width: 640px;
+  /*
+   * Antes eran 640px fijos: en la tablet apoyada en el salón quedaban dos
+   * tercios de pantalla vacíos y el mozo scrolleaba para ver si le faltaba
+   * algo. Ahora crece hasta donde el ojo todavía alcanza a barrer una fila.
+   */
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -85,8 +90,57 @@
   margin: 0;
 }
 
+/*
+ * Cada bloque, una zona con borde propio.
+ *
+ * Antes eran cinco listas separadas sólo por un margen: todo pesaba igual, y
+ * en un salón lleno el mozo tenía que leer para saber dónde terminaba una cosa
+ * y empezaba la otra. Con un contenedor visible, el ojo salta al bloque que
+ * busca sin leer nada.
+ */
 .block {
-  margin-bottom: 1.5rem;
+  background: var(--itadaki-surface-raised);
+  border: 1px solid var(--itadaki-border);
+  border-radius: var(--itadaki-radius-card);
+  padding: 0.9rem 1rem 1rem;
+  /* Se rompe entre columnas si no: media tarjeta arriba y media abajo. */
+  break-inside: avoid;
+}
+
+/*
+ * Las dos cosas que no pueden esperar, arriba y juntas.
+ *
+ * Alguien levantó la mano, y hay platos listos enfriándose en el pase. Todo
+ * lo demás —códigos, qué se está cocinando— es consulta: se mira cuando hace
+ * falta, no cada vez que se levanta la vista.
+ */
+.urgente {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Lo de consulta, debajo y en columnas cuando hay lugar. */
+.consulta {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .urgente,
+  .consulta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/*
+ * En la pantalla ancha —la tablet de la caja— lo urgente ocupa el ancho
+ * completo en dos columnas grandes, y lo de consulta se reparte en tres.
+ */
+@media (min-width: 1250px) {
+  .consulta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .block-title {
@@ -756,4 +810,95 @@ button {
   font-weight: 600;
   color: var(--itadaki-ink-subtle);
   cursor: pointer;
+}
+
+/* ═══ QUE SE LEA DE PARADO ═══
+ *
+ * El mozo no está sentado mirando la pantalla: la mira de paso, con las manos
+ * ocupadas, a medio metro y en diagonal. Lo que sigue es lo que hace que cada
+ * bloque se reconozca sin leerlo. */
+
+/*
+ * El título de cada zona, con su línea.
+ *
+ * Antes los cinco títulos eran gris claro y del mismo tamaño que el resto:
+ * había que leerlos para saber dónde estaba parado uno. La línea de color los
+ * ancla y da el borde superior que separa una zona de la siguiente.
+ */
+.block-title {
+  font-size: 0.72rem;
+  color: var(--itadaki-ink-subtle);
+}
+
+.block-title.as-toggle::before,
+.block-title:not(.as-toggle)::before {
+  content: '';
+  width: 3px;
+  height: 0.95rem;
+  border-radius: 2px;
+  background: var(--itadaki-border);
+  flex: 0 0 auto;
+}
+
+/* Alguien esperando: la marca en el color de la marca. */
+.block:has(.card.call) .block-title::before,
+.block.owing .block-title::before {
+  background: var(--itadaki-accent);
+}
+
+/* Platos listos: el verde de "salió", el mismo del contador. */
+.block:has(.count.ready) .block-title::before {
+  background: var(--itadaki-status-ready);
+}
+
+/*
+ * El número de mesa, más grande.
+ *
+ * Es el único dato que el mozo busca de verdad —el resto lo lee ya sabiendo a
+ * qué mesa pertenece— así que tiene que poder encontrarlo sin acercarse.
+ */
+.table {
+  font-size: 1.2rem;
+}
+
+/*
+ * El bloque que no tiene nada.
+ *
+ * "Nadie está llamando ahora" en gris tenue: dice que se miró y que está
+ * vacío, sin ocupar el peso visual de algo que hay que atender.
+ */
+.quiet {
+  padding: 0.5rem 0;
+  margin: 0;
+}
+
+/*
+ * La zona urgente, contra el resto.
+ *
+ * Un fondo apenas distinto y un borde más marcado: el ojo la encuentra antes
+ * de leer, que es lo que hace falta cuando se levanta la vista entre dos
+ * mesas.
+ */
+.urgente > .block {
+  border-color: var(--itadaki-accent-line);
+}
+
+.urgente > .block.owing {
+  background: var(--itadaki-accent-tint);
+}
+
+/*
+ * En pantalla ancha, la zona urgente respira más.
+ *
+ * Es la tablet de la caja o del pase: hay lugar, y estos dos bloques son los
+ * que se miran a distancia.
+ */
+@media (min-width: 900px) {
+  .urgente > .block {
+    padding: 1.1rem 1.2rem 1.2rem;
+  }
+
+  .urgente .table {
+    font-size: 1.35rem;
+  }
 }
