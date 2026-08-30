@@ -1,4 +1,13 @@
-import { type Cubo, consumir, limitadorPorIp, purgar } from './rate-limit';
+import {
+  CUPO_ENTRAR,
+  CUPO_SENTARSE,
+  consumir,
+  esIntentoDeEntrar,
+  esSentarseAUnaMesa,
+  limitadorPorIp,
+  purgar,
+  type Cubo,
+} from './rate-limit';
 
 const cupo = { limite: 3, ventanaMs: 60_000 };
 
@@ -135,5 +144,48 @@ describe('el middleware', () => {
     });
 
     expect(paso).toBe(true);
+  });
+});
+
+describe('sentarse a una mesa tiene su propio cupo', () => {
+  /**
+   * Los comensales de un restaurante salen todos por el mismo WiFi, así que
+   * para el servidor son una sola IP. Con `/sessions/join` compartiendo el
+   * cupo del login —10 por minuto— un grupo de doce que se sentaba junto
+   * gastaba el cupo entero y los últimos dos veían un error.
+   *
+   * Apareció probando veinte mesas pidiendo a la vez: entraron nueve.
+   */
+  it('unirse a una mesa no es un intento de credencial', () => {
+    expect(esIntentoDeEntrar('/api/sessions/join')).toBe(false);
+    expect(esSentarseAUnaMesa('/api/sessions/join')).toBe(true);
+  });
+
+  it('el login sigue protegido como antes', () => {
+    // Ahí sí se prueba una contraseña, y quien prueba de a miles busca
+    // acertar una.
+    expect(esIntentoDeEntrar('/api/auth/login')).toBe(true);
+    expect(esSentarseAUnaMesa('/api/auth/login')).toBe(false);
+  });
+
+  it('el alta y el cambio de contraseña también', () => {
+    expect(esIntentoDeEntrar('/api/auth/signup')).toBe(true);
+    expect(esIntentoDeEntrar('/api/auth/password')).toBe(true);
+  });
+
+  it('aguanta un salón lleno rotando', () => {
+    // Veinte mesas que se sientan, más las que rotan durante el servicio.
+    expect(CUPO_SENTARSE.limite).toBeGreaterThanOrEqual(100);
+  });
+
+  it('pero sigue habiendo un tope', () => {
+    // Sin ninguno, una máquina abre sesiones sin fin. Lo que cambia es que el
+    // tope sea el de un salón y no el de un formulario de contraseña.
+    expect(Number.isFinite(CUPO_SENTARSE.limite)).toBe(true);
+    expect(CUPO_SENTARSE.ventanaMs).toBe(60_000);
+  });
+
+  it('es más alto que el de las credenciales', () => {
+    expect(CUPO_SENTARSE.limite).toBeGreaterThan(CUPO_ENTRAR.limite);
   });
 });
