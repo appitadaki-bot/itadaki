@@ -33,7 +33,8 @@
     "legal": "node scripts/build-legal.mjs",
     "start:salon": "ng serve floor-web --port 4600",
     "build:landing": "npm run legal && node scripts/build-landing.mjs",
-    "video": "node scripts/grabar-flujo.mjs"
+    "video": "node scripts/grabar-flujo.mjs",
+    "salon-lleno": "node scripts/salon-lleno.mjs"
   },
   "devDependencies": {
     "@angular/build": "^21.2.22",

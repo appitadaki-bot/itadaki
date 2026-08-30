@@ -67,7 +67,7 @@ export function purgar(cubos: Map<string, Cubo>, ahora: number): void {
 }
 
 /**
- * Los dos topes.
+ * Los tres topes.
  *
  * Entrar es lo caro de proteger: cada intento verifica una contraseña, y quien
  * prueba de a miles busca acertar una. El resto es tráfico normal de una mesa
@@ -77,14 +77,38 @@ export function purgar(cubos: Map<string, Cubo>, ahora: number): void {
 export const CUPO_ENTRAR: Cupo = { limite: 10, ventanaMs: 60_000 };
 export const CUPO_GENERAL: Cupo = { limite: 300, ventanaMs: 60_000 };
 
+/**
+ * Sentarse a una mesa.
+ *
+ * Tiene su propio tope porque no es lo mismo que probar una contraseña, aunque
+ * hasta ahora compartían el de 10 por minuto. Los comensales de un restaurante
+ * salen todos por el mismo WiFi, así que para el servidor son una sola IP: un
+ * grupo de doce que se sienta junto y escanea el QR gastaba el cupo entero y
+ * los últimos dos veían un error, y un sábado con veinte mesas rotando lo
+ * gastaba el salón entero.
+ *
+ * Se descubrió probando veinte mesas pidiendo a la vez: entraron nueve.
+ *
+ * El riesgo es mucho menor que el del login. Unirse no verifica ninguna
+ * credencial secreta —hace falta el token de la mesa, que sale del QR
+ * impreso— así que no hay nada que adivinar a fuerza de intentos. El tope
+ * sigue existiendo para que una máquina no abra sesiones sin fin, pero puede
+ * ser el de un salón lleno y no el de un formulario de contraseña.
+ */
+export const CUPO_SENTARSE: Cupo = { limite: 120, ventanaMs: 60_000 };
+
 /** Las rutas donde se prueba una credencial. */
 export function esIntentoDeEntrar(url: string): boolean {
   return (
     url.includes('/auth/login') ||
     url.includes('/auth/signup') ||
-    url.includes('/auth/password') ||
-    url.includes('/sessions/join')
+    url.includes('/auth/password')
   );
+}
+
+/** Sentarse a una mesa desde el QR. */
+export function esSentarseAUnaMesa(url: string): boolean {
+  return url.includes('/sessions/join');
 }
 
 /** Cada cuántas escrituras se barren los cubos vencidos. */
@@ -124,10 +148,11 @@ export function limitadorPorIp(ahora: () => number = Date.now) {
     if (escrituras % CADA === 0) purgar(cubos, instante);
 
     const entrando = esIntentoDeEntrar(url);
-    const cupo = entrando ? CUPO_ENTRAR : CUPO_GENERAL;
+    const sentandose = esSentarseAUnaMesa(url);
+    const cupo = entrando ? CUPO_ENTRAR : sentandose ? CUPO_SENTARSE : CUPO_GENERAL;
     // Cuentas separadas: gastar la cuota mirando la carta no puede dejar a esa
     // misma mesa sin poder entrar.
-    const clave = `${entrando ? 'entrar' : 'todo'}:${pedido.ip ?? 'desconocida'}`;
+    const clave = `${entrando ? 'entrar' : sentandose ? 'sentarse' : 'todo'}:${pedido.ip ?? 'desconocida'}`;
 
     const paso = consumir(cubos.get(clave), instante, cupo);
     cubos.set(clave, paso.cubo);
