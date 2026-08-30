@@ -249,6 +249,43 @@ export class FloorStore {
     ),
   );
 
+  /**
+   * Lo que está en cocina, agrupado por mesa.
+   *
+   * `cooking()` devuelve envíos, no mesas: una mesa que pidió tres veces
+   * —entrada, principal, postre— aparecía en tres filas seguidas, cada una
+   * diciendo "Mesa 1" y cada una con su propio botón de liberar. El contador
+   * arriba decía "3 mesas" cuando era una sola. Con veinte mesas eso son
+   * cuarenta o cincuenta filas donde no se encuentra nada.
+   *
+   * Se junta por mesa, que es como el mozo piensa el salón: una mesa espera
+   * su comida, no espera "tres envíos".
+   */
+  readonly cocinandoPorMesa = computed(() => {
+    const mesas = new Map<
+      string,
+      {
+        tableId: string;
+        /** Todas las sesiones de esa mesa, para poder liberarla entera. */
+        sessionIds: string[];
+        items: Array<{ name: string; quantity: number; status: string }>;
+      }
+    >();
+
+    for (const ticket of this.cooking()) {
+      const tableId = ticket.tableId ?? '';
+      const actual = mesas.get(tableId) ?? { tableId, sessionIds: [], items: [] };
+
+      if (!actual.sessionIds.includes(ticket.sessionId)) {
+        actual.sessionIds.push(ticket.sessionId);
+      }
+      actual.items.push(...ticket.items);
+      mesas.set(tableId, actual);
+    }
+
+    return [...mesas.values()];
+  });
+
   connect(): void {
     if (this.socket !== null) return;
 

@@ -47,7 +47,7 @@ const CALL_LABELS: Record<string, string> = {
     } @else {
       <header class="head">
         <div>
-          <p class="eyebrow">Salón · en vivo</p>
+          <p class="eyebrow">Salón</p>
           <h1 class="title">Tu turno en el salón</h1>
         </div>
         <div class="head-right">
@@ -337,23 +337,32 @@ const CALL_LABELS: Record<string, string> = {
             (click)="showCooking.set(!showCooking())"
           >
             <span class="quiet-title">En cocina</span>
-            <span class="cooking-count">{{ store.cooking().length }} mesas</span>
+            <!-- Mesas y no envíos: decía "3 mesas" cuando era una sola que
+                 había pedido tres veces. -->
+            <span class="cooking-count">
+              {{ store.cocinandoPorMesa().length }}
+              {{ store.cocinandoPorMesa().length === 1 ? 'mesa' : 'mesas' }}
+            </span>
             <span class="cooking-chevron">{{ showCooking() ? '−' : '+' }}</span>
           </button>
 
           @if (showCooking()) {
-            @for (ticket of store.cooking(); track ticket.id) {
+            <!-- Una fila por mesa y no por envío. Una mesa que pidió tres
+                 veces aparecía tres veces seguidas, cada una diciendo "Mesa 1"
+                 y con su propio botón: con veinte mesas eran cincuenta filas
+                 donde no se encontraba nada. -->
+            @for (mesa of store.cocinandoPorMesa(); track mesa.tableId) {
               <p class="cooking-row">
-                <span class="table small">Mesa {{ tableNumber(ticket.tableId ?? '') }}</span>
-                <span class="cooking-items">{{ pending(ticket.items) }}</span>
+                <span class="table small">Mesa {{ tableNumber(mesa.tableId) }}</span>
+                <span class="cooking-items">{{ pending(mesa.items) }}</span>
                 <!-- Para la mesa que pagó en la caja y se fue: sin esto queda
                      ocupada hasta el barrido, y el grupo siguiente escanea el
                      QR y cae en el pedido de los anteriores. -->
-                @if (confirming() === ticket.sessionId) {
+                @if (confirming() === mesa.tableId) {
                   <button
                     type="button"
                     class="release confirm"
-                    (click)="release(ticket.sessionId)"
+                    (click)="liberarMesa(mesa.sessionIds)"
                   >
                     ¿Seguro? Sí, liberar
                   </button>
@@ -361,7 +370,7 @@ const CALL_LABELS: Record<string, string> = {
                   <button
                     type="button"
                     class="release"
-                    (click)="confirming.set(ticket.sessionId)"
+                    (click)="confirming.set(mesa.tableId)"
                   >
                     Liberar
                   </button>
@@ -449,6 +458,23 @@ export class FloorComponent implements OnDestroy {
   protected async release(sessionId: string): Promise<void> {
     this.confirming.set(null);
     await this.store.releaseTable(sessionId);
+  }
+
+  /**
+   * Libera la mesa entera, con todo lo que haya pedido.
+   *
+   * Una mesa puede tener varias sesiones abiertas —pasa cuando el grupo se
+   * suma en tandas— y liberar sólo una dejaba la mesa ocupada por las otras,
+   * con el botón desapareciendo sin que nada cambiara.
+   */
+  protected async liberarMesa(sessionIds: readonly string[]): Promise<void> {
+    this.confirming.set(null);
+
+    // En serie y no en paralelo: son pocas, y el salón se recarga después de
+    // cada una — dispararlas juntas deja al tablero pisándose a sí mismo.
+    for (const sessionId of sessionIds) {
+      await this.store.releaseTable(sessionId);
+    }
   }
 
   protected async rotate(tableId: string): Promise<void> {
