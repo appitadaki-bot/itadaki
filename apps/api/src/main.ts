@@ -6,6 +6,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { USING_DEV_SECRET } from './auth';
 import { databaseAvailable } from './database';
+import { comoTratarLasPendientes, migracionesQueFaltan } from './migraciones-al-dia';
 import { axiomEnabled, log } from './logger';
 import { ErrorFilter } from './error.filter';
 import { limitadorPorIp } from './rate-limit';
@@ -105,6 +106,24 @@ async function bootstrap(): Promise<void> {
     }
     // Locally a demo without the database still beats refusing to start.
     log.warn(detail);
+  }
+
+  /*
+   * El esquema, antes de aceptar pedidos.
+   *
+   * Una migración sin aplicar no se nota al desplegar: la API arranca, el
+   * health check pasa, y el fallo aparece más tarde en el teléfono de un
+   * comensal, con un error de Postgres que no se parece a su causa. Mejor que
+   * el deploy falle acá, donde lo ve quien lo hizo.
+   */
+  if (usingPostgres && reachable) {
+    const faltan = await migracionesQueFaltan();
+    const queHacer = comoTratarLasPendientes(faltan, process.env['NODE_ENV']);
+
+    if (queHacer !== null) {
+      if (queHacer.rompe) throw new Error(queHacer.mensaje);
+      log.warn(queHacer.mensaje);
+    }
   }
 
   await app.listen(PORT);
