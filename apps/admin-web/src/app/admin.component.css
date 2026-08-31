@@ -539,20 +539,6 @@
   align-items: center;
 }
 
-/* De dónde se agarra para arrastrar. */
-.cat-agarre {
-  cursor: grab;
-  user-select: none;
-  color: var(--itadaki-ink-faint);
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0 0.15rem;
-}
-
-.cat-agarre:active {
-  cursor: grabbing;
-}
-
 /* La que va viajando se apaga; la de abajo dice dónde va a caer. */
 .cat-row.arrastrando {
   opacity: 0.4;
@@ -562,6 +548,12 @@
   outline: 2px dashed var(--itadaki-accent);
   outline-offset: 2px;
   border-radius: var(--itadaki-radius-chip);
+}
+
+/* Sin foco el nombre es lo que se agarra para mover; al enfocarlo vuelve a
+   ser un campo de texto y el cursor lo dice. */
+.cat-name:not(:focus) {
+  cursor: grab;
 }
 
 .cat-name {
@@ -2550,12 +2542,6 @@
 
   .cat-name {
     flex: 1 1 100%;
-  }
-
-  /* Con el dedo no hay arrastre —el navegador no lo dispara al tocar— así que
-     el tirador sería un adorno que no hace nada. Quedan las flechas. */
-  .cat-agarre {
-    display: none;
   }
 
   /* El contador a la izquierda y las acciones a la derecha, en su propio

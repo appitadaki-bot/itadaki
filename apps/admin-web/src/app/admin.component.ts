@@ -294,27 +294,26 @@ const ROLE_NAMES: Record<string, string> = {
                 (dragend)="soltarNada()"
               >
                 <!--
-                  El arrastre se agarra de acá y no de toda la fila: al lado
-                  hay un campo de texto, y arrastrar dentro de él para
-                  seleccionar el nombre empezaba a mover la categoría.
+                  Se arrastra del nombre, que es lo que uno mira. Pero el
+                  nombre además se edita, y si arrastrar fuera siempre no se
+                  podría seleccionar el texto con el mouse: sin foco arrastra,
+                  con foco es un campo como cualquiera. El primer click
+                  enfoca —soltar sin mover nunca inicia un arrastre— y de ahí
+                  en más se comporta como se espera.
 
                   Las flechas se quedan. Esto es del mouse: con el dedo o con
                   el teclado no existe, y el orden de la carta no puede
                   depender de tener un mouse.
                 -->
-                <span
-                  class="cat-agarre"
-                  aria-hidden="true"
-                  title="Arrastrá para cambiar el orden"
-                  (mousedown)="agarrada.set(category.id)"
-                  (mouseup)="agarrada.set(null)"
-                >⠿</span>
                 <input
                   class="cat-name"
                   [value]="category.name"
                   maxlength="40"
                   [attr.aria-label]="'Nombre de ' + category.name"
-                  (blur)="renameCategory(category.id, $event)"
+                  [title]="enfocada() === category.id ? '' : 'Arrastrá para cambiar el orden'"
+                  (mousedown)="agarrada.set(enfocada() === category.id ? null : category.id)"
+                  (focus)="enfocada.set(category.id)"
+                  (blur)="enfocada.set(null); renameCategory(category.id, $event)"
                 />
                 <span class="cat-count">{{ countIn(category.id) }}</span>
                 <button
@@ -2192,8 +2191,10 @@ export class AdminComponent {
     await this.load();
   }
 
-  /** Cuál se puede arrastrar: sólo la que tiene el mouse apretado en su agarre. */
+  /** Cuál se puede arrastrar: sólo aquella cuyo nombre no está en edición. */
   protected readonly agarrada = signal<string | null>(null);
+  /** Cuál tiene el nombre con el foco puesto. */
+  protected readonly enfocada = signal<string | null>(null);
   /** Cuál va viajando, y sobre cuál está parada. */
   protected readonly arrastrando = signal<string | null>(null);
   protected readonly sobre = signal<string | null>(null);
