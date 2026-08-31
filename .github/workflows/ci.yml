@@ -25,6 +25,12 @@ jobs:
       - name: Tests
         run: npx jest --ci
 
+      # El que decide qué app construye Vercel. Vive en `scripts/`, que jest
+      # no mira, así que trae su propio chequeo: si se rompe, lo que se rompe
+      # es que una app no se despliegue y nadie lo note.
+      - name: Reglas de despliegue
+        run: npm run check:despliegue
+
       - name: Build API
         run: npm run build:api
 

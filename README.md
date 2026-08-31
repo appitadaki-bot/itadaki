@@ -205,6 +205,31 @@ El `/browser` del final es obligatorio: Angular deja ahí el `index.html`, y
 apuntar un nivel más arriba publica una carpeta sin índice — la raíz da 404.
 Framework Preset en **Other**; el preset de Angular adivina otra carpeta.
 
+#### Cada proyecto construye sólo lo suyo
+
+Un merge disparaba los cinco: un cambio de CSS en el panel construía también
+el comensal, la cocina, el salón y la landing.
+
+El `ignoreCommand` del `vercel.json` corre `scripts/hace-falta-construir.mjs`,
+que compara los archivos del commit contra la carpeta de esa app. Para saber
+cuál es, **cada proyecto necesita la variable `APP`** en Settings → Environment
+Variables, con uno de estos valores: `comensal`, `cocina`, `admin`, `salon`,
+`landing`.
+
+Sin esa variable el script construye igual, así que un proyecto mal
+configurado se comporta como antes en vez de dejar de desplegarse.
+
+Un cambio en `libs/`, `package.json`, `angular.json`, `vercel.json` o los
+`tsconfig` construye las cinco: no vale la pena adivinar qué app usa qué parte
+de `libs/`, y equivocarse deja una app vieja en producción sin que nadie se
+entere. Lo mismo cuando el clon de Vercel no tiene con qué comparar.
+
+Los legales son el caso raro: se escriben en Markdown dentro de `admin-web` y
+los publican también el comensal y la landing, así que un cambio ahí construye
+a los tres.
+
+`npm run check:despliegue` prueba estas reglas, y corre en CI.
+
 #### Los headers, y por qué el CSS crítico está apagado
 
 El `vercel.json` manda una `Content-Security-Policy` que vale para los cinco
