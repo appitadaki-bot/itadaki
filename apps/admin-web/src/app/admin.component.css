@@ -60,21 +60,13 @@
   margin: 0;
 }
 
-.eyebrow {
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  color: var(--itadaki-ink-faint);
-  text-transform: uppercase;
-  margin: 0;
-}
 
 .title {
   font-family: var(--itadaki-font-display);
   font-weight: 800;
   font-size: 2rem;
   color: var(--itadaki-ink-strong);
-  margin: 0.3rem 0 0;
+  margin: 0;
   letter-spacing: var(--itadaki-tracking-title);
 }
 

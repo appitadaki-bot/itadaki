@@ -129,10 +129,10 @@ const ROLE_NAMES: Record<string, string> = {
       <itd-qr-sheet [tables]="tables()" (close)="showQrSheet.set(false)" />
     } @else {
     <header class="head">
-      <div>
-        <p class="eyebrow">Administración</p>
-        <h1 class="title">{{ tabTitle() }}</h1>
-      </div>
+      <!-- Un encabezado quieto. El título repetía el nombre de la solapa que
+           ya está resaltada abajo, y cambiaba de largo al pasar de una a otra:
+           lo único que se movía en una pantalla que no se mueve. -->
+      <h1 class="title">Administración</h1>
       <div class="session">
         <span class="who">
           {{ auth.profile()?.displayName }}
@@ -1277,10 +1277,6 @@ export class AdminComponent {
 
   protected readonly tabs = TABS;
   protected readonly activeTab = signal<AdminTab>('carta');
-
-  protected tabTitle(): string {
-    return TABS.find((tab) => tab.id === this.activeTab())?.label ?? 'Administración';
-  }
 
   /**
    * Cada solapa pide lo suyo.
