@@ -15,10 +15,11 @@ headers {
 }
 
 docs {
-  Arma la cuenta con lo que la mesa consumió: lo ya enviado a cocina
-  (excepto lo cancelado) más lo que quedó en el carrito sin enviar.
-  "Cerrar" acá quiere decir "emitida", no pagada — hasta "04 - Confirmar
-  pago (settle)" la cuenta sigue siguiendo al carrito compartido.
+  Arma la cuenta con lo que la mesa envió a cocina (excepto lo cancelado).
+  Lo que quedó en el carrito sin enviar no entra: recién se suma cuando
+  alguien toca "enviar el pedido". "Cerrar" acá quiere decir "emitida", no
+  pagada — hasta "04 - Confirmar pago (settle)" la cuenta se vuelve a armar
+  con cada plato que la mesa manda a cocina.
 
   200 con la cuenta (`status: "OPEN"`).
 }

@@ -29,9 +29,9 @@ script:post-response {
 
 docs {
   Pedir la cuenta es también un llamado, con `reason: "BILL"`. Requiere
-  que la mesa haya consumido algo — carrito con líneas o un pedido ya
-  enviado — así que necesita haber corrido antes "06 - Pedidos / 01 -
-  Enviar pedido a cocina"; si no, da 409 `{ kind: "NOTHING_ORDERED" }`.
+  que la mesa haya mandado algo a cocina — el carrito sin enviar no cuenta
+  — así que necesita haber corrido antes "06 - Pedidos / 01 - Enviar
+  pedido a cocina"; si no, da 409 `{ kind: "NOTHING_ORDERED" }`.
 
   200/201 con el llamado creado; guarda `callBillId` para "06 - Cancelar
   llamado".

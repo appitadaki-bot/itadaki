@@ -279,6 +279,10 @@ export class CallButtonComponent {
    * Mirar sólo lo que consumió la mesa dejaba pedir la cuenta a quien abrió
    * el QR desde la vereda: la mesa venía comiendo de antes, así que el total
    * daba mayor a cero aunque quien tocaba el timbre no se hubiera unido.
+   *
+   * El carrito sin enviar no cuenta: no arma cuenta, así que pedirla llevaría
+   * al mozo a una mesa sin nada que cobrar. Recién habilita cuando algo salió
+   * a cocina.
    */
   private tableHasOrdered(): boolean {
     if (!this.session.isJoined()) return false;
@@ -286,9 +290,7 @@ export class CallButtonComponent {
     const state = this.session.session();
     if (state === null) return false;
 
-    const cart = state.lines.length > 0;
-    const placed = (state.placedTotal?.amountInMinorUnits ?? 0) > 0;
-    return cart || placed;
+    return (state.placedTotal?.amountInMinorUnits ?? 0) > 0;
   }
 
   /**
