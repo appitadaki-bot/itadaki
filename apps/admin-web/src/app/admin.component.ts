@@ -197,8 +197,9 @@ const ROLE_NAMES: Record<string, string> = {
           </p>
         }
 
+        <!-- Sin título: la solapa ya dice "Carta", y repetir de qué se trata
+             arriba de la lista de platos no agrega nada. -->
         <div class="panel-head">
-          <h2 class="panel-title">Todo lo que vendés</h2>
           <!-- Crear abre su propia pantalla: pegado a la lista hacía
                dudar si el formulario editaba un plato o creaba otro. -->
           <div class="panel-actions">
@@ -735,11 +736,12 @@ const ROLE_NAMES: Record<string, string> = {
       }
       }
 
+      <!-- Sin envoltorio: el componente ya trae su propia caja y su título.
+           Con la sección de afuera eran dos paneles, uno adentro del otro, y
+           "Métricas" quedaba un padding más a la izquierda que "Cómo viene el
+           negocio" —además de repetir lo que ya dice la solapa—. -->
       @if (activeTab() === 'ventas') {
-        <section class="panel">
-          <h2 class="panel-title">Métricas</h2>
-          <itd-metrics [apiUrl]="apiUrl" />
-        </section>
+        <itd-metrics [apiUrl]="apiUrl" />
       }
 
       @if (activeTab() === 'resenas') {
