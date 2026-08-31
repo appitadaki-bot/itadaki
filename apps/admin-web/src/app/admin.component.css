@@ -2526,41 +2526,52 @@
     padding: 1.25rem 0.9rem 2.5rem;
   }
 
-  /* El nombre de la categoría toma la línea entera y sus controles van
-     debajo: en cinco columnas el campo quedaba de dos letras. */
+  /* El nombre toma la línea entera y sus controles van debajo: en cinco
+     columnas el campo quedaba de dos letras.
+
+     Cada categoría es una tarjeta, con su borde. Sueltas una atrás de otra,
+     los botones de una quedaban pegados al nombre de la siguiente y no se
+     leía cuál mandaba a cuál. */
   .cat-row {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     justify-content: flex-end;
+    gap: 0.4rem;
+    padding: 0.6rem;
+    border: 1px solid var(--itadaki-border);
+    border-radius: var(--itadaki-radius-chip);
+    background: var(--itadaki-surface);
   }
 
-  /* De dónde se agarra para arrastrar. */
-.cat-agarre {
-  cursor: grab;
-  user-select: none;
-  color: var(--itadaki-ink-faint);
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0 0.15rem;
-}
+  .cat-list {
+    gap: 0.6rem;
+  }
 
-.cat-agarre:active {
-  cursor: grabbing;
-}
-
-/* La que va viajando se apaga; la de abajo dice dónde va a caer. */
-.cat-row.arrastrando {
-  opacity: 0.4;
-}
-
-.cat-row.destino {
-  outline: 2px dashed var(--itadaki-accent);
-  outline-offset: 2px;
-  border-radius: var(--itadaki-radius-chip);
-}
-
-.cat-name {
+  .cat-name {
     flex: 1 1 100%;
+  }
+
+  /* Con el dedo no hay arrastre —el navegador no lo dispara al tocar— así que
+     el tirador sería un adorno que no hace nada. Quedan las flechas. */
+  .cat-agarre {
+    display: none;
+  }
+
+  /* El contador a la izquierda y las acciones a la derecha, en su propio
+     renglón. Amontonados contra el margen derecho, debajo del nombre, no se
+     leía cuál botón era de cuál categoría. */
+  .cat-count {
+    order: 1;
+    margin-right: auto;
+  }
+
+  .cat-move,
+  .cat-del {
+    order: 2;
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
   }
 
   /* La tabla de la carta importada tiene columnas que no se pueden apretar
