@@ -32,6 +32,10 @@
 .options { display: flex; flex-direction: column; gap: 0.45rem; }
 .option { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; border: 2px solid var(--itadaki-border); background: var(--itadaki-surface); border-radius: var(--itadaki-radius-chip); padding: 0.7rem 0.85rem; cursor: pointer; font-family: inherit; text-align: left; min-height: 44px; }
 .option[aria-pressed='true'] { border-color: var(--itadaki-accent); }
+/* El nombre y la aclaración, uno debajo del otro. Sin esto quedaban pegados
+   —"En efectivoCon descuento"—: Angular junta el espacio entre los dos span y
+   como el contenedor era inline no había nada que los separara. */
+.option-text { display: flex; flex-direction: column; align-items: flex-start; gap: 0.1rem; min-width: 0; }
 .option-label { font-weight: 700; font-size: 0.875rem; color: var(--itadaki-ink-strong); }
 .option-hint { font-size: 0.75rem; color: var(--itadaki-ink-subtle); }
 .stepper-row { display: flex; align-items: center; justify-content: center; gap: 0.6rem; margin-top: 0.8rem; }
