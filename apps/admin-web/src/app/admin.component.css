@@ -542,9 +542,34 @@
 
 .cat-row {
   display: grid;
-  grid-template-columns: 1fr auto auto auto auto;
+  grid-template-columns: auto 1fr auto auto auto auto;
   gap: 0.35rem;
   align-items: center;
+}
+
+/* De dónde se agarra para arrastrar. */
+.cat-agarre {
+  cursor: grab;
+  user-select: none;
+  color: var(--itadaki-ink-faint);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.15rem;
+}
+
+.cat-agarre:active {
+  cursor: grabbing;
+}
+
+/* La que va viajando se apaga; la de abajo dice dónde va a caer. */
+.cat-row.arrastrando {
+  opacity: 0.4;
+}
+
+.cat-row.destino {
+  outline: 2px dashed var(--itadaki-accent);
+  outline-offset: 2px;
+  border-radius: var(--itadaki-radius-chip);
 }
 
 .cat-name {
@@ -2516,7 +2541,32 @@
     justify-content: flex-end;
   }
 
-  .cat-name {
+  /* De dónde se agarra para arrastrar. */
+.cat-agarre {
+  cursor: grab;
+  user-select: none;
+  color: var(--itadaki-ink-faint);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.15rem;
+}
+
+.cat-agarre:active {
+  cursor: grabbing;
+}
+
+/* La que va viajando se apaga; la de abajo dice dónde va a caer. */
+.cat-row.arrastrando {
+  opacity: 0.4;
+}
+
+.cat-row.destino {
+  outline: 2px dashed var(--itadaki-accent);
+  outline-offset: 2px;
+  border-radius: var(--itadaki-radius-chip);
+}
+
+.cat-name {
     flex: 1 1 100%;
   }
 
