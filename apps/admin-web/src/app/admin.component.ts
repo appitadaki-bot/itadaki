@@ -197,8 +197,9 @@ const ROLE_NAMES: Record<string, string> = {
           </p>
         }
 
+        <!-- Sin título: la solapa ya dice "Carta", y repetir de qué se trata
+             arriba de la lista de platos no agrega nada. -->
         <div class="panel-head">
-          <h2 class="panel-title">Todo lo que vendés</h2>
           <!-- Crear abre su propia pantalla: pegado a la lista hacía
                dudar si el formulario editaba un plato o creaba otro. -->
           <div class="panel-actions">
