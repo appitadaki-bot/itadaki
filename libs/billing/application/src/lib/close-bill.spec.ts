@@ -176,24 +176,9 @@ describe('closeBill', () => {
     expect(totalOf(after.value)).toBe(820_000);
   });
 
-  it('bills dishes already sent to the kitchen', async () => {
-    // Sending an order empties the cart. Billing from the cart alone lost
-    // every dish the table had already eaten — the bill came back empty.
-    const store = new FakeBillStore();
-    const result = await run(store)({
-      tenantId: 't1',
-      sessionId: 's1',
-      currency: 'ARS',
-      participants: [ANA],
-      lines: [line('sent-1', 'd1', 'empanadas', 340_000)],
-    });
-
-    if (result.isErr()) throw new Error('expected ok');
-    expect(totalOf(result.value)).toBe(340_000);
-  });
-
-  it('adds a dish chosen but not yet sent', async () => {
-    // Asking for the bill with something still in the cart is ordinary.
+  it('bills every dish the caller hands it', async () => {
+    // The caller decides what counts as consumed — dishes sent to the kitchen,
+    // and nothing still sitting in the cart. Here it just has to sum them.
     const store = new FakeBillStore();
     const result = await run(store)({
       tenantId: 't1',
@@ -202,7 +187,7 @@ describe('closeBill', () => {
       participants: [ANA],
       lines: [
         line('sent-1', 'd1', 'empanadas', 340_000),
-        line('cart-1', 'd1', 'flan', 260_000),
+        line('sent-2', 'd1', 'flan', 260_000),
       ],
     });
 

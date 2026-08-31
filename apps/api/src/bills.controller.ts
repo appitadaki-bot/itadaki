@@ -30,7 +30,6 @@ import {
   totalWithTip,
   type Tip,
 } from '@itadaki/billing/domain';
-import { lineTotal as cartLineTotal } from '@itadaki/ordering/domain';
 import { Money, type CurrencyCode, type MoneyError, ok } from '@itadaki/shared/domain';
 import { z } from 'zod';
 import { InMemoryTableStore, PostgresTableStore } from '@itadaki/identity/infra';
@@ -133,9 +132,10 @@ export class BillsController {
   /**
    * Raises the bill for a table.
    *
-   * Billed from what was ordered, not from the cart: sending an order to the
-   * kitchen empties the cart, so reading the cart alone lost every dish the
-   * table had already eaten.
+   * Billed from what the table sent to the kitchen, never from the cart. A dish
+   * chosen but not yet sent is not owed for: the comensal is still deciding,
+   * and the kitchen never heard about it. It joins the bill the moment someone
+   * hits "enviar el pedido", whether or not the kitchen has finished it.
    */
   @Public()
   @TableScoped()
@@ -196,18 +196,9 @@ export class BillsController {
           }),
       );
 
-    // Anything still sitting in the cart is on the table too — a diner may ask
-    // for the bill with a dish chosen but not yet sent.
-    const cartLines = state.cart.lines.map((line) => {
-      const perUnit = cartLineTotal({ ...line, quantity: 1 });
-      return {
-        id: line.id,
-        dinerId: line.dinerId,
-        name: line.product.name,
-        quantity: line.quantity,
-        unitTotal: perUnit.isOk() ? perUnit.value : line.product.unitPrice,
-      };
-    });
+    // Lo que sigue en el carrito no entra: todavía no se envió a la cocina, así
+    // que la mesa no lo debe. Aparece en la cuenta recién cuando alguien toca
+    // "enviar el pedido" y pasa a ser una orden.
 
     const run = closeBill({
       bills: this.bills.store,
@@ -225,7 +216,7 @@ export class BillsController {
         nickname: diner.nickname,
         colorIndex: diner.colorIndex,
       })),
-      lines: [...orderedLines, ...cartLines],
+      lines: orderedLines,
     });
 
     if (result.isErr()) {

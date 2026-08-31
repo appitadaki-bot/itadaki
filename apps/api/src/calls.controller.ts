@@ -122,15 +122,12 @@ export class CallsController {
     // se salta recargando la página en el momento justo, y el mozo termina
     // caminando hasta una mesa que recién se sentó.
     if (parsed.data.reason === 'BILL') {
-      // Lo que está en el carrito todavía no salió, pero ya es consumo a la
-      // vista: la mesa eligió y está por mandarlo.
-      let consumo = session.value.cart.lines.length > 0;
-
-      if (!consumo) {
-        const placed = await this.orders.store.listBySession(scope.tenantId, sessionId);
-        consumo =
-          placed.isOk() && placed.value.some((order) => order.status !== 'CANCELLED');
-      }
+      // Sólo lo que la mesa mandó a cocina cuenta como consumo: el carrito sin
+      // enviar no arma cuenta, así que llamar al mozo por él lo haría caminar
+      // hasta una mesa sin nada que cobrar.
+      const placed = await this.orders.store.listBySession(scope.tenantId, sessionId);
+      const consumo =
+        placed.isOk() && placed.value.some((order) => order.status !== 'CANCELLED');
 
       if (!consumo) {
         throw new HttpException({ kind: 'NOTHING_ORDERED' }, HttpStatus.CONFLICT);
