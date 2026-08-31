@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { type ImageEditParams } from '@itadaki/catalog/domain';
 import { ImageEditorComponent } from '@itadaki/shared/ui-image-editor';
+import { moverEnLista } from './mover-en-lista';
 import { AuthStore, LoginComponent } from '@itadaki/shared/ui-auth';
 import { DecimalPipe } from '@angular/common';
 import { MAX_DISHES, csvToMenuText, parseMenuText } from '@itadaki/catalog/domain';
@@ -280,7 +281,33 @@ const ROLE_NAMES: Record<string, string> = {
 
           <div class="cat-list">
             @for (category of categories(); track category.id) {
-              <div class="cat-row">
+              <div
+                class="cat-row"
+                [class.arrastrando]="arrastrando() === category.id"
+                [class.destino]="sobre() === category.id && arrastrando() !== category.id"
+                [attr.draggable]="agarrada() === category.id"
+                (dragstart)="arrastrando.set(category.id)"
+                (dragover)="$event.preventDefault(); sobre.set(category.id)"
+                (dragleave)="sobre.set(null)"
+                (drop)="$event.preventDefault(); soltarEn(category.id)"
+                (dragend)="soltarNada()"
+              >
+                <!--
+                  El arrastre se agarra de acá y no de toda la fila: al lado
+                  hay un campo de texto, y arrastrar dentro de él para
+                  seleccionar el nombre empezaba a mover la categoría.
+
+                  Las flechas se quedan. Esto es del mouse: con el dedo o con
+                  el teclado no existe, y el orden de la carta no puede
+                  depender de tener un mouse.
+                -->
+                <span
+                  class="cat-agarre"
+                  aria-hidden="true"
+                  title="Arrastrá para cambiar el orden"
+                  (mousedown)="agarrada.set(category.id)"
+                  (mouseup)="agarrada.set(null)"
+                >⠿</span>
                 <input
                   class="cat-name"
                   [value]="category.name"
@@ -2167,26 +2194,55 @@ export class AdminComponent {
     await this.load();
   }
 
-  protected async moveCategory(categoryId: string, delta: number): Promise<void> {
-    this.catError.set(null);
+  /** Cuál se puede arrastrar: sólo la que tiene el mouse apretado en su agarre. */
+  protected readonly agarrada = signal<string | null>(null);
+  /** Cuál va viajando, y sobre cuál está parada. */
+  protected readonly arrastrando = signal<string | null>(null);
+  protected readonly sobre = signal<string | null>(null);
 
+  protected soltarNada(): void {
+    this.agarrada.set(null);
+    this.arrastrando.set(null);
+    this.sobre.set(null);
+  }
+
+  /** La suelta encima de otra: va a ocupar el lugar de esa. */
+  protected async soltarEn(destinoId: string): Promise<void> {
+    const origenId = this.arrastrando();
+    this.soltarNada();
+    if (origenId === null || origenId === destinoId) return;
+
+    const order = this.categories().map((category) => category.id);
+    const from = order.indexOf(origenId);
+    const to = order.indexOf(destinoId);
+    if (from === -1 || to === -1) return;
+
+    await this.guardarOrden(moverEnLista(order, from, to));
+  }
+
+  protected async moveCategory(categoryId: string, delta: number): Promise<void> {
     const order = this.categories().map((category) => category.id);
     const from = order.indexOf(categoryId);
     const to = from + delta;
     if (from === -1 || to < 0 || to >= order.length) return;
 
-    const reordered = [...order];
-    const [moved] = reordered.splice(from, 1);
-    if (moved !== undefined) reordered.splice(to, 0, moved);
+    await this.guardarOrden(moverEnLista(order, from, to));
+  }
 
-    // Era la única de las cuatro que no miraba la respuesta: si el servidor
-    // rechazaba el orden, la pantalla recargaba igual y todo quedaba como
-    // estaba, sin una palabra. Mover algo y que no pase nada se lee como que
-    // el botón no anda.
+  /**
+   * Guarda el orden nuevo, venga de las flechas o del arrastre.
+   *
+   * Mira la respuesta: si el servidor lo rechaza y la pantalla recarga igual,
+   * todo queda como estaba sin una palabra, y mover algo que no se mueve se
+   * lee como que está roto.
+   */
+  private async guardarOrden(orderedIds: readonly string[]): Promise<void> {
+    this.catError.set(null);
+
     const response = await this.auth.apiFetch(`${API}/menu/categories/reorder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
-      body: JSON.stringify({ orderedIds: reordered }),
+      body: JSON.stringify({ orderedIds }),
     });
 
     if (!response.ok) {
