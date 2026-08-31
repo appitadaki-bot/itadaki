@@ -44,5 +44,6 @@
         }
       ]
     }
-  ]
+  ],
+  "ignoreCommand": "node scripts/hace-falta-construir.mjs"
 }
