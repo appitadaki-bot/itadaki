@@ -1,7 +1,14 @@
+/* Es el panel de primer nivel de su solapa, así que se ve como los demás del
+   admin: antes vivía adentro de otro y tenía la caja más chica. */
 .panel {
   background: var(--itadaki-surface-raised);
-  border-radius: var(--itadaki-radius-card);
-  padding: 1.25rem;
+  border-radius: var(--itadaki-radius-panel);
+  padding: 2rem 2.25rem 2.25rem;
+  box-shadow: var(--itadaki-shadow-card);
+}
+
+@media (max-width: 560px) {
+  .panel { padding: 1.4rem 1.2rem 1.6rem; }
 }
 
 .head {

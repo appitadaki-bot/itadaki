@@ -736,11 +736,12 @@ const ROLE_NAMES: Record<string, string> = {
       }
       }
 
+      <!-- Sin envoltorio: el componente ya trae su propia caja y su título.
+           Con la sección de afuera eran dos paneles, uno adentro del otro, y
+           "Métricas" quedaba un padding más a la izquierda que "Cómo viene el
+           negocio" —además de repetir lo que ya dice la solapa—. -->
       @if (activeTab() === 'ventas') {
-        <section class="panel">
-          <h2 class="panel-title">Métricas</h2>
-          <itd-metrics [apiUrl]="apiUrl" />
-        </section>
+        <itd-metrics [apiUrl]="apiUrl" />
       }
 
       @if (activeTab() === 'resenas') {
