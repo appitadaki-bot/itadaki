@@ -193,5 +193,12 @@ function assert(condicion, que) {
   }
 }
 
-if (process.argv.includes('--check')) chequear();
-else main();
+// Sólo cuando alguien lo corre. Importado —el chequeo, o cualquiera que
+// quiera preguntarle a `hayQueConstruir`— no tiene que hacer nada: como
+// estaba, importarlo corría `main()` y cortaba el proceso.
+const meEjecutan = process.argv[1]?.endsWith('hace-falta-construir.mjs') === true;
+
+if (meEjecutan) {
+  if (process.argv.includes('--check')) chequear();
+  else main();
+}
