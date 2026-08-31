@@ -68,19 +68,58 @@ export function hayQueConstruir(app, archivos) {
  * un build de más cuesta unos minutos, uno de menos deja producción vieja
  * sin que nadie lo note.
  */
+function git(argumentos) {
+  return execFileSync('git', argumentos, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+}
+
+function cambiosEn(rango) {
+  try {
+    return git(['diff', '--name-only', rango])
+      .split('\n')
+      .map((linea) => linea.trim())
+      .filter((linea) => linea !== '');
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Trae el historial que falta.
+ *
+ * Vercel clona superficial —el commit y poco más— así que el anterior puede
+ * no estar y no hay contra qué comparar. Sin esto el script contestaba "no
+ * sé" en cada build y construía las cinco apps siempre, que es justo lo que
+ * venía a evitar.
+ */
+function traerHistorial() {
+  for (const intento of [['fetch', '--deepen=25'], ['fetch', '--unshallow']]) {
+    try {
+      git(intento);
+      return;
+    } catch {
+      // El clon ya está entero, o no hay remoto: se sigue con lo que haya.
+    }
+  }
+}
+
 function archivosDelCommit() {
   const anterior = process.env.VERCEL_GIT_PREVIOUS_SHA;
   const rangos = [];
   if (anterior !== undefined && anterior !== '') rangos.push(`${anterior}..HEAD`);
+  // `HEAD^` en un merge es el estado anterior de main, que es lo que se quiere.
   rangos.push('HEAD^..HEAD');
 
   for (const rango of rangos) {
-    try {
-      const salida = execFileSync('git', ['diff', '--name-only', rango], { encoding: 'utf8' });
-      return salida.split('\n').map((linea) => linea.trim()).filter((linea) => linea !== '');
-    } catch {
-      // Ese rango no existe en este clon; se prueba el siguiente.
-    }
+    const cambios = cambiosEn(rango);
+    if (cambios !== null) return cambios;
+  }
+
+  console.log('sin historial para comparar; trayendo más');
+  traerHistorial();
+
+  for (const rango of rangos) {
+    const cambios = cambiosEn(rango);
+    if (cambios !== null) return cambios;
   }
   return null;
 }
@@ -97,6 +136,12 @@ function main() {
     console.log('no se pudo leer qué cambió: se construye por las dudas');
     process.exit(1);
   }
+
+  // Qué se miró, para poder leerlo en el log de Vercel cuando la decisión
+  // sorprenda: sin esto, "se construye" no dice por qué.
+  console.log(`${app}: ${archivos.length} archivo(s) en el commit`);
+  for (const archivo of archivos.slice(0, 20)) console.log(`  ${archivo}`);
+  if (archivos.length > 20) console.log(`  … y ${archivos.length - 20} más`);
 
   if (hayQueConstruir(app, archivos)) {
     console.log(`${app}: hay cambios que la tocan, se construye`);
