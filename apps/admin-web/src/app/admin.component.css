@@ -534,7 +534,7 @@
 
 .cat-row {
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto auto;
+  grid-template-columns: 1fr auto auto auto auto;
   gap: 0.35rem;
   align-items: center;
 }
