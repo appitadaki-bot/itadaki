@@ -42,6 +42,7 @@
     "@angular/cli": "^21.2.22",
     "@angular/common": "^21.2.21",
     "@angular/compiler": "^21.2.21",
+    "@angular/compiler-cli": "^21.2.21",
     "@angular/core": "^21.2.21",
     "@angular/platform-browser": "^21.2.21",
     "@angular/router": "^21.2.21",
