@@ -44,9 +44,30 @@ const base = donde[0]?.base ?? '(desconocida)';
 console.log(`respaldando ${base} en ${host}`);
 console.log('');
 
+/*
+ * Las tablas se separan en dos.
+ *
+ * Las que tienen `tenant_id` son de un restaurante y se leen posicionado en
+ * él. El resto —`schema_migrations` es la única hoy— es del esquema y no le
+ * pertenece a nadie: leerlas dentro del recorrido las guardaba una vez por
+ * restaurante. Con cinco locales, la misma lista de migraciones quedaba cinco
+ * veces en el archivo, y el total de filas mentía.
+ */
 const { rows: tablas } = await c.query(
-  `SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename`,
+  `SELECT t.tablename,
+          EXISTS (
+            SELECT 1 FROM information_schema.columns c
+            WHERE c.table_schema = 'public'
+              AND c.table_name = t.tablename
+              AND c.column_name = 'tenant_id'
+          ) AS por_restaurante
+     FROM pg_tables t
+    WHERE t.schemaname = 'public'
+    ORDER BY t.tablename`,
 );
+
+const deCadaLocal = tablas.filter((t) => t.por_restaurante);
+const delEsquema = tablas.filter((t) => !t.por_restaurante);
 
 // Los tenants se leen con un scope especial: la tabla se filtra por su propio id.
 await c.query("SELECT set_config('app.tenant_id','__login__',false)");
@@ -76,7 +97,7 @@ for (const tenant of tenants) {
   await c.query('SELECT set_config($1,$2,false)', ['app.tenant_id', tenant]);
   copia.datos[tenant] = {};
 
-  for (const { tablename } of tablas) {
+  for (const { tablename } of deCadaLocal) {
     const { rows } = await c.query(`SELECT * FROM "${tablename}"`);
     if (rows.length === 0) continue;
     copia.datos[tenant][tablename] = rows;
@@ -91,6 +112,19 @@ for (const tenant of tenants) {
 if (total === 0) {
   console.error('\nel respaldo salió vacío: algo está mal, no se guarda');
   process.exit(1);
+}
+
+// Una sola vez, fuera del recorrido.
+copia.esquema = {};
+for (const { tablename } of delEsquema) {
+  const { rows } = await c.query(`SELECT * FROM "${tablename}"`);
+  if (rows.length === 0) continue;
+  copia.esquema[tablename] = rows;
+  total += rows.length;
+}
+if (Object.keys(copia.esquema).length > 0) {
+  console.log('');
+  console.log(`  del esquema: ${Object.keys(copia.esquema).join(', ')}`);
 }
 
 const sello = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
