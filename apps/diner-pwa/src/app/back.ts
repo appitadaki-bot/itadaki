@@ -37,3 +37,14 @@ export function goBack(history: HistoryLike, router: RouterLike, fallback: strin
 
   void router.navigateByUrl(fallback);
 }
+
+/**
+ * Si hay una pantalla de la app atrás.
+ *
+ * La misma cuenta que hace `goBack` para decidir si retroceder o navegar,
+ * separada para que el botón pueda decir a dónde va antes de que lo toquen.
+ */
+export function hayPantallaAnterior(history: HistoryLike): boolean {
+  const state = history.getState() as { navigationId?: number } | null;
+  return (state?.navigationId ?? 1) > 1;
+}

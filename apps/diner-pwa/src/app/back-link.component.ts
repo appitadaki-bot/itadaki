@@ -1,7 +1,8 @@
 import { Location } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { Router } from '@angular/router';
-import { goBack } from './back';
+import { aDondeVuelve } from './a-donde-vuelve';
+import { goBack, hayPantallaAnterior } from './back';
 
 /**
  * Volver, sin pelearse con el historial.
@@ -21,9 +22,9 @@ import { goBack } from './back';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <button type="button" class="itd-back" [attr.aria-label]="'Volver a ' + label()" (click)="back()">
+    <button type="button" class="itd-back" [attr.aria-label]="'Volver a ' + texto()" (click)="back()">
       <span class="itd-back-arrow" aria-hidden="true">←</span>
-      <span class="itd-back-text">{{ label() }}</span>
+      <span class="itd-back-text">{{ texto() }}</span>
     </button>
   `,
   styles: `
@@ -97,11 +98,26 @@ export class BackLinkComponent {
   /** A dónde volver cuando no hay historial: entrar por QR abre la app acá. */
   readonly to = input.required<string>();
 
-  /** Cómo se llama esa pantalla, para que el botón diga a dónde lleva. */
-  readonly label = input.required<string>();
-
   private readonly location = inject(Location);
   private readonly router = inject(Router);
+
+  /**
+   * De dónde vino, si hubo una pantalla antes.
+   *
+   * El botón retrocede en el historial, así que el texto tiene que decir esa
+   * pantalla y no una fija. Antes las tres decían "La carta": quien entraba a
+   * la cuenta desde el carrito leía "La carta", tocaba, y aparecía en el
+   * carrito — el botón mentía sobre a dónde llevaba.
+   *
+   * Se lee una vez al construir y no en cada pintada: durante la vida de esta
+   * pantalla, de dónde se vino no cambia.
+   */
+  private readonly anterior = hayPantallaAnterior(this.location)
+    ? (this.router.lastSuccessfulNavigation()?.previousNavigation?.finalUrl?.toString() ?? null)
+    : null;
+
+  /** Lo que dice el botón: la pantalla a la que de verdad va a volver. */
+  protected readonly texto = computed(() => aDondeVuelve(this.anterior, this.to()).nombre);
 
   protected back(): void {
     goBack(this.location, this.router, this.to());

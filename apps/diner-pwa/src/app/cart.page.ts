@@ -32,7 +32,7 @@ import { TrackingStore } from './tracking.store';
       <!-- Volver y la cuenta en la misma fila: son las dos salidas de esta
            pantalla, una hacia atrás y otra hacia el final. -->
       <div class="head-row">
-        <itd-back to="/carta" label="La carta" />
+        <itd-back to="/carta" />
         @if (session.isJoined()) {
           <a class="ir-a-la-cuenta" routerLink="/cuenta">Ver la cuenta →</a>
         }
