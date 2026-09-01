@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { ApiClient } from './api-client';
 import { SessionStore } from './session.store';
@@ -61,6 +61,39 @@ import { SessionStore } from './session.store';
       max-width: 30ch;
       line-height: 1.5;
     }
+    /* La reseña primero y el "empezar de nuevo" después: es lo que le pedimos
+       a alguien que ya terminó y está por guardar el teléfono. */
+    .resena {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-top: 1.1rem;
+      border-radius: var(--itadaki-radius-pill);
+      background: var(--itadaki-accent);
+      color: white;
+      padding: 0.9rem 1.6rem;
+      font-family: var(--itadaki-font-display);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      min-height: 48px;
+    }
+    .resena-nota {
+      margin: 0.5rem 0 0;
+      font-size: 0.78rem;
+      color: var(--itadaki-ink-subtle);
+    }
+    .despues {
+      margin-top: 0.6rem;
+      background: none;
+      color: var(--itadaki-ink-subtle);
+      border: none;
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      min-height: 44px;
+    }
   `],
   template: `
     @if (api.blocked(); as reason) {
@@ -71,9 +104,20 @@ import { SessionStore } from './session.store';
           <p class="lede">
             La cuenta de esta mesa ya se cerró. Gracias por venir.
           </p>
-          <button type="button" class="cta" (click)="startOver()">
-            Empezar de nuevo
-          </button>
+          <!-- Acá y no en la cuenta: al cobrar, al comensal lo sacan de la
+               cuenta y lo dejan en esta pantalla. El pedido de reseña vivía en
+               la otra, así que no lo veía nunca. -->
+          @if (resenaUrl(); as url) {
+            <a class="resena" [href]="url" target="_blank" rel="noopener" (click)="contarResena()">
+              ⭐ Dejanos tu opinión en Google
+            </a>
+            <p class="resena-nota">Nos ayuda muchísimo · tarda menos de un minuto</p>
+            <button type="button" class="despues" (click)="startOver()">Empezar de nuevo</button>
+          } @else {
+            <button type="button" class="cta" (click)="startOver()">
+              Empezar de nuevo
+            </button>
+          }
         } @else {
           <span class="mark" aria-hidden="true">📷</span>
           <h1 class="title">Escaneá de nuevo</h1>
@@ -93,6 +137,45 @@ export class TableBlockedComponent {
   protected readonly api = inject(ApiClient);
   private readonly session = inject(SessionStore);
   private readonly router = inject(Router);
+
+  /** Dónde deja la reseña, o null si el local no las pide. */
+  protected readonly resenaUrl = signal<string | null>(null);
+  private yaPreguntado = false;
+
+  /*
+   * Se pide recién cuando la mesa se cerró.
+   *
+   * El token del QR sigue valiendo aunque la sesión haya terminado —resuelve
+   * la mesa, no la sesión— así que desde acá todavía se puede preguntar y
+   * contar. Antes no: la pantalla no existía todavía y nadie sabía si iba a
+   * hacer falta.
+   */
+  private readonly buscarElLink = effect(() => {
+    if (this.api.blocked() !== 'SESSION_CLOSED' || this.yaPreguntado) return;
+    this.yaPreguntado = true;
+    void this.cargarResena();
+  });
+
+  private async cargarResena(): Promise<void> {
+    try {
+      const respuesta = await this.api.fetch('/ajustes/publicos');
+      if (!respuesta.ok) return;
+
+      const ajustes = (await respuesta.json()) as { resenaUrl: string | null };
+      if (ajustes.resenaUrl === null) return;
+
+      this.resenaUrl.set(ajustes.resenaUrl);
+      // Se ofreció de verdad: recién acá aparece en pantalla.
+      void this.api.send('/ajustes/resenas/ofrecida', 'PATCH', {});
+    } catch {
+      // Sin link no se ofrece nada, que es lo mismo que hacía antes.
+    }
+  }
+
+  /** El link ya se está abriendo; no se hace esperar a nadie por esto. */
+  protected contarResena(): void {
+    void this.api.send('/ajustes/resenas/tocada', 'PATCH', {});
+  }
 
   /**
    * Clears the finished table and goes back to the start.
