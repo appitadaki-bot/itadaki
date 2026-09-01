@@ -30,6 +30,20 @@ const c = new pg.Client({
 });
 await c.connect();
 
+/*
+ * De dónde salió esto.
+ *
+ * Se corre con una variable de entorno, y la variable se queda puesta de la
+ * vez anterior: respaldar dos veces la misma base creyendo que son dos es
+ * fácil, y el archivo no tenía cómo desmentirlo. La contraseña no se imprime;
+ * el host sí, que es lo que se reconoce de un vistazo.
+ */
+const { rows: donde } = await c.query('SELECT current_database() AS base');
+const host = new URL(conexion).hostname;
+const base = donde[0]?.base ?? '(desconocida)';
+console.log(`respaldando ${base} en ${host}`);
+console.log('');
+
 const { rows: tablas } = await c.query(
   `SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename`,
 );
@@ -50,7 +64,12 @@ if (tenants.length === 0) {
   process.exit(1);
 }
 
-const copia = { generado: new Date().toISOString(), tenants, datos: {} };
+const copia = {
+  generado: new Date().toISOString(),
+  origen: { host, base },
+  tenants,
+  datos: {},
+};
 let total = 0;
 
 for (const tenant of tenants) {
@@ -75,7 +94,10 @@ if (total === 0) {
 }
 
 const sello = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-const destino = `backups/itadaki-${sello}.json`;
+// El host entra en el nombre: dos archivos de la misma hora y distinto origen
+// se distinguen sin abrirlos.
+const apodo = host.split('.')[0]?.replace(/[^a-z0-9-]/gi, '') ?? 'base';
+const destino = `backups/itadaki-${apodo}-${sello}.json`;
 // La carpeta está en .gitignore, así que en un clon nuevo no existe.
 await mkdir('backups', { recursive: true });
 await writeFile(destino, JSON.stringify(copia, null, 2), 'utf8');
