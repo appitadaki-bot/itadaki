@@ -388,6 +388,32 @@ export class PostgresTenantStore {
     }
   }
 
+  /**
+   * En qué zona horaria vive este restaurante.
+   *
+   * Para saber cuándo empieza su día: la API corre en Oregon y el local está
+   * en San Juan, así que "hoy" no es el mismo para los dos. Sin esto, el
+   * almuerzo del restaurante aparecería en el día equivocado.
+   *
+   * Un fallo devuelve null y quien llama decide con qué reemplazarla: una
+   * métrica con el huso equivocado es mejor que una pantalla que no carga.
+   */
+  async zonaDe(tenantId: string): Promise<Result<string | null, TenantError>> {
+    try {
+      const filas = await this.db.unscoped(async (client) => {
+        const result = await client.query<{ timezone: string }>(
+          'SELECT timezone FROM tenants WHERE id = $1',
+          [tenantId],
+        );
+        return result.rows;
+      });
+
+      return ok(filas[0]?.timezone ?? null);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   /** Si el mail de esta persona ya está confirmado. */
   async mailVerificado(email: string): Promise<Result<boolean, TenantError>> {
     try {

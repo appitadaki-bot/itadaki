@@ -13,3 +13,4 @@ export {
   mergeSummaries,
   summariseDay,
 } from './lib/daily-summary';
+export { empiezaElDia, zonaValida } from './lib/el-dia-del-local';

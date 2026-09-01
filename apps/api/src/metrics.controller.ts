@@ -1,15 +1,18 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import {
+  empiezaElDia,
   medianPrepMinutes,
   ordersByHour,
   mergeSummaries,
   rankProducts,
+  zonaValida,
   type CompletedOrder,
 } from '@itadaki/analytics/domain';
 import { lineTotal } from '@itadaki/ordering/domain';
 import { Money } from '@itadaki/shared/domain';
 import { RequirePermission, TenantId } from './auth';
 import { BillsService } from './bills.service';
+import { TenantsService } from './tenants.service';
 import { PostgresSummaryStore } from '@itadaki/ordering/infra';
 import { database } from './database';
 import { OrdersService } from './orders.service';
@@ -24,7 +27,22 @@ export class MetricsController {
   constructor(
     private readonly orders: OrdersService,
     private readonly bills: BillsService,
+    private readonly tenants: TenantsService,
   ) {}
+
+  /**
+   * La zona del restaurante, con un respaldo razonable.
+   *
+   * Casi todos los locales están en Argentina, así que ése es el respaldo: una
+   * métrica con el huso equivocado por unas horas es mejor que una pantalla
+   * que no carga porque falta un dato de configuración.
+   */
+  private async zonaDelLocal(tenantId: string): Promise<string> {
+    const encontrada = await this.tenants.store.zonaDe(tenantId);
+    const zona = encontrada.isOk() ? encontrada.value : null;
+
+    return zona !== null && zonaValida(zona) ? zona : 'America/Argentina/Buenos_Aires';
+  }
 
   /** Lo que suma un pedido, en unidades menores. */
   private totalDe(order: CompletedOrder): number {
@@ -44,9 +62,25 @@ export class MetricsController {
     @TenantId() tenantId: string,
     @Query('days') days?: string,
   ) {
-    const window = Math.min(Math.max(Number(days ?? 30) || 30, 1), 365);
     const to = new Date();
-    const from = new Date(to.getTime() - window * 86_400_000);
+
+    /*
+     * "Hoy" no son las últimas veinticuatro horas.
+     *
+     * Un mozo que mira las métricas un martes a las nueve de la noche quiere
+     * ver el servicio de hoy; las últimas veinticuatro le meterían adentro la
+     * noche del lunes, que fue otro turno con otra caja.
+     *
+     * Y el día es el del local, no el del servidor: la API corre en Oregon y
+     * el restaurante está en San Juan. Sin la zona, el almuerzo aparecería en
+     * el día equivocado.
+     */
+    const esHoy = days === 'hoy';
+
+    const window = esHoy ? 1 : Math.min(Math.max(Number(days ?? 30) || 30, 1), 365);
+    const from = esHoy
+      ? empiezaElDia(to, await this.zonaDelLocal(tenantId))
+      : new Date(to.getTime() - window * 86_400_000);
 
     const placed = await this.orders.store.listPlacedBetween(tenantId, from, to);
     const orders = placed.isOk() ? placed.value : [];
@@ -124,6 +158,9 @@ export class MetricsController {
 
     return {
       windowDays: window,
+      // Para que la pantalla sepa qué está mostrando sin adivinarlo por el
+      // número de días: "hoy" y "1 día" no son lo mismo.
+      periodo: esHoy ? 'hoy' : `${window}d`,
       orders: pedidos,
       cobros: cobros.isOk()
         ? cobros.value.map((fila) => ({
