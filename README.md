@@ -148,6 +148,25 @@ Antes de nada dice a dónde se conectó:
 respaldando itadaki_db en dpg-xxxxx.oregon-postgres.render.com
 ```
 
+Para volver atrás:
+
+```bash
+DATABASE_ADMIN_URL='postgresql://...' npm run db:restore:hosted backups/archivo.json
+```
+
+Repone lo que falta y no toca lo que está. Una restauración que vacía la base
+para dejarla igual al archivo es lo que hace falta cuando se perdió todo; el
+caso de todos los días es que alguien borró un plato y lo quiere de vuelta, y
+ahí reponer no puede empeorar nada.
+
+Restaurar sobre una base distinta de la que salió el respaldo pide
+`--a-otra-base`. Cargar los datos de desarrollo sobre producción es de las
+cosas que no se deshacen.
+
+**Probá la vuelta completa antes de necesitarla.** Borrá algo en desarrollo,
+restaurá, y fijate que haya vuelto. Un respaldo que nunca se restauró es una
+suposición.
+
 Copia todo a un JSON, restaurante por restaurante. Recorrerlos de a uno no es
 una vuelta larga: las tablas tienen RLS en modo FORCE, y una consulta sin
 `app.tenant_id` devuelve cero filas incluso para el dueño de la base. Un
