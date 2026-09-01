@@ -45,6 +45,10 @@ const DE_TODOS = [
   'angular.json',
   'vercel.json',
   'tsconfig',
+  // Los scripts arman el build. Sin esto, arreglar el que decide qué
+  // construir no construía nada: el arreglo se mergeaba y no llegaba a
+  // ningún lado, que es como quedarse encerrado del lado de afuera.
+  'scripts/',
 ];
 
 export function hayQueConstruir(app, archivos) {
@@ -182,6 +186,12 @@ function chequear() {
 
   // Una app que no está en la lista es una que alguien acaba de agregar.
   assert(hayQueConstruir('inventada', ['apps/kds-web/x.ts']), 'ante la duda, construye');
+
+  // Tocar el propio script tiene que llegar a Vercel, o el arreglo se queda
+  // afuera para siempre.
+  for (const app of Object.keys(CARPETAS)) {
+    assert(hayQueConstruir(app, ['scripts/construir-app.mjs']), `los scripts construyen ${app}`);
+  }
 
   console.log('hace-falta-construir: bien');
 }
