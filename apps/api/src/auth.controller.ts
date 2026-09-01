@@ -650,7 +650,29 @@ export class AuthController {
     if (consumed.isErr()) {
       throw new HttpException({ kind: 'INVALID_TOKEN' }, HttpStatus.BAD_REQUEST);
     }
-    return { reset: true };
+
+    /*
+     * Cambiar la contraseña también entra.
+     *
+     * El botón dice "guardar y entrar" y devolvía al formulario: quien acababa
+     * de probar que la casilla es suya y de elegir una contraseña tenía que
+     * escribirla otra vez, con el mail incluido, sin ninguna razón visible.
+     *
+     * El link ya se gastó —es de un solo uso y acaba de consumirse— así que no
+     * queda nada reutilizable en la dirección.
+     */
+    const gente = await this.staff.store.listForTenant(consumed.value.tenantId);
+    const quien = gente.isOk()
+      ? gente.value.find((persona) => persona.id === consumed.value.userId)
+      : undefined;
+
+    // Sin la fila no se puede armar la sesión, pero la contraseña ya quedó
+    // cambiada: la pantalla cae al formulario, donde la nueva funciona.
+    if (quien === undefined) {
+      return { reset: true };
+    }
+
+    return { reset: true, ...this.sessionFor(quien) };
   }
 
   /**

@@ -13,6 +13,7 @@ export { PostgresTableStore, type RestaurantTable, type TableError } from './lib
 export { InMemoryTableStore, DEMO_TABLE_SECRET } from './lib/in-memory-tables';
 export { PostgresTenantStore, type TenantError, type SignUpInput } from './lib/postgres-tenants';
 export { RESET_TOKEN_MINUTES, newResetToken, digestOf, digestMatches } from './lib/reset-token';
+export { InMemoryResetStore } from './lib/in-memory-resets';
 export { PostgresResetStore, type ResetError, type ResetRequest } from './lib/postgres-resets';
 export {
   type GoogleIdentity,
