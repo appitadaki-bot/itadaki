@@ -25,6 +25,18 @@ updates:
     # Sueltas, cada mayor se mira cuando corresponde y las menores entran en
     # cinco minutos.
     groups:
+      # Angular primero, y aparte: sus paquetes se piden entre sí por versión
+      # exacta, así que tienen que moverse todos juntos o ninguno. Mezclados
+      # con eslint y los tipos de node quedaba mitad en una versión y mitad en
+      # otra, y `npm ci` no resolvía: `@angular/compiler-cli@21.2.21` pide
+      # `@angular/compiler` exactamente 21.2.21, y el grupo había subido el
+      # compiler y no el resto.
+      #
+      # Va antes que los otros dos porque el primero que coincide se lleva el
+      # paquete.
+      angular:
+        patterns: ['@angular/*']
+        update-types: ['minor', 'patch']
       produccion:
         dependency-type: production
         update-types: ['minor', 'patch']
@@ -63,6 +75,11 @@ updates:
         update-types:
           - 'version-update:semver-major'
           - 'version-update:semver-minor'
+      # NestJS tampoco sube de mayor sola. Los cinco paquetes de `@nestjs/*`
+      # tienen que moverse juntos, y subir uno deja a los otros cuatro
+      # pidiendo la versión anterior: `npm ci` no resuelve y no arranca nada.
+      - dependency-name: '@nestjs/*'
+        update-types: ['version-update:semver-major']
 
   # Las acciones del CI también se quedan viejas, y corren con acceso al repo.
   - package-ecosystem: github-actions
