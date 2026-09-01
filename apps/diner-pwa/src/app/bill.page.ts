@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal,
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal,
   type ElementRef,
   viewChild,
 } from '@angular/core';
@@ -12,6 +12,7 @@ import { CallStore } from './call.store';
 import { BillStore, type MoneyDto, type SplitKind, type TipChoice } from './bill.store';
 import { SessionStore } from './session.store';
 import { medirElPie } from './medir-el-pie';
+import { hayQueReleerLaCuenta } from './releer-la-cuenta';
 
 // Primera la de uno solo: es la forma más común de cerrar una mesa —el que
 // invita, el que junta el efectivo y pone la tarjeta— y era la única que no
@@ -430,6 +431,23 @@ export class BillPage {
 
     // El descuento del local, para saber si mostrar la elección del medio.
     void this.cargarDescuento();
+
+    /*
+     * Cuando el mozo cobra, la mesa se entera.
+     *
+     * La cuenta se leía una sola vez al abrirla y ahí se quedaba: el mozo
+     * cobraba, del lado del servidor quedaba cerrada, y el comensal seguía
+     * viendo el botón de pagar. Nunca llegaba a ver el "gracias" ni el pedido
+     * de reseña, que viven justamente en ese estado.
+     *
+     * Ya cerrada no hay nada más que mirar, así que se deja de pedir.
+     */
+    const dejarDeEscuchar = this.session.onSessionChanged(() => {
+      const id = this.session.session()?.id;
+      if (id === undefined || !hayQueReleerLaCuenta(id, this.store.bill()?.status)) return;
+      void this.store.close(id);
+    });
+    inject(DestroyRef).onDestroy(dejarDeEscuchar);
   }
 
   /**
