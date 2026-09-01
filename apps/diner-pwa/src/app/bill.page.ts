@@ -3,6 +3,11 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, injec
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import {
+  LO_QUE_PASA_SI_ELIGE,
+  MEDIOS_QUE_ELIGE_LA_MESA,
+  NOMBRE_DEL_MEDIO,
+} from '@itadaki/billing/domain';
 import { type PaymentMethod } from '@itadaki/ordering/domain';
 import { DINER_PALETTE } from '@itadaki/shared/ui-tokens';
 import { BackLinkComponent } from './back-link.component';
@@ -36,14 +41,20 @@ const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
 /**
  * Cómo puede pagar la mesa.
  *
- * Sólo se muestra si el local ofrece descuento en efectivo: sin eso, elegir
- * acá no cambia nada y sería un paso que no sirve. Quien no elige paga como
- * siempre, y el mozo pregunta en la mesa igual que ahora.
+ * Los mismos medios que confirma el mozo al cobrar, sacados del vocabulario
+ * compartido y no escritos acá. Esta lista tenía dos opciones —efectivo y un
+ * "tarjeta" genérico— de cuando débito y crédito iban juntos: quedó atrás al
+ * unificar el resto, así que la mesa no podía elegir transferencia ni decir
+ * cuál de las dos tarjetas, y el mozo se enteraba recién en la mesa.
+ *
+ * Quien no elige paga como siempre y el mozo pregunta al llegar.
  */
-const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: string }> = [
-  { id: 'CASH', label: 'En efectivo', hint: 'Con descuento' },
-  { id: 'CARD', label: 'Con tarjeta', hint: 'Te llevan el posnet' },
-];
+const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: string }> =
+  MEDIOS_QUE_ELIGE_LA_MESA.map((medio) => ({
+    id: medio as PaymentMethod,
+    label: NOMBRE_DEL_MEDIO[medio],
+    hint: LO_QUE_PASA_SI_ELIGE[medio],
+  }));
 
 
 @Component({
