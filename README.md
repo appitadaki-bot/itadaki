@@ -133,8 +133,12 @@ Los dos de arriba corren `pg_dump` dentro del contenedor de Docker, así que
 sirven para la base de la laptop y no para Neon ni Render.
 
 ```bash
-DATABASE_URL='postgresql://...' npm run db:backup:hosted
+DATABASE_ADMIN_URL='postgresql://...' npm run db:backup:hosted
 ```
+
+Es la misma variable con la que se migra: respaldar pide el rol dueño, porque
+leer todas las tablas de todos los restaurantes no lo puede hacer el rol de la
+app. También acepta `DATABASE_URL`.
 
 Copia todo a un JSON, restaurante por restaurante. Recorrerlos de a uno no es
 una vuelta larga: las tablas tienen RLS en modo FORCE, y una consulta sin

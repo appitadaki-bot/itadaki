@@ -9,13 +9,23 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import pg from 'pg';
 
-if (process.env.DATABASE_URL === undefined || process.env.DATABASE_URL === '') {
-  console.error('falta DATABASE_URL: sin eso no hay a qué base conectarse');
+/*
+ * Sirve la misma variable con la que se migra.
+ *
+ * Respaldar pide el rol dueño, igual que migrar: leer todas las tablas de
+ * todos los restaurantes no es algo que pueda hacer el rol de la app. Quien
+ * viene de correr `db:migrate` ya tiene puesta `DATABASE_ADMIN_URL`, y pedirle
+ * otra variable con el mismo valor es una trampa.
+ */
+const conexion = process.env.DATABASE_ADMIN_URL ?? process.env.DATABASE_URL;
+
+if (conexion === undefined || conexion === '') {
+  console.error('falta DATABASE_ADMIN_URL (o DATABASE_URL): no hay a qué base conectarse');
   process.exit(1);
 }
 
 const c = new pg.Client({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: conexion,
   ssl: { rejectUnauthorized: false },
 });
 await c.connect();
