@@ -48,7 +48,17 @@ import { MAX_SESSION_ORDERS } from '@itadaki/ordering/infra';
 const splitSchema = z.object({
   kind: z.enum(['SINGLE_PAYER', 'EQUAL', 'BY_DINER', 'BY_ITEM', 'CUSTOM_AMOUNT']),
   // Cómo piensan pagar: sólo el efectivo lleva descuento.
-  paymentMethod: z.enum(['CARD', 'CASH', 'COUNTER', 'UNDECIDED']).optional(),
+  /*
+   * Los mismos medios que declara el mozo, no un vocabulario aparte.
+   *
+   * La mesa decía "tarjeta" y el mozo tenía que traducir a débito o crédito;
+   * en esa traducción se perdía si correspondía descontar. Ahora la mesa elige
+   * lo mismo que el mozo confirma, y el descuento sale de una sola decisión.
+   *
+   * `UNDECIDED` sigue: es lo que elige quien todavía no lo definió en la mesa,
+   * y avisa al mozo que vaya sin nada en particular.
+   */
+  paymentMethod: z.enum([...MEDIOS_DE_COBRO, 'UNDECIDED']).optional(),
   payerId: z.string().min(1).optional(),
   parts: z.number().int().min(1).max(20).optional(),
   assignments: z
@@ -308,21 +318,26 @@ export class BillsController {
      * declare el descuento que quiera. Se calcula igual que en la pantalla de
      * la cuenta, desde el porcentaje que el dueño configuró.
      */
-    const puntos = await this.tenants.store.descuentoEnEfectivo(scope.tenantId);
-    const configurado = descuentoDe((puntos.isOk() ? puntos.value : 0) / 100);
-    const descuento = configurado.isOk() ? configurado.value : { porcentaje: 0 };
-
-    const consumo = billSubtotal(bill);
-    const rebaja =
-      aplicaA(cobradoCon) && consumo.isOk()
-        ? montoDelDescuento(descuento, consumo.value)
-        : ok(Money.zero(bill.currency));
+    /*
+     * El descuento es el que la mesa vio, no el que corresponda al medio.
+     *
+     * Antes se recalculaba acá desde lo que el mozo declaraba: si decía
+     * "efectivo", se guardaba el descuento aunque la mesa hubiera pagado el
+     * total sin rebaja. La mesa entregaba 6.800, las métricas registraban
+     * 6.120, y el local aparecía cobrando menos de lo que cobró.
+     *
+     * El descuento se ofrece y se muestra cuando la mesa elige cómo pagar, en
+     * la pantalla de la cuenta. Si ahí no lo vio, no se le hizo — y un número
+     * que el dueño cruza con su caja tiene que decir lo que pasó, no lo que
+     * habría correspondido.
+     */
+    const yaAcordado = bill.descuentoMinor ?? 0;
 
     const settled = await this.bills.store.save(scope.tenantId, {
       ...bill,
       status: 'SETTLED',
       cobradoCon,
-      descuentoMinor: rebaja.isOk() ? rebaja.value.amountInMinorUnits : 0,
+      descuentoMinor: yaAcordado,
     });
     if (settled.isErr()) {
       throw new HttpException(settled.error, HttpStatus.BAD_GATEWAY);
@@ -427,6 +442,25 @@ export class BillsController {
     const shares = strategyFor(parsed.data, bill).split(bill);
     if (shares.isErr()) {
       throw new HttpException(shares.error, HttpStatus.CONFLICT);
+    }
+
+    /*
+     * Queda anotado en la cuenta, no sólo mostrado.
+     *
+     * Es el descuento que la mesa está viendo mientras decide, y el que va a
+     * pagar. Al cobrar se guarda éste y no uno recalculado: recalcularlo desde
+     * el medio que declara el mozo hacía que las métricas registraran una
+     * rebaja que la mesa nunca vio.
+     *
+     * Un fallo al guardarlo no interrumpe la pantalla: el número que la mesa
+     * ve es correcto igual, y lo peor que pasa es que al cobrar el descuento
+     * quede en cero, que es el lado seguro del error.
+     */
+    if ((bill.descuentoMinor ?? 0) !== rebaja.value.amountInMinorUnits) {
+      await this.bills.store.save(scope.tenantId, {
+        ...bill,
+        descuentoMinor: rebaja.value.amountInMinorUnits,
+      });
     }
 
     // Tip is spread in proportion to what each payer owes, not evenly.

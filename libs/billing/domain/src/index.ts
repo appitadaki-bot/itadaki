@@ -36,7 +36,9 @@ export {
 export {
   type MedioDeCobro,
   MEDIOS_DE_COBRO,
+  LO_QUE_PASA_SI_ELIGE,
   MEDIOS_QUE_ELIGE_EL_MOZO,
+  MEDIOS_QUE_ELIGE_LA_MESA,
   NOMBRE_DEL_MEDIO,
   cobradoDeLaCuenta,
   esMedioDeCobro,

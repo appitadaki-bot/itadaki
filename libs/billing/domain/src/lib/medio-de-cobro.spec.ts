@@ -1,6 +1,8 @@
 import {
+  LO_QUE_PASA_SI_ELIGE,
   MEDIOS_DE_COBRO,
   MEDIOS_QUE_ELIGE_EL_MOZO,
+  MEDIOS_QUE_ELIGE_LA_MESA,
   cobradoDeLaCuenta,
   esMedioDeCobro,
   nombreDelMedio,
@@ -45,15 +47,29 @@ describe('los medios de cobro', () => {
     expect(esMedioDeCobro(7)).toBe(false);
   });
 
-  it('el mozo elige entre todos, con efectivo primero', () => {
+  it('el mozo elige con efectivo primero', () => {
     // Es el más frecuente y el que tiene descuento.
     expect(MEDIOS_QUE_ELIGE_EL_MOZO[0]).toBe('CASH');
-    expect(MEDIOS_QUE_ELIGE_EL_MOZO).toHaveLength(MEDIOS_DE_COBRO.length);
   });
 
-  it('deja "en la caja" al final', () => {
-    // No es un medio de pago: es que la plata la cobró otro.
-    expect(MEDIOS_QUE_ELIGE_EL_MOZO.at(-1)).toBe('COUNTER');
+  it('el mozo no elige "en la caja"', () => {
+    // No era un medio de pago sino un lugar, y ofrecerlo al cobrar no tenía
+    // sentido: si el mozo está cerrando la mesa, la plata la tuvo él. Para la
+    // mesa que se fue sin pagar está "liberar sin cobrar".
+    expect(MEDIOS_QUE_ELIGE_EL_MOZO).not.toContain('COUNTER');
+  });
+
+  it('la mesa elige lo mismo que confirma el mozo', () => {
+    // Con vocabularios distintos, la mesa decía "tarjeta" y el mozo traducía a
+    // débito o crédito: en esa traducción se perdía si correspondía descontar.
+    expect([...MEDIOS_QUE_ELIGE_LA_MESA]).toEqual([...MEDIOS_QUE_ELIGE_EL_MOZO]);
+  });
+
+  it('cada medio que la mesa elige explica qué va a pasar', () => {
+    // "Débito" solo no dice que el mozo viene con el posnet.
+    for (const medio of MEDIOS_QUE_ELIGE_LA_MESA) {
+      expect(LO_QUE_PASA_SI_ELIGE[medio].length).toBeGreaterThan(0);
+    }
   });
 });
 

@@ -1,21 +1,35 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+  LO_QUE_PASA_SI_ELIGE,
+  MEDIOS_QUE_ELIGE_LA_MESA,
+  NOMBRE_DEL_MEDIO,
+} from '@itadaki/billing/domain';
 import { type PaymentMethod } from '@itadaki/ordering/domain';
 
 /**
  * Cómo paga la mesa, que es lo único que el mozo necesita saber antes de
- * levantarse: si lleva el posnet, si lleva cambio, o si no tiene que ir.
+ * levantarse: si lleva el posnet, si lleva cambio, o si tiene que pasar los
+ * datos para transferir.
  *
- * "Vamos a la caja" no es una forma de pago más: ahí nadie cobra en la mesa y
- * el sistema no se entera de si pagaron, así que la cuenta la cierra el local
- * a mano. Por eso va con su explicación y no como una palabra suelta.
+ * Las mismas opciones que el mozo confirma al cobrar, y no un vocabulario
+ * aparte. Antes la mesa decía "tarjeta" y el mozo tenía que traducir a débito
+ * o crédito; en esa traducción se perdía si correspondía descontar, y el
+ * descuento por efectivo terminaba dependiendo de dos decisiones distintas.
+ *
+ * Sin "vamos a la caja": ahí nadie cobra en la mesa, así que el sistema no se
+ * entera de si pagaron y la mesa quedaba ocupada por gente que ya se fue. Si
+ * la mesa se levanta sin pagar, el mozo lo marca al liberarla — que es quien
+ * lo ve pasar.
  *
  * "Todavía no sabemos" es una respuesta, no una respuesta faltante: el mozo se
  * acerca igual y lo resuelven ahí.
  */
 const PAYMENT_OPTIONS: ReadonlyArray<{ method: PaymentMethod; label: string; hint: string }> = [
-  { method: 'CARD', label: 'Con tarjeta', hint: 'te llevan el posnet a la mesa' },
-  { method: 'CASH', label: 'En efectivo', hint: 'te llevan el cambio' },
-  { method: 'COUNTER', label: 'Vamos a la caja', hint: 'pagan al salir, en el mostrador' },
+  ...MEDIOS_QUE_ELIGE_LA_MESA.map((medio) => ({
+    method: medio as PaymentMethod,
+    label: NOMBRE_DEL_MEDIO[medio],
+    hint: LO_QUE_PASA_SI_ELIGE[medio],
+  })),
   { method: 'UNDECIDED', label: 'Todavía no sabemos', hint: 'lo definen en la mesa' },
 ];
 
