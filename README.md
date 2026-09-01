@@ -266,6 +266,11 @@ Vercel usa el `build` de siempre: ese construye el comensal, la cocina, el
 admin y la API de una sola vez. Un proyecto terminaba construyendo casi todo
 el repositorio en cada despliegue, y el filtro de más abajo no se notaba.
 
+Fuera de producción no construye nada: las vistas previas de cada rama no las
+mira nadie, y un PR llegó a generar veinticinco builds —cinco proyectos por
+cinco apps, porque en Preview tampoco llega `APP`—. Eso agotó la cuota diaria
+del plan y dejó producción sin desplegar durante horas.
+
 Sin `APP` construye todo, que es lo que se hacía antes. La primera versión
 fallaba ahí —publicar la app equivocada se ve como un despliegue que anduvo—
 pero la variable no llegaba y eso dejó producción sin desplegar. El que no

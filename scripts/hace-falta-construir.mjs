@@ -136,6 +136,24 @@ function archivosDelCommit() {
 }
 
 function main() {
+  /*
+   * Las ramas no se construyen.
+   *
+   * Ya lo dice el `vercel.json` con `deploymentEnabled`, pero no alcanza: un
+   * PR de Dependabot generó igual una vista previa en los cinco proyectos, y
+   * como en Preview no llega APP, cada una construyó las cinco apps. Veinticinco
+   * builds por un PR que nadie iba a mirar — el README ya decía que esas vistas
+   * previas no las mira nadie.
+   *
+   * Eso fue lo que agotó la cuota diaria del plan y dejó producción sin
+   * desplegar durante horas.
+   */
+  const entorno = process.env.VERCEL_ENV;
+  if (entorno !== undefined && entorno !== 'production') {
+    console.log(`entorno ${entorno}: acá no se construye, sólo producción`);
+    process.exit(0);
+  }
+
   const app = process.env.APP;
   if (app === undefined || app === '') {
     console.log('sin APP: se construye por las dudas');
