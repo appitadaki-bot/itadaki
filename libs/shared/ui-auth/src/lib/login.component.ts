@@ -376,11 +376,27 @@ export class LoginComponent {
 
   constructor() {
     /*
-     * El primer tramo de la dirección es el restaurante.
+     * El salón y la cocina son del personal: ahí se entra con usuario y PIN.
      *
-     * Sirve tanto `/parrilla-don-pepe` como `/parrilla-don-pepe/lo-que-sea`.
-     * Sin ese tramo se muestra el login con mail, que es como entra el dueño.
+     * Antes esto dependía de que la dirección trajera el nombre del local, y
+     * sin ese tramo la pantalla pedía mail y contraseña — que el mozo no
+     * tiene. Un mozo que entraba a salon.itadaki.app quedaba trabado en un
+     * formulario que no podía completar.
+     *
+     * Desde que el usuario es único en toda la base, el local ya no hace
+     * falta para entrar: "nico" identifica a una persona, y si trabaja en
+     * varios lugares elige después de poner el PIN.
+     *
+     * Se decide por `allowSignUp`, que ya distingue las apps del personal del
+     * panel del dueño: donde no se puede registrar un restaurante, quien entra
+     * es alguien del equipo.
      */
+    if (!this.allowSignUp()) {
+      this.conPin.set(true);
+    }
+
+    // El local del link, cuando viene: no hace falta para entrar, pero sirve
+    // para los links viejos que ya se repartieron.
     const tramo = globalThis.location.pathname.split('/').filter(Boolean)[0] ?? '';
     if (/^[a-z0-9-]{2,60}$/.test(tramo)) {
       this.local.set(tramo);

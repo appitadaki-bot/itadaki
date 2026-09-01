@@ -793,34 +793,6 @@ const ROLE_NAMES: Record<string, string> = {
               }
             </div>
 
-            <!-- El PIN se ve una sola vez: después queda cifrado y nadie puede
-                 volver a leerlo. Por eso el cartel se queda hasta que el dueño
-                 lo cierra, en vez de irse solo mientras busca el teléfono. -->
-            @if (pinNuevo(); as datos) {
-              <div class="pin-nuevo" role="status">
-                <p class="pin-titulo">Datos de acceso de {{ datos.nombre }}</p>
-                <dl class="pin-datos">
-                  <dt>Link</dt>
-                  <dd>{{ linkDelLocal() }}</dd>
-                  <dt>Usuario</dt>
-                  <dd>{{ datos.usuario }}</dd>
-                  <dt>PIN</dt>
-                  <dd class="pin-numero">{{ datos.pin }}</dd>
-                </dl>
-                <p class="pin-aviso">
-                  Anotalo o mandáselo ahora: el PIN no se puede volver a ver.
-                  Si se pierde, generás otro.
-                </p>
-                <div class="pin-acciones">
-                  <button type="button" class="create" (click)="copiarAcceso(datos)">
-                    {{ copiado() ? 'Copiado ✓' : 'Copiar los tres datos' }}
-                  </button>
-                  <button type="button" class="secondary" (click)="pinNuevo.set(null)">
-                    Listo
-                  </button>
-                </div>
-              </div>
-            }
           </details>
         </section>
 
@@ -998,6 +970,49 @@ const ROLE_NAMES: Record<string, string> = {
               (click)="responder(true)"
             >
               {{ pedido.accion }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!--
+      Los datos de acceso, como ventana.
+
+      Estaban al pie de la lista de personal, así que con un equipo de seis
+      quedaban abajo de todo y el dueño no los veía: cerraba la pantalla y el
+      PIN se perdía para siempre, porque se muestra una sola vez.
+
+      Encima de todo y sin cerrarse solo: es lo único que hay que hacer en ese
+      momento —copiarlo y mandárselo— y una ventana lo dice sin decirlo.
+    -->
+    @if (pinNuevo(); as datos) {
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="acceso-title">
+        <header class="modal-head">
+          <h2 class="modal-title" id="acceso-title">Datos de acceso de {{ datos.nombre }}</h2>
+        </header>
+
+        <div class="modal-body">
+          <dl class="pin-datos">
+            <dt>Link</dt>
+            <dd>{{ linkPara(datos.role) }}</dd>
+            <dt>Usuario</dt>
+            <dd>{{ datos.usuario }}</dd>
+            <dt>PIN</dt>
+            <dd class="pin-numero">{{ datos.pin }}</dd>
+          </dl>
+
+          <p class="pin-aviso">
+            Anotalo o mandáselo ahora: el PIN no se puede volver a ver. Si se
+            pierde, generás otro.
+          </p>
+
+          <div class="pin-acciones">
+            <button type="button" class="create" (click)="copiarAcceso(datos)">
+              {{ copiado() ? 'Copiado ✓' : 'Copiar los tres datos' }}
+            </button>
+            <button type="button" class="secondary" (click)="pinNuevo.set(null)">
+              Listo
             </button>
           </div>
         </div>
@@ -2325,10 +2340,20 @@ export class AdminComponent {
 
     // El PIN sale en claro una sola vez: se muestra hasta que el dueño lo
     // cierra, porque después no se puede volver a ver.
-    const alta = (await response.json()) as { displayName: string; usuario: string; pin: string };
+    const alta = (await response.json()) as {
+      displayName: string;
+      usuario: string;
+      pin: string;
+      role: string;
+    };
     // La misma tarjeta que al regenerar un PIN: dice link, usuario y PIN, y
     // queda hasta que el dueño la cierra porque el PIN no se puede volver a ver.
-    this.pinNuevo.set({ nombre: alta.displayName, usuario: alta.usuario, pin: alta.pin });
+    this.pinNuevo.set({
+      nombre: alta.displayName,
+      usuario: alta.usuario,
+      pin: alta.pin,
+      role: alta.role,
+    });
 
     form.reset();
     await this.loadStaff();
@@ -2775,6 +2800,8 @@ export class AdminComponent {
     nombre: string;
     usuario: string;
     pin: string;
+    /** Su puesto: decide a qué app lo lleva el link. */
+    role: string;
   } | null>(null);
 
   protected readonly copiado = signal(false);
@@ -2786,12 +2813,51 @@ export class AdminComponent {
    * El slug del restaurante ya es su identificador, así que el link no hay que
    * crearlo ni administrarlo: sale de lo que el local ya tiene.
    */
+  /**
+   * A qué app entra cada puesto.
+   *
+   * El link salía siempre del panel —`location.origin` es el del admin— así
+   * que a un mozo se le daba la dirección del panel, donde su usuario no
+   * entra. Cada uno trabaja en una app distinta y el link tiene que llevarlo
+   * ahí.
+   *
+   * Se arma cambiando el subdominio: las cuatro viven bajo el mismo dominio,
+   * y así no hay que configurar cuatro direcciones a mano.
+   */
+  private appDe(role: string): string {
+    const subdominio: Record<string, string> = {
+      KITCHEN: 'cocina',
+      WAITER: 'salon',
+      MANAGER: 'admin',
+      OWNER: 'admin',
+    };
+
+    const origen = globalThis.location.origin;
+    const cual = subdominio[role] ?? 'admin';
+
+    // Sólo si el panel vive en un subdominio: en localhost cada app tiene su
+    // puerto, y ahí el link del panel es lo mejor que se puede dar.
+    return origen.includes('admin.')
+      ? origen.replace('admin.', `${cual}.`)
+      : origen;
+  }
+
+  /** El link para el equipo, según dónde trabaja cada uno. */
+  protected linkPara(role: string): string {
+    const slug = this.auth.profile()?.tenantId ?? '';
+    return `${this.appDe(role)}/${slug}`;
+  }
+
   protected readonly linkDelLocal = computed(() => {
     const slug = this.auth.profile()?.tenantId ?? '';
     return `${globalThis.location.origin}/${slug}`;
   });
 
-  protected async generarPin(member: { id: string; displayName: string }): Promise<void> {
+  protected async generarPin(member: {
+    id: string;
+    displayName: string;
+    role: string;
+  }): Promise<void> {
     this.generandoPin.set(member.id);
     this.copiado.set(false);
 
@@ -2803,7 +2869,7 @@ export class AdminComponent {
       if (!respuesta.ok) return;
 
       const { usuario, pin } = (await respuesta.json()) as { usuario: string; pin: string };
-      this.pinNuevo.set({ nombre: member.displayName, usuario, pin });
+      this.pinNuevo.set({ nombre: member.displayName, usuario, pin, role: member.role });
     } catch {
       // Sin conexión no se generó nada: el PIN viejo sigue sirviendo.
     } finally {
