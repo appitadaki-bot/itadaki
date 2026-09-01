@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { MEDIOS_QUE_ELIGE_EL_MOZO, nombreDelMedio } from '@itadaki/billing/domain';
 import { AuthStore } from '@itadaki/shared/ui-auth';
+import { conciliar } from './conciliar-lo-facturado';
 
 interface MoneyDto {
   readonly amountInMinorUnits: number;
@@ -156,6 +157,27 @@ const WINDOWS: ReadonlyArray<{ days: number | 'hoy'; label: string }> = [
                 </li>
               }
             </ul>
+            <!-- La cuenta completa, a la vista.
+                 Facturado y cobrado miden cosas distintas y nunca dan igual;
+                 mostrarlos uno al lado del otro sin explicar el hueco se lee
+                 como plata que desapareció, y quien mira esto lo cruza con su
+                 caja. -->
+            @if (conciliacion(); as detalle) {
+              <p class="cobros-cuenta">
+                De {{ money(detalle.facturado) }} facturados:
+                <strong>{{ money(detalle.cobrado) }}</strong> cobrados
+                @if (detalle.descuento.amountInMinorUnits > 0) {
+                  · {{ money(detalle.descuento) }} de descuento
+                }
+                @if (detalle.sinCerrar.amountInMinorUnits > 0) {
+                  · {{ money(detalle.sinCerrar) }} en mesas sin cerrar
+                }
+                @if (!detalle.cierra) {
+                  · incluye mesas de días anteriores cobradas en este período
+                }
+              </p>
+            }
+
             @if (sinDeclarar() > 0) {
               <!-- El hueco se dice, no se reparte: repartirlo a ojo entre los
                    otros medios sería inventar un número en el reporte que el
@@ -311,6 +333,29 @@ export class MetricsComponent {
     return completos.sort(
       (a, b) => b.cobrado.amountInMinorUnits - a.cobrado.amountInMinorUnits,
     );
+  });
+
+  /**
+   * De dónde sale cada peso entre lo facturado y lo cobrado.
+   *
+   * Null cuando todavía no hay datos, para no dibujar una cuenta de ceros.
+   */
+  protected readonly conciliacion = computed(() => {
+    const facturado = this.totalRevenue();
+    const cobros = this.data()?.cobros;
+    if (facturado === null || cobros === undefined || cobros.length === 0) return null;
+
+    const moneda = facturado.currency;
+    const detalle = conciliar(facturado.amountInMinorUnits, cobros);
+    const enPlata = (minor: number): MoneyDto => ({ amountInMinorUnits: minor, currency: moneda });
+
+    return {
+      facturado,
+      cobrado: enPlata(detalle.cobrado),
+      descuento: enPlata(detalle.descuento),
+      sinCerrar: enPlata(detalle.sinCerrar),
+      cierra: detalle.cierra,
+    };
   });
 
   /** Cuántas cuentas se cobraron sin que nadie dijera con qué. */

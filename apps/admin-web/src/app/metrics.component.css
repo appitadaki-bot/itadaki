@@ -279,6 +279,22 @@
   color: var(--itadaki-ink-subtle);
 }
 
+/* La cuenta que explica el hueco entre facturado y cobrado. Con fondo, para
+   que se lea como el cierre de la lista y no como una aclaración al pie. */
+.cobros-cuenta {
+  margin: 0.4rem 0 0.8rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--itadaki-radius-chip);
+  background: var(--itadaki-surface-sunken);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--itadaki-ink-muted);
+}
+
+.cobros-cuenta strong {
+  color: var(--itadaki-ink-strong);
+}
+
 .cobros-nota {
   margin: 0 0 1.25rem;
   font-size: 0.82rem;
