@@ -65,6 +65,44 @@ export class AuthStore {
    * The server returns a session with the account, so there is no reason to
    * bounce someone who just typed their password back to a login form.
    */
+  /**
+   * Confirma el mail del link y deja al dueño adentro.
+   *
+   * Es el momento en que alguien probó que la casilla es suya, y desde que el
+   * alta dejó de iniciar sesión es también la única puerta de quien se acaba
+   * de registrar.
+   */
+  async verificarMail(token: string): Promise<boolean> {
+    this.busy.set(true);
+    this.error.set(null);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/verificar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+
+      if (!response.ok) {
+        // El link vale tres días y se puede haber abierto dos veces: no es un
+        // error de quien lo abre, así que se explica y se ofrece entrar.
+        this.error.set('Ese link ya no vale. Entrá con tu mail y contraseña.');
+        return false;
+      }
+
+      const sesion = (await response.json()) as { token: string; user: StaffProfile };
+      this.token.set(sesion.token);
+      this.profile.set(sesion.user);
+      localStorage.setItem(STORAGE_KEY, sesion.token);
+      return true;
+    } catch {
+      this.error.set('No pudimos conectar con el servidor');
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
   async signUp(restaurant: string, email: string, password: string): Promise<boolean> {
     this.busy.set(true);
     this.error.set(null);
@@ -79,9 +117,7 @@ export class AuthStore {
       if (!response.ok) {
         const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
         this.error.set(
-          detail?.kind === 'EMAIL_TAKEN'
-            ? 'Ya hay una cuenta con ese email'
-            : detail?.kind === 'PASSWORD_TOO_SHORT'
+          detail?.kind === 'PASSWORD_TOO_SHORT'
               ? 'La contraseña necesita al menos 8 caracteres'
               : detail?.kind === 'PASSWORD_TOO_COMMON'
                 ? 'Esa contraseña es de las primeras que prueban; elegí otra'
@@ -94,10 +130,14 @@ export class AuthStore {
         return false;
       }
 
-      const session = (await response.json()) as { token: string; user: StaffProfile };
-      this.token.set(session.token);
-      this.profile.set(session.user);
-      localStorage.setItem(STORAGE_KEY, session.token);
+      /*
+       * El alta ya no inicia sesión: se entra por el link del mail.
+       *
+       * Es lo que permite que el servidor conteste igual para un mail libre y
+       * para uno que ya tiene cuenta. Antes, entrar directo sólo en el primer
+       * caso delataba cuál era cuál, y con eso se podía recorrer una lista de
+       * direcciones para saber qué restaurantes usan Itadaki.
+       */
       return true;
     } catch {
       this.error.set('No pudimos conectar con el servidor');

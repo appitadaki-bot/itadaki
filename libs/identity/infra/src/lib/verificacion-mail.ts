@@ -65,3 +65,44 @@ export function mailDeVerificacion(
     ].join('\n'),
   };
 }
+
+/**
+ * El aviso a quien ya tiene cuenta y alguien intentó anotarse con su mail.
+ *
+ * El alta no puede contestar "ese mail ya existe": con eso, quien quiera puede
+ * recorrer una lista de direcciones y armar el padrón de qué restaurantes usan
+ * Itadaki y con qué mail — que es exactamente lo que hace falta para un
+ * phishing dirigido creíble.
+ *
+ * Pero tampoco puede callarse del todo. Si alguien está probando el mail de un
+ * dueño, ese dueño tiene derecho a enterarse: puede ser un error honesto —dos
+ * socios que se anotan por separado— o alguien tanteando.
+ *
+ * Así que la respuesta al que intenta es siempre la misma, y lo que cambia es
+ * el mail que llega. Quien tiene cuenta recibe esto en vez del de bienvenida.
+ *
+ * No lleva ningún link de acción. Un mail que llega sin que uno lo haya pedido
+ * y trae un botón es la forma de todo phishing, y acá no hay nada que hacer:
+ * la cuenta sigue como estaba.
+ */
+export function mailDeIntentoDeAlta(link: string): { subject: string; body: string } {
+  return {
+    subject: 'Alguien intentó crear una cuenta con tu mail en Itadaki',
+    body: [
+      `Hola,`,
+      ``,
+      `Alguien quiso crear una cuenta en Itadaki con este mail, que ya tiene una.`,
+      `No hicimos nada: tu cuenta y tu contraseña siguen igual.`,
+      ``,
+      `Si fuiste vos y no te acordás de la contraseña, podés recuperarla desde`,
+      `la pantalla de entrada:`,
+      ``,
+      link,
+      ``,
+      `Si no fuiste vos, no hace falta que hagas nada. Te avisamos por si no`,
+      `esperabas este intento.`,
+      ``,
+      `— Itadaki`,
+    ].join('\n'),
+  };
+}

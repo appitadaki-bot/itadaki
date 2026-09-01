@@ -75,7 +75,17 @@ export class InMemoryStaffStore {
   }
 
   /** Cifrar es asíncrono, así que la siembra espera a la primera consulta. */
-  private async sembrar(): Promise<void> {
+  /**
+   * Deja el personal de demostración en el mapa compartido.
+   *
+   * Público porque el alta también tiene que esperarlo: comprueba contra ese
+   * mapa si el mail está tomado, y sin sembrar primero no encontraba a la
+   * gente de la demo — así que un alta con el mail del dueño creaba un
+   * restaurante duplicado en vez de avisar del intento. En Postgres no pasa
+   * porque hay un índice único de verdad, y eso hacía que sólo se viera al
+   * desarrollar.
+   */
+  async sembrar(): Promise<void> {
     if (this.listo !== null) return this.listo;
 
     this.listo = (async () => {

@@ -86,7 +86,9 @@ describe('la verificación del mail en memoria', () => {
     const hecho = await store.verificarMail('digest-1', AHORA);
     if (hecho.isErr()) throw new Error('expected ok');
 
-    expect(hecho.value).toBe('manolo');
+    // El mail y no el local: verificar también abre la sesión, y con el local
+    // solo no se sabría cuál de las personas del restaurante abrió el link.
+    expect(hecho.value).toBe('manolo@ejemplo.test');
   });
 
   it('el mismo token no sirve dos veces', async () => {
