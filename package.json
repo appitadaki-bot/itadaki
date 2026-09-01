@@ -28,6 +28,7 @@
     "db:backup": "bash scripts/backup.sh",
     "db:restore": "bash scripts/restore.sh",
     "db:backup:hosted": "node scripts/backup-hosted.mjs",
+    "db:restore:hosted": "node scripts/restore-hosted.mjs",
     "build:comensal": "npm run legal && ng build diner-pwa",
     "build:cocina": "ng build kds-web",
     "build:admin": "npm run legal && ng build admin-web",
