@@ -215,8 +215,10 @@ Vercel usa el `build` de siempre: ese construye el comensal, la cocina, el
 admin y la API de una sola vez. Un proyecto terminaba construyendo casi todo
 el repositorio en cada despliegue, y el filtro de más abajo no se notaba.
 
-Sin `APP` no construye nada y falla: publicar la app equivocada se ve como un
-despliegue que anduvo, y eso es peor que un build en rojo.
+Sin `APP` construye todo, que es lo que se hacía antes. La primera versión
+fallaba ahí —publicar la app equivocada se ve como un despliegue que anduvo—
+pero la variable no llegaba y eso dejó producción sin desplegar. El que no
+publica es peor que el que publica de más.
 
 Lo que sigue en cada proyecto es el **Output Directory**, que no puede salir
 de acá — Vercel necesita saberlo antes de correr nada.

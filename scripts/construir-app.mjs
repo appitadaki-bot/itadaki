@@ -24,14 +24,25 @@ const app = process.env.APP;
 const guion = app === undefined ? undefined : GUION[app];
 
 if (guion === undefined) {
-  // Mejor parar que construir cualquier cosa: sin APP no hay forma de saber
-  // qué tiene que quedar en `dist`, y publicar la app equivocada se ve como
-  // que el despliegue anduvo.
-  console.error(
-    `APP no dice qué construir (llegó ${JSON.stringify(app)}).\n` +
-      `Poné una de: ${Object.keys(GUION).join(', ')}`,
+  /*
+   * Sin APP se construye todo, como antes de que esto existiera.
+   *
+   * La primera versión fallaba acá, para que publicar la app equivocada no
+   * pasara por un despliegue que anduvo. Pero la variable no llegaba a
+   * Vercel, y eso dejó producción sin desplegar: el que no publica no es
+   * peor que el que publica de más, es peor que todo.
+   *
+   * Construir de más es exactamente lo que se hacía antes. Se avisa fuerte
+   * y se sigue.
+   */
+  console.warn(
+    'APP no dice qué construir (llegó ' +
+      JSON.stringify(app) +
+      '). Se construye todo, que es lo de antes. Poné una de: ' +
+      Object.keys(GUION).join(', '),
   );
-  process.exit(1);
+  execSync('npm run build', { stdio: 'inherit' });
+  process.exit(0);
 }
 
 console.log(`construyendo ${app} con npm run ${guion}`);
