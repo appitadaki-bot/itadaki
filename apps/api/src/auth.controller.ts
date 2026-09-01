@@ -742,6 +742,61 @@ export class AuthController {
     };
   }
 
+  /**
+   * El restaurante se da de baja.
+   *
+   * La landing lo promete —"te damos de baja cuando quieras, desde tu panel"—
+   * y hasta ahora la única forma era escribirnos. Prometer una salida fácil y
+   * no darla es peor que no prometerla: quien quiere irse y no puede lo
+   * cuenta, y con razón.
+   *
+   * No corta nada. El mes ya está pagado y el restaurante sigue trabajando
+   * hasta que termine; lo que cambia es que no se renueva. Cortar el día que
+   * alguien la pide sería quedarse con plata de un servicio que no se dio, y
+   * dejar un salón sin sistema en medio del turno.
+   *
+   * Sólo el dueño: es quien paga y quien recibe la factura. Un encargado con
+   * acceso al panel no puede dar de baja el restaurante donde trabaja.
+   */
+  @Post('darme-de-baja')
+  async darmeDeBaja(@Auth() auth: AuthContext) {
+    if (auth.role !== 'OWNER') {
+      throw new HttpException({ kind: 'SOLO_EL_DUENO' }, HttpStatus.FORBIDDEN);
+    }
+
+    const hecho = await this.tenants.store.darDeBaja(auth.tenantId, new Date());
+    if (hecho.isErr()) {
+      throw new HttpException(hecho.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    log.info('un restaurante pidió darse de baja', { tenantId: auth.tenantId });
+
+    // Con el estado nuevo, para que el panel diga hasta cuándo tiene servicio
+    // sin tener que volver a preguntar.
+    return this.subscription(auth);
+  }
+
+  /**
+   * Vuelve a suscribirse, después de haberse dado de baja.
+   *
+   * Es el mismo restaurante, con su carta, sus mesas y su historial: quien se
+   * arrepiente a los tres días no tiene por qué volver a cargar todo.
+   */
+  @Post('reactivar')
+  async reactivar(@Auth() auth: AuthContext) {
+    if (auth.role !== 'OWNER') {
+      throw new HttpException({ kind: 'SOLO_EL_DUENO' }, HttpStatus.FORBIDDEN);
+    }
+
+    const hecho = await this.tenants.store.reactivar(auth.tenantId);
+    if (hecho.isErr()) {
+      throw new HttpException(hecho.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    log.info('un restaurante volvió a suscribirse', { tenantId: auth.tenantId });
+    return this.subscription(auth);
+  }
+
   /** Confirms a token is still good and returns who it belongs to. */
   @Get('me')
   me(@Auth() auth: AuthContext) {

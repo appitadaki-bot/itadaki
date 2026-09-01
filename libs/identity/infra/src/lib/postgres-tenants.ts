@@ -51,9 +51,13 @@ export class PostgresTenantStore {
           paid: boolean;
           paid_until: string | null;
           estrenado: boolean;
-        }>('SELECT trial_ends_at, paid, paid_until, estrenado FROM tenants WHERE id = $1', [
-          tenantId,
-        ]);
+          cancelled_at: string | null;
+        }>(
+          'SELECT trial_ends_at, paid, paid_until, estrenado, cancelled_at FROM tenants WHERE id = $1',
+          [
+            tenantId,
+          ],
+        );
         return result.rows;
       });
 
@@ -78,7 +82,54 @@ export class PostgresTenantStore {
         trialEndsAt: row.trial_ends_at === null ? null : new Date(row.trial_ends_at),
         paid: alDia,
         estrenado: row.estrenado,
+        // La baja no corta el servicio: el mes pagado se respeta, y el dominio
+        // decide qué mostrar con las dos fechas juntas.
+        cancelledAt: row.cancelled_at === null ? null : new Date(row.cancelled_at),
+        paidUntil: hasta,
       });
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /**
+   * El restaurante pide darse de baja.
+   *
+   * Sólo anota cuándo lo pidió: no toca `paid_until`, porque el mes ya está
+   * pagado y el servicio sigue hasta que termine. Cortar acá sería quedarse
+   * con plata de algo que no se dio, y dejar un salón sin sistema en medio del
+   * turno.
+   *
+   * Idempotente: pedirla dos veces no mueve la fecha, así que un doble toque
+   * no cambia hasta cuándo tiene servicio.
+   */
+  async darDeBaja(tenantId: string, cuando: Date): Promise<Result<void, TenantError>> {
+    try {
+      await this.db.unscoped(async (client) => {
+        await client.query(
+          'UPDATE tenants SET cancelled_at = $2 WHERE id = $1 AND cancelled_at IS NULL',
+          [tenantId, cuando],
+        );
+      });
+      return ok(undefined);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /**
+   * Vuelve a suscribirse, después de haberse dado de baja.
+   *
+   * Borra la fecha en vez de crear una cuenta nueva: es el mismo restaurante,
+   * con su carta, sus mesas y su historial. Quien se arrepiente a los tres
+   * días no tiene por qué volver a cargar todo.
+   */
+  async reactivar(tenantId: string): Promise<Result<void, TenantError>> {
+    try {
+      await this.db.unscoped(async (client) => {
+        await client.query('UPDATE tenants SET cancelled_at = NULL WHERE id = $1', [tenantId]);
+      });
+      return ok(undefined);
     } catch (error) {
       return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
     }

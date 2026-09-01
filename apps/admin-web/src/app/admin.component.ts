@@ -181,6 +181,27 @@ const ROLE_NAMES: Record<string, string> = {
           </strong>
           <span>Escribinos para seguir usándolo sin interrupciones.</span>
         </section>
+      } @else if (sub.status === 'DADO_DE_BAJA') {
+        <!-- Dado de baja no es cortado: el mes está pagado y el sistema sigue
+             andando hasta que termine. Decir hasta cuándo es lo que evita que
+             el dueño llame preguntando si le van a cortar mañana. -->
+        <section class="trial ending" role="status">
+          <strong>
+            Diste de baja tu suscripción.
+          </strong>
+          <span>
+            @if (sub.daysLeft !== null && sub.daysLeft > 0) {
+              Seguís con todo el servicio {{ sub.daysLeft }}
+              {{ sub.daysLeft === 1 ? 'día más' : 'días más' }}, hasta que
+              termine el mes que ya pagaste. Después no se renueva.
+            } @else {
+              El servicio sigue hasta que termine el mes que ya pagaste.
+            }
+            <button type="button" class="link" (click)="reactivar()">
+              Seguir con Itadaki
+            </button>
+          </span>
+        </section>
       }
     }
 
@@ -802,6 +823,51 @@ const ROLE_NAMES: Record<string, string> = {
             }
           </details>
         </section>
+
+        <!--
+          Darse de baja.
+
+          Al pie de la solapa y dentro de un desplegable cerrado: es lo último
+          que alguien busca, y ponerlo a la vista lo convierte en una opción
+          que se ofrece. Pero está, y se resuelve acá — la landing promete "te
+          damos de baja cuando quieras, desde tu panel", y prometer una salida
+          fácil sin darla es peor que no prometerla.
+        -->
+        @if (trial()?.status !== 'DADO_DE_BAJA') {
+          <section class="panel">
+            <details class="details">
+              <summary>Dar de baja mi suscripción</summary>
+
+              <div class="baja">
+                <p class="muted">
+                  No se corta nada hoy: seguís con todo el servicio hasta que
+                  termine el mes que ya pagaste, y después no se renueva. Tu
+                  carta, tus mesas y tu historial quedan como están.
+                </p>
+
+                @if (confirmandoBaja()) {
+                  <p class="baja-pregunta">¿Damos de baja tu suscripción?</p>
+                  <div class="baja-acciones">
+                    <button type="button" class="release confirm" (click)="darmeDeBaja()">
+                      Sí, dar de baja
+                    </button>
+                    <button type="button" class="secondary" (click)="confirmandoBaja.set(false)">
+                      No, seguir
+                    </button>
+                  </div>
+                } @else {
+                  <button type="button" class="secondary" (click)="confirmandoBaja.set(true)">
+                    Dar de baja
+                  </button>
+                }
+
+                @if (bajaError(); as error) {
+                  <p class="error-note" role="alert">{{ error }}</p>
+                }
+              </div>
+            </details>
+          </section>
+        }
       }
       }
 
@@ -1558,6 +1624,59 @@ export class AdminComponent {
     ),
   );
   protected readonly staffError = signal<string | null>(null);
+  /** Si está preguntando antes de dar de baja. */
+  protected readonly confirmandoBaja = signal(false);
+
+  protected readonly bajaError = signal<string | null>(null);
+
+  /**
+   * Da de baja la suscripción.
+   *
+   * No corta nada hoy: el mes ya está pagado y el servicio sigue hasta que
+   * termine. Lo que cambia es que no se renueva, y el aviso de arriba pasa a
+   * decir hasta cuándo.
+   */
+  protected async darmeDeBaja(): Promise<void> {
+    this.bajaError.set(null);
+
+    const response = await this.auth.apiFetch(`${API}/auth/darme-de-baja`, {
+      method: 'POST',
+      headers: this.auth.headers(),
+    });
+
+    if (!response.ok) {
+      const detalle = (await response.json().catch(() => null)) as { kind?: string } | null;
+      this.bajaError.set(
+        detalle?.kind === 'SOLO_EL_DUENO'
+          ? 'Sólo el dueño de la cuenta puede darla de baja'
+          : 'No pudimos darte de baja. Probá de nuevo o escribinos.',
+      );
+      return;
+    }
+
+    // El estado nuevo viene en la respuesta: sin esto habría que volver a
+    // preguntarlo, y el aviso tardaría en aparecer.
+    this.trial.set((await response.json()) as { status: string; daysLeft: number | null });
+    this.confirmandoBaja.set(false);
+  }
+
+  /** Vuelve a suscribirse: es el mismo restaurante, con todo lo que tenía. */
+  protected async reactivar(): Promise<void> {
+    this.bajaError.set(null);
+
+    const response = await this.auth.apiFetch(`${API}/auth/reactivar`, {
+      method: 'POST',
+      headers: this.auth.headers(),
+    });
+
+    if (!response.ok) {
+      this.bajaError.set('No pudimos reactivar tu cuenta. Escribinos y lo resolvemos.');
+      return;
+    }
+
+    this.trial.set((await response.json()) as { status: string; daysLeft: number | null });
+  }
+
   protected readonly trial = signal<{
     status: string;
     daysLeft: number | null;

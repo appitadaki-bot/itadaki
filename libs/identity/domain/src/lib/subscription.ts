@@ -34,6 +34,13 @@ export type SubscriptionStatus =
   | 'EXPIRED'
   /** Se acabó también la gracia: no se toman más pedidos. */
   | 'SUSPENDED'
+  /**
+   * Pidió la baja y todavía le queda mes pagado.
+   *
+   * Sigue funcionando igual que ACTIVE: lo único que cambia es que no se
+   * renueva, y que el panel se lo dice.
+   */
+  | 'DADO_DE_BAJA'
   /** Paid, or granted by us. Full access. */
   | 'ACTIVE';
 
@@ -48,6 +55,15 @@ export interface Subscription {
 export interface TrialInput {
   readonly trialEndsAt: Date | null;
   readonly paid: boolean;
+  /**
+   * Cuándo pidió darse de baja, si lo pidió.
+   *
+   * No corta el acceso: el mes ya está pagado y el restaurante sigue
+   * trabajando hasta que termine. Lo que cambia es que no se renueva.
+   */
+  readonly cancelledAt?: Date | null;
+  /** Hasta cuándo está pagado. */
+  readonly paidUntil?: Date | null;
   /**
    * Si el restaurante ya usó el sistema alguna vez.
    *
@@ -73,6 +89,29 @@ export function trialEndFor(startedAt: Date): Date {
 }
 
 export function describeSubscription(input: TrialInput, now: Date): Subscription {
+  /*
+   * Dado de baja no es lo mismo que cortado.
+   *
+   * El mes ya está pagado: el restaurante sigue tomando pedidos hasta que
+   * termine, y recién ahí deja de renovarse. Cortar el día que alguien pide
+   * la baja sería quedarse con plata de un servicio que no se dio, y además
+   * dejar a un salón lleno sin sistema en medio del servicio.
+   *
+   * Se mira antes que `paid` porque el estado tiene que decir que está de
+   * baja aunque siga pago: es lo que el panel necesita para explicar hasta
+   * cuándo le queda.
+   */
+  if (input.cancelledAt != null) {
+    const hasta = input.paidUntil ?? null;
+    const leQueda = hasta !== null && hasta > now;
+
+    return {
+      status: leQueda ? 'DADO_DE_BAJA' : 'SUSPENDED',
+      trialEndsAt: hasta,
+      daysLeft: hasta === null ? null : daysUntil(hasta, now),
+    };
+  }
+
   if (input.paid) {
     return { status: 'ACTIVE', trialEndsAt: null, daysLeft: null };
   }
