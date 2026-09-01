@@ -208,7 +208,16 @@ const ROLE_NAMES: Record<string, string> = {
             <button type="button" class="secondary" (click)="openImport()">
               Traer mi carta
             </button>
-            <button type="button" class="create" (click)="openNew()">+ Agregar a la carta</button>
+            <!-- Sin categorías el formulario no se puede completar: su select
+                 sale vacío y guardar falla. Se dice antes de tocar, y el botón
+                 lleva a lo que sí hay que hacer primero. -->
+            @if (hayCategorias()) {
+              <button type="button" class="create" (click)="openNew()">+ Agregar a la carta</button>
+            } @else {
+              <button type="button" class="create" (click)="irACategorias()">
+                + Crear mi primera categoría
+              </button>
+            }
           </div>
         </div>
 
@@ -288,12 +297,49 @@ const ROLE_NAMES: Record<string, string> = {
                 </p>
               }
               @default {
+                <!-- Los dos pasos, numerados y en orden.
+                     Un plato necesita una categoría, pero la app invitaba al
+                     revés: el botón de agregar plato arriba, y las categorías
+                     escondidas en un desplegable debajo de la carta. Quien
+                     empezaba por el botón llegaba a un select vacío. -->
                 <div class="carta-vacia">
                   <p class="carta-vacia-titulo">Todavía no cargaste ningún plato</p>
-                  <p class="muted">
-                    Empezá por una categoría —Entradas, Parrilla, Postres— y después
-                    agregá los platos que van adentro.
-                  </p>
+
+                  <ol class="pasos">
+                    <li class="paso" [class.hecho]="hayCategorias()">
+                      <span class="paso-numero" aria-hidden="true">1</span>
+                      <span class="paso-texto">
+                        <strong>Creá tus categorías</strong>
+                        <span class="muted">Entradas, Parrilla, Postres…</span>
+                      </span>
+                      @if (hayCategorias()) {
+                        <span class="paso-listo">{{ categories().length }} ✓</span>
+                      } @else {
+                        <button type="button" class="create" (click)="irACategorias()">
+                          Empezar acá
+                        </button>
+                      }
+                    </li>
+
+                    <li class="paso" [class.esperando]="!hayCategorias()">
+                      <span class="paso-numero" aria-hidden="true">2</span>
+                      <span class="paso-texto">
+                        <strong>Agregá tus platos</strong>
+                        <span class="muted">
+                          @if (hayCategorias()) {
+                            Cada uno va dentro de una categoría
+                          } @else {
+                            Después de crear la primera categoría
+                          }
+                        </span>
+                      </span>
+                      @if (hayCategorias()) {
+                        <button type="button" class="create" (click)="openNew()">
+                          Agregar un plato
+                        </button>
+                      }
+                    </li>
+                  </ol>
                 </div>
               }
             }
@@ -301,7 +347,7 @@ const ROLE_NAMES: Record<string, string> = {
         </div>
 
 
-        <details class="details manage-cats">
+        <details class="details manage-cats" [open]="abrirCategorias()">
           <summary>Organizar categorías</summary>
 
           <div class="cat-list">
@@ -919,9 +965,12 @@ const ROLE_NAMES: Record<string, string> = {
             </label>
             <label class="field">
               <span>Categoría</span>
-              <select name="categoryId">
+              <select name="categoryId" [disabled]="!hayCategorias()">
                 @for (category of categories(); track category.id) {
                   <option [value]="category.id">{{ category.name }}</option>
+                } @empty {
+                  <!-- Un select vacío no explica nada: dice qué falta. -->
+                  <option value="">Todavía no hay categorías</option>
                 }
               </select>
             </label>
@@ -940,7 +989,16 @@ const ROLE_NAMES: Record<string, string> = {
               </div>
             </fieldset>
 
-            <button type="submit" class="create">Agregar a la carta</button>
+            <!-- Gris cuando no se puede guardar: dejarlo activo era ofrecer algo
+                 que siempre terminaba en un error. -->
+            <button type="submit" class="create" [disabled]="!hayCategorias()">
+              Agregar a la carta
+            </button>
+            @if (!hayCategorias()) {
+              <p class="status">
+                Creá primero una categoría —Entradas, Parrilla, Postres— y volvé acá.
+              </p>
+            }
             @if (createError(); as error) {
               <p class="status error">{{ error }}</p>
             }
@@ -1664,6 +1722,31 @@ export class AdminComponent {
       this.importing.set(false);
     }
   }
+
+  /** Si ya hay dónde poner un plato. Sin esto el formulario no se completa. */
+  protected readonly hayCategorias = computed(() => this.categories().length > 0);
+
+  /**
+   * Lleva a crear categorías.
+   *
+   * Estaban en un desplegable cerrado, debajo de la carta: quien nunca cargó
+   * nada no tenía por qué saber que existían, y el botón de agregar plato
+   * —arriba, bien visible— lo llevaba a un formulario que no podía completar.
+   */
+  protected irACategorias(): void {
+    this.closeModal();
+    this.abrirCategorias.set(true);
+
+    // Después de que Angular pinte el desplegable abierto: si se hace en el
+    // mismo turno, el elemento todavía no está en su lugar final y la página
+    // salta a la posición equivocada.
+    setTimeout(() => {
+      document.querySelector('.manage-cats')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  /** Si el desplegable de categorías arranca abierto. */
+  protected readonly abrirCategorias = signal(false);
 
   protected openNew(): void {
     this.createError.set(null);
