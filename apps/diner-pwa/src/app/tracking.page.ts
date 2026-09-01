@@ -46,7 +46,7 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
       <!-- Volver y la cuenta en la misma fila, como en el carrito: son las
            dos salidas de esta pantalla, una hacia atrás y otra hacia el final. -->
       <div class="head-row">
-        <itd-back to="/carta" label="La carta" />
+        <itd-back to="/carta" />
         <a class="ir-a-la-cuenta" routerLink="/cuenta">Ver la cuenta →</a>
       </div>
 
