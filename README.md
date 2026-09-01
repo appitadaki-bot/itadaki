@@ -138,7 +138,15 @@ DATABASE_ADMIN_URL='postgresql://...' npm run db:backup:hosted
 
 Es la misma variable con la que se migra: respaldar pide el rol dueño, porque
 leer todas las tablas de todos los restaurantes no lo puede hacer el rol de la
-app. También acepta `DATABASE_URL`.
+app. También acepta `DATABASE_URL`, pero si las dos están puestas y apuntan a
+bases distintas se niega a correr: respaldar desarrollo creyendo que es
+producción deja un archivo con nombre de respaldo y datos de otra base.
+
+Antes de nada dice a dónde se conectó:
+
+```
+respaldando itadaki_db en dpg-xxxxx.oregon-postgres.render.com
+```
 
 Copia todo a un JSON, restaurante por restaurante. Recorrerlos de a uno no es
 una vuelta larga: las tablas tienen RLS en modo FORCE, y una consulta sin

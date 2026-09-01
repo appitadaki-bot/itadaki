@@ -17,10 +17,35 @@ import pg from 'pg';
  * viene de correr `db:migrate` ya tiene puesta `DATABASE_ADMIN_URL`, y pedirle
  * otra variable con el mismo valor es una trampa.
  */
-const conexion = process.env.DATABASE_ADMIN_URL ?? process.env.DATABASE_URL;
+const admin = process.env.DATABASE_ADMIN_URL;
+const normal = process.env.DATABASE_URL;
+const conexion = admin ?? normal;
 
 if (conexion === undefined || conexion === '') {
   console.error('falta DATABASE_ADMIN_URL (o DATABASE_URL): no hay a qué base conectarse');
+  process.exit(1);
+}
+
+/*
+ * Las dos puestas y apuntando a bases distintas.
+ *
+ * Pasa seguido: se migra con una, después se cambia la otra para respaldar y
+ * la primera sigue ganando. Se respalda desarrollo creyendo que es producción,
+ * y el archivo queda ahí con nombre de respaldo. Mejor parar y que lo diga una
+ * persona.
+ */
+if (admin !== undefined && normal !== undefined && admin !== normal) {
+  const host = (url) => {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return '(ilegible)';
+    }
+  };
+  console.error('DATABASE_ADMIN_URL y DATABASE_URL apuntan a bases distintas:');
+  console.error(`  DATABASE_ADMIN_URL -> ${host(admin)}`);
+  console.error(`  DATABASE_URL       -> ${host(normal)}`);
+  console.error('Dejá una sola, o poné las dos con la base que querés respaldar.');
   process.exit(1);
 }
 
