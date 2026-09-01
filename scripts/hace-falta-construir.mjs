@@ -55,6 +55,13 @@ export function hayQueConstruir(app, archivos) {
   const carpeta = CARPETAS[app];
   if (carpeta === undefined) return true;
 
+  // Una lista vacía no dice "este commit no me toca": dice que la comparación
+  // no sirvió. Un merge cuyo diff sale vacío existe —el commit anterior que
+  // mira Vercel puede ser el mismo que se está construyendo—, y saltear ahí
+  // deja afuera un cambio que sí estaba. Como en todo lo demás: ante la duda,
+  // se construye.
+  if (archivos.length === 0) return true;
+
   const propias = [carpeta, ...(EXTRAS[app] ?? [])];
 
   return archivos.some(
@@ -186,6 +193,12 @@ function chequear() {
 
   // Una app que no está en la lista es una que alguien acaba de agregar.
   assert(hayQueConstruir('inventada', ['apps/kds-web/x.ts']), 'ante la duda, construye');
+
+  // Sin nada que comparar no se saltea: eso salteó un merge entero en las
+  // cinco apps, y el cambio quedó afuera hasta que otro commit lo arrastró.
+  for (const app of Object.keys(CARPETAS)) {
+    assert(hayQueConstruir(app, []), `una lista vacía construye ${app}`);
+  }
 
   // Tocar el propio script tiene que llegar a Vercel, o el arreglo se queda
   // afuera para siempre.
