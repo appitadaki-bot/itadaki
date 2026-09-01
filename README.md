@@ -205,6 +205,22 @@ El `/browser` del final es obligatorio: Angular deja ahí el `index.html`, y
 apuntar un nivel más arriba publica una carpeta sin índice — la raíz da 404.
 Framework Preset en **Other**; el preset de Angular adivina otra carpeta.
 
+#### El Build Command lo pone el repositorio
+
+`vercel-build` está en el `package.json`, y Vercel lo prefiere sobre `build`
+cuando existe. Construye lo que diga la variable `APP` y nada más.
+
+Existe porque el campo Build Command de los proyectos estaba vacío, y ahí
+Vercel usa el `build` de siempre: ese construye el comensal, la cocina, el
+admin y la API de una sola vez. Un proyecto terminaba construyendo casi todo
+el repositorio en cada despliegue, y el filtro de más abajo no se notaba.
+
+Sin `APP` no construye nada y falla: publicar la app equivocada se ve como un
+despliegue que anduvo, y eso es peor que un build en rojo.
+
+Lo que sigue en cada proyecto es el **Output Directory**, que no puede salir
+de acá — Vercel necesita saberlo antes de correr nada.
+
 #### Cada proyecto construye sólo lo suyo
 
 Un merge disparaba los cinco: un cambio de CSS en el panel construía también

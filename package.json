@@ -15,6 +15,7 @@
     "typecheck": "tsc -p tsconfig.base.json --noEmit",
     "start:kds": "ng serve kds-web --port 4500",
     "start:api": "npm run build:api && node dist/api/apps/api/src/main.js",
+    "vercel-build": "node scripts/construir-app.mjs",
     "build:api": "tsc -p apps/api/tsconfig.app.json && tsc-alias -p apps/api/tsconfig.app.json",
     "start:admin": "ng serve admin-web --port 4400",
     "db:up": "docker compose up -d --wait",
