@@ -73,7 +73,7 @@
   "areaServed": { "@type": "Country", "name": "Argentina" },
   "offers": {
     "@type": "Offer",
-    "price": "35000",
+    "price": "40000",
     "priceCurrency": "ARS",
     "description": "Plan Pro mensual, con 30 días de prueba gratis sin tarjeta"
   }
@@ -108,7 +108,7 @@
       "name": "¿Cobran comisión por cada pedido?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. Se paga un abono mensual fijo de $35.000 y nada más, vendas diez pedidos o mil. Lo que cobrás es tuyo: no pasamos por el medio del cobro ni tocamos tu plata. Es la diferencia con las apps de delivery, que se quedan con un porcentaje de cada venta."
+        "text": "No. Se paga un abono mensual fijo de $40.000 y nada más, vendas diez pedidos o mil. Lo que cobrás es tuyo: no pasamos por el medio del cobro ni tocamos tu plata. Es la diferencia con las apps de delivery, que se quedan con un porcentaje de cada venta."
       }
     },
     {
@@ -552,8 +552,23 @@
         <p class="chapa">El plan</p>
         <p class="plan-nombre">Pro</p>
         <p class="plan-precio">
-          <span class="plan-signo">$</span><span class="plan-cifra">35.000</span>
+          <span class="plan-signo">$</span><span class="plan-cifra">40.000</span>
           <span class="plan-mes">por mes</span>
+        </p>
+        <!--
+          El precio de lista tachado, debajo del que se paga.
+
+          No es un adorno: dice que 40.000 es una promoción y no el precio de
+          siempre, así que el día que suba no se lee como un aumento sorpresa
+          sino como el fin de algo que estaba anunciado desde el principio.
+
+          Tachado y no "antes 80.000" porque es lo que se entiende sin leer, y
+          con `<s>` para que quien usa un lector de pantalla también sepa que
+          ese número está cruzado.
+        -->
+        <p class="plan-antes">
+          <s>$80.000</s>
+          <span class="plan-promo">Precio de lanzamiento</span>
         </p>
         <p class="plan-plazo">Sin contrato ni permanencia</p>
         <ul class="plan-items">
@@ -715,7 +730,7 @@
     <details class="pregunta">
       <summary>¿Cobran comisión por cada pedido?</summary>
       <p>
-        No. Se paga un abono mensual fijo de $35.000 y nada más, vendas diez
+        No. Se paga un abono mensual fijo de $40.000 y nada más, vendas diez
         pedidos o mil. Lo que cobrás es tuyo: no pasamos por el medio del
         cobro ni tocamos tu plata. Es la diferencia con las apps de delivery,
         que se quedan con un porcentaje de cada venta.

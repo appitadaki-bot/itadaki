@@ -944,6 +944,46 @@ strong { color: var(--tinta); font-weight: 700; }
   color: var(--tinta-suave);
 }
 
+/*
+ * El precio de lista, tachado.
+ *
+ * Debajo del que se paga y no encima: lo primero que se lee tiene que ser lo
+ * que cuesta hoy. El tachado dice que 40.000 es una promoción, así que el día
+ * que suba no se lee como un aumento sorpresa sino como el fin de algo que
+ * estaba anunciado.
+ */
+.plan-antes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+}
+
+.plan-antes s {
+  color: var(--tinta-suave);
+  /* Del grosor de la letra: una línea más fina se pierde a este tamaño. */
+  text-decoration-thickness: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Que es una promoción, dicho con todas las letras.
+ *
+ * Un número tachado solo puede leerse como un descuento cualquiera; esto dice
+ * por qué está rebajado y hasta cuándo se puede esperar que dure.
+ */
+.plan-promo {
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--acento) 18%, transparent);
+  color: var(--acento);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
 .plan-plazo {
   margin: 0.35rem 0 0;
   font-size: 0.85rem;
