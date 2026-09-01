@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConsoleMailer, type Mailer } from '@itadaki/identity/application';
-import { PostgresResetStore, ResendMailer } from '@itadaki/identity/infra';
+import { InMemoryResetStore, PostgresResetStore, ResendMailer } from '@itadaki/identity/infra';
 import { database } from './database';
 import { log } from './logger';
 
@@ -15,7 +15,16 @@ import { log } from './logger';
  */
 @Injectable()
 export class ResetsService {
-  readonly store = new PostgresResetStore(database);
+  /*
+   * Se elegía siempre el de Postgres, aun con `USE_POSTGRES=false`. Sin base,
+   * guardar el pedido fallaba y el mail nunca salía — y la API contestaba
+   * `{"sent":true}` igual, porque esa respuesta es la misma exista o no la
+   * cuenta, así que todo parecía andar y no llegaba nada.
+   */
+  readonly store =
+    process.env['USE_POSTGRES'] !== 'false'
+      ? new PostgresResetStore(database)
+      : new InMemoryResetStore();
   readonly mailer: Mailer = resolveMailer();
 }
 

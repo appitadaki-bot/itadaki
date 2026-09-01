@@ -16,6 +16,23 @@ const STORAGE_KEY = 'itadaki.staff-session';
  * The token carries the tenant, so no screen ever asks which restaurant it is
  * looking at — that question is answered once, at login.
  */
+/**
+ * Si la dirección trae una credencial de un solo uso.
+ *
+ * Los dos links que llegan por mail: el de recuperar contraseña y el de
+ * confirmar la casilla al registrarse. Los dos tienen que poder usarse en un
+ * navegador donde ya hay alguien adentro — es lo más común, porque el mail se
+ * abre en el mismo teléfono.
+ */
+function hayCredencialEnLaUrl(): boolean {
+  const params = new URLSearchParams(globalThis.location?.search ?? '');
+  const recuperar = (params.get('reset') ?? '') !== '';
+  const verificar =
+    (params.get('t') ?? '') !== '' && (globalThis.location?.pathname ?? '').includes('/verificar');
+
+  return recuperar || verificar;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
   private baseUrl = '';
@@ -34,6 +51,25 @@ export class AuthStore {
 
   /** Restores a stored session and confirms it is still valid server-side. */
   async restore(): Promise<void> {
+    /*
+     * Un link del mail gana sobre la sesión que haya guardada.
+     *
+     * Quien abre "recuperar contraseña" en un navegador donde ya había entrado
+     * caía directo en el panel: la sesión vieja se restauraba antes de que
+     * nadie mirara la dirección, y la pantalla de elegir contraseña nunca
+     * llegaba a aparecer. Se pedía el link, se tocaba, y no pasaba nada — con
+     * la contraseña sin cambiar y sin ninguna señal de por qué.
+     *
+     * Peor en el caso que el link existe para resolver: alguien que perdió su
+     * contraseña, o que sospecha que alguien más la tiene. Quedarse con la
+     * sesión abierta es exactamente lo contrario de lo que vino a hacer.
+     */
+    if (hayCredencialEnLaUrl()) {
+      this.signOut();
+      this.ready.set(true);
+      return;
+    }
+
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === null) {
       this.ready.set(true);
@@ -187,6 +223,25 @@ export class AuthStore {
               : 'El link venció o ya se usó. Pedí uno nuevo.',
         );
         return false;
+      }
+
+      /*
+       * El servidor devuelve la sesión: cambiar la contraseña también entra.
+       *
+       * Acaba de probar que la casilla es suya, y hacerle escribir de nuevo el
+       * mail y la contraseña que eligió hace dos segundos no protege nada.
+       *
+       * Si viniera sin sesión —una versión anterior de la API— queda en el
+       * formulario, que es lo que hacía antes.
+       */
+      const sesion = (await response.json().catch(() => null)) as
+        | { token?: string; user?: StaffProfile }
+        | null;
+
+      if (sesion?.token !== undefined && sesion.user !== undefined) {
+        this.token.set(sesion.token);
+        this.profile.set(sesion.user);
+        localStorage.setItem(STORAGE_KEY, sesion.token);
       }
       return true;
     } catch {

@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   type ElementRef,
+  computed,
   inject,
   input,
   signal,
@@ -37,11 +38,32 @@ import { AuthStore } from './auth.store';
             <small class="hint">Mínimo 8 caracteres</small>
           </label>
 
-          @if (auth.error(); as message) {
+          <!-- Repetirla, que el alta tampoco pide pero acá importa más: el
+               link vale una sola vez, así que un error de tipeo deja a alguien
+               afuera de su propio restaurante con la contraseña que ya no
+               recordaba y el link gastado. -->
+          <label class="field">
+            <span>Repetila</span>
+            <input
+              type="password"
+              autocomplete="new-password"
+              required
+              [value]="repetida()"
+              (input)="onRepetida($event)"
+            />
+          </label>
+
+          @if (noCoinciden()) {
+            <p class="error" role="alert">Las dos contraseñas tienen que ser iguales</p>
+          } @else if (auth.error(); as message) {
             <p class="error" role="alert">{{ message }}</p>
           }
 
-          <button type="submit" class="cta" [disabled]="auth.busy() || password() === ''">
+          <button
+            type="submit"
+            class="cta"
+            [disabled]="auth.busy() || password() === '' || repetida() === '' || noCoinciden()"
+          >
             {{ auth.busy() ? 'Guardando…' : 'Guardar y entrar' }}
           </button>
         </form>
@@ -263,6 +285,19 @@ export class LoginComponent {
    * invitaría a intentar de nuevo creyendo que no funcionó.
    */
   protected readonly mailMandado = signal(false);
+
+  /** La contraseña repetida, para no quedar afuera por un error de tipeo. */
+  protected readonly repetida = signal('');
+
+  /**
+   * Si las dos no coinciden.
+   *
+   * Callado mientras se está escribiendo la segunda: marcar en rojo desde la
+   * primera letra es decirle a alguien que se equivocó antes de que termine.
+   */
+  protected readonly noCoinciden = computed(
+    () => this.repetida() !== '' && this.password() !== this.repetida(),
+  );
   protected readonly resetSent = signal(false);
   protected readonly needsRestaurant = signal(false);
   protected readonly googleClientId = signal<string | null>(null);
@@ -424,15 +459,23 @@ export class LoginComponent {
     event.preventDefault();
     if (this.password() === '' || this.auth.busy()) return;
 
-    const done = await this.auth.resetPassword(this.resetToken, this.password());
-    if (done) {
-      // The reset does not sign anyone in, so land them on the login form with
-      // the password they just chose.
+    if (this.noCoinciden() || this.repetida() === '') return;
+
+    const nueva = this.password();
+    const done = await this.auth.resetPassword(this.resetToken, nueva);
+    if (!done) return;
+
+    this.resetSent.set(false);
+    this.auth.error.set(null);
+
+    // El store ya guardó la sesión que devolvió el servidor. Si no vino
+    // ninguna, esto deja el formulario listo con la contraseña nueva.
+    if (!this.auth.signedIn()) {
       this.mode.set('auth');
-      this.password.set('');
-      this.resetSent.set(false);
-      this.auth.error.set(null);
     }
+
+    this.password.set('');
+    this.repetida.set('');
   }
 
   protected filled(): boolean {
@@ -455,6 +498,10 @@ export class LoginComponent {
 
   protected onEmail(event: Event): void {
     this.email.set((event.target as HTMLInputElement).value);
+  }
+
+  protected onRepetida(event: Event): void {
+    this.repetida.set((event.target as HTMLInputElement).value);
   }
 
   protected onPassword(event: Event): void {
