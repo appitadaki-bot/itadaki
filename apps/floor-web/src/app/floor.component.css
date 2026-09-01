@@ -321,6 +321,10 @@
 .owing-card .release {
   border: none;
   background: none;
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  min-height: 44px;
   padding: 0.25rem 0;
   font-family: inherit;
   font-size: 0.75rem;
@@ -589,7 +593,8 @@
 
 .action-error .dismiss {
   flex-shrink: 0;
-  padding: 0.35rem 0.7rem;
+  min-height: 44px;
+  padding: 0.35rem 0.9rem;
   border: 1px solid var(--itadaki-border);
   border-radius: var(--itadaki-radius-action);
   background: transparent;
@@ -812,12 +817,18 @@ button {
   transform: scale(0.97);
 }
 
+/* 44px es lo que se toca sin errarle con el pulgar, y acá se toca de parado,
+   con una mano y el salón lleno. Los tres que quedaban abajo son además los
+   de arrepentirse: volver del cobro, liberar la mesa, cerrar el error. */
 .cobro-volver {
   align-self: flex-end;
   margin-top: 0.6rem;
   border: none;
   background: none;
-  padding: 0.4rem 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.4rem 0.6rem;
   font-family: inherit;
   font-size: 0.8rem;
   font-weight: 600;
