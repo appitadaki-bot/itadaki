@@ -147,11 +147,11 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.7px;
-  color: var(--itadaki-ink-faint);
+  color: var(--itadaki-ink-subtle);
   margin: 0 0 0.6rem;
 }
 
@@ -211,7 +211,9 @@
 .table {
   font-family: var(--itadaki-font-display);
   font-weight: 800;
-  font-size: 1.05rem;
+  /* Es el único dato que el mozo busca de verdad: el resto lo lee ya sabiendo
+     de qué mesa es. */
+  font-size: 1.2rem;
   color: var(--itadaki-ink-strong);
   letter-spacing: -0.02em;
 }
@@ -291,7 +293,7 @@
   background: var(--itadaki-ink);
   color: white;
   padding: 0.6rem 1.2rem;
-  font-family: var(--itadaki-font-display);
+  font-family: var(--itadaki-font-body);
   font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
@@ -367,7 +369,7 @@
   border: 1px solid var(--itadaki-status-late);
   border-radius: var(--itadaki-radius-action);
   padding: 0.6rem 1rem;
-  font-family: var(--itadaki-font-display);
+  font-family: var(--itadaki-font-body);
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
@@ -392,10 +394,15 @@
   color: var(--itadaki-ink-subtle);
   margin: 0;
   padding: 0.6rem 0.2rem;
+
+  padding: 0.5rem 0;
+  margin: 0;
 }
 
 .quiet-title {
   color: var(--itadaki-ink-faint);
+
+  opacity: 0.75;
 }
 
 /* Reference, not a task list — no buttons, quieter type. */
@@ -509,10 +516,6 @@
 
 /* "En cocina" es para contestar "¿falta mucho?", no una tarea: se apaga para
    que no compita con lo que sí hay que hacer. */
-.quiet-title {
-  opacity: 0.75;
-}
-
 /* "En cocina" plegado: una línea en vez de una fila por mesa. Con trece
    mesas activas ocupaba media pantalla compitiendo con lo que sí hay que
    hacer, siendo que sólo sirve para contestar "¿falta mucho?". */
@@ -755,29 +758,39 @@ button {
  * eso cambia. El que tuvo la plata en la mano es quien puede declararlo.
  */
 .cobro-ask {
-  margin: 0.5rem 0 0.4rem;
-  font-size: 0.85rem;
+  /* A la izquierda: encabeza la grilla de medios, que ocupa el ancho. */
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--itadaki-ink-strong);
-  text-align: right;
+  text-align: start;
 }
 
+/*
+ * Los medios, en grilla y no en fila.
+ *
+ * Cinco botones en una fila obligan a que cada uno sea angosto, y ahí
+ * "Transferencia" se parte o se sale. En grilla se acomodan solos: tres arriba
+ * y dos abajo en el teléfono, los cinco en una línea en la tablet.
+ */
 .cobro-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
   gap: 0.5rem;
-  justify-content: flex-end;
 }
 
 .cobro {
-  flex: 1;
-  max-width: 8rem;
+  /* El ancho lo reparte la grilla: con un máximo fijo, "Transferencia" se
+     partía o se salía del botón. */
   padding: 0.7rem 0.9rem;
+  /* Y si aun así no entra, que corte por donde se pueda leer. */
+  overflow-wrap: break-word;
   border-radius: var(--itadaki-radius-action);
   border: 1px solid var(--itadaki-border);
   background: var(--itadaki-surface-raised);
-  font-family: var(--itadaki-font-display);
-  font-size: 0.9rem;
-  font-weight: 700;
+  font-family: var(--itadaki-font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
   color: var(--itadaki-ink-strong);
   cursor: pointer;
   /* Grande: se toca de parado, con una bandeja en la otra mano. */
@@ -801,7 +814,7 @@ button {
 
 .cobro-volver {
   align-self: flex-end;
-  margin-top: 0.4rem;
+  margin-top: 0.6rem;
   border: none;
   background: none;
   padding: 0.4rem 0.2rem;
@@ -810,6 +823,9 @@ button {
   font-weight: 600;
   color: var(--itadaki-ink-subtle);
   cursor: pointer;
+
+  font-family: var(--itadaki-font-body);
+  font-weight: 600;
 }
 
 /* ═══ QUE SE LEA DE PARADO ═══
@@ -825,11 +841,6 @@ button {
  * había que leerlos para saber dónde estaba parado uno. La línea de color los
  * ancla y da el borde superior que separa una zona de la siguiente.
  */
-.block-title {
-  font-size: 0.72rem;
-  color: var(--itadaki-ink-subtle);
-}
-
 .block-title.as-toggle::before,
 .block-title:not(.as-toggle)::before {
   content: '';
@@ -857,21 +868,12 @@ button {
  * Es el único dato que el mozo busca de verdad —el resto lo lee ya sabiendo a
  * qué mesa pertenece— así que tiene que poder encontrarlo sin acercarse.
  */
-.table {
-  font-size: 1.2rem;
-}
-
 /*
  * El bloque que no tiene nada.
  *
  * "Nadie está llamando ahora" en gris tenue: dice que se miró y que está
  * vacío, sin ocupar el peso visual de algo que hay que atender.
  */
-.quiet {
-  padding: 0.5rem 0;
-  margin: 0;
-}
-
 /*
  * La zona urgente, contra el resto.
  *
@@ -900,5 +902,66 @@ button {
 
   .urgente .table {
     font-size: 1.35rem;
+  }
+}
+
+/* ═══ QUE SE LEA, Y QUE ENTRE ═══
+ *
+ * Dos problemas que se veían como uno.
+ *
+ * El primero: los cinco medios de pago vivían en la columna angosta de la
+ * derecha, junto al botón de cobrar. No entraban, así que se desbordaban
+ * encima del nombre de la mesa y del monto —justo lo que hay que leer para
+ * cobrar—. Ahora esa elección ocupa el ancho de la tarjeta.
+ *
+ * El segundo: los botones usaban la tipografía de los títulos. Unbounded es
+ * ancha y decorativa a propósito, buena para "ITADAKI" arriba de todo y mala
+ * para una palabra como "Transferencia" dentro de un botón. Los botones y los
+ * datos pasan a la de texto, que es más angosta y se lee mejor en cuerpo
+ * chico; los títulos y los números grandes se quedan con la de siempre. */
+
+/* La tarjeta, en filas: los datos arriba, lo que se elige debajo. */
+.owing-card {
+  display: block;
+}
+
+.card-fila {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/*
+ * La zona donde se elige, separada de los datos por una línea.
+ *
+ * Es un momento distinto: primero se lee cuánto debe la mesa, después se elige
+ * con qué pagó. Pegados, la pregunta parecía parte del monto.
+ */
+.cobro-zona {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--itadaki-border-dashed);
+}
+
+/* Los que no la declaraban: que ninguno quede con la de títulos por herencia. */
+.release,
+/* El monto y el número de mesa se quedan con la de títulos: son lo que el mozo
+   busca de un vistazo, y ahí lo ancho ayuda. */
+/*
+ * En el teléfono la tarjeta se apila.
+ *
+ * "Mesa 1" y "$ 9.000" al lado de dos botones no entran en 390px: el nombre se
+ * partía en dos líneas y el monto quedaba encimado.
+ */
+@media (max-width: 560px) {
+  .card-fila {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .owing-card .card-side {
+    align-items: stretch;
+    width: 100%;
   }
 }

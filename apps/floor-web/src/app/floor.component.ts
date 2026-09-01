@@ -181,30 +181,52 @@ const CALL_LABELS: Record<string, string> = {
 
           @for (mesa of store.misImpagas(); track mesa.sessionId) {
             <article class="card owing-card">
-              <div class="card-main">
-                <span class="table">Mesa {{ tableNumber(mesa.tableId) }}</span>
-                <span class="amount">{{ money(mesa.owed) }}</span>
-                <span class="note">{{ mesa.diners }} en la mesa</span>
-                @if (store.payingAtCounter().has(mesa.sessionId)) {
-                  <!-- Acá se decide liberar, así que el aviso tiene que estar
-                       acá: en la lista de llamados se pierde entre los otros. -->
-                  <span class="counter">Dijeron que pagan en la caja</span>
-                }
+              <div class="card-fila">
+                <div class="card-main">
+                  <span class="table">Mesa {{ tableNumber(mesa.tableId) }}</span>
+                  <span class="amount">{{ money(mesa.owed) }}</span>
+                  <span class="note">{{ mesa.diners }} en la mesa</span>
+                  @if (store.payingAtCounter().has(mesa.sessionId)) {
+                    <!-- Acá se decide liberar, así que el aviso tiene que estar
+                         acá: en la lista de llamados se pierde entre los otros. -->
+                    <span class="counter">Dijeron que pagan en la caja</span>
+                  }
+                </div>
+                <div class="card-side">
+                  @if (mesa.since !== null) {
+                    <span class="waited">comieron {{ waitedSince(mesa.since) }}</span>
+                  }
+                  <!-- Cobrar es la acción normal y cierra la cuenta; liberar sin
+                       cobrar existe para la mesa que pagó por fuera del sistema. -->
+                  @if (cobrando() !== mesa.sessionId && confirming() !== mesa.sessionId) {
+                    <button type="button" class="action" (click)="cobrando.set(mesa.sessionId)">
+                      Cobré {{ money(mesa.owed) }}
+                    </button>
+                    <button
+                      type="button"
+                      class="release"
+                      (click)="confirming.set(mesa.sessionId)"
+                    >
+                      Liberar sin cobrar
+                    </button>
+                  }
+                </div>
               </div>
-              <div class="card-side">
-                @if (mesa.since !== null) {
-                  <span class="waited">comieron {{ waitedSince(mesa.since) }}</span>
-                }
-                <!-- Cobrar es la acción normal y cierra la cuenta; liberar sin
-                     cobrar existe para la mesa que pagó por fuera del sistema,
-                     y dice cuánto debe antes de hacerlo. -->
-                <!-- Con qué cobró, en el mismo toque.
-                     Lo declara quien tuvo la plata en la mano: la mesa dice
-                     cómo *piensa* pagar antes de que el mozo llegue, y eso
-                     cambia. Un número que el dueño cruza con su caja no puede
-                     salir de una intención. -->
-                @if (cobrando() === mesa.sessionId) {
-                  <p class="cobro-ask">¿Con qué pagaron?</p>
+
+              <!--
+                Elegir el medio, a lo ancho de la tarjeta.
+
+                Estaba en la columna de la derecha, junto al botón de cobrar:
+                cinco medios de pago no entran en una columna angosta, así que
+                se desbordaban encima del nombre de la mesa y del monto — justo
+                lo que hay que leer para cobrar.
+
+                Lo declara quien tuvo la plata en la mano: la mesa dice cómo
+                *piensa* pagar antes de que el mozo llegue, y eso cambia.
+              -->
+              @if (cobrando() === mesa.sessionId) {
+                <div class="cobro-zona">
+                  <p class="cobro-ask">¿Con qué pagaron los {{ money(mesa.owed) }}?</p>
                   <!-- Recorridos y no escritos a mano: agregar un medio en un
                        solo lugar tiene que alcanzar. Crédito y débito van
                        separados porque al dueño le cuestan distinto, y eso
@@ -224,18 +246,16 @@ const CALL_LABELS: Record<string, string> = {
                   <button type="button" class="cobro-volver" (click)="cobrando.set(null)">
                     Volver
                   </button>
-                } @else {
-                  <button type="button" class="action" (click)="cobrando.set(mesa.sessionId)">
-                    Cobré {{ money(mesa.owed) }}
-                  </button>
-                }
+                </div>
+              }
 
-                @if (confirming() === mesa.sessionId) {
-                  <!-- La confirmación es una pregunta con dos salidas. Un solo
-                       botón que cambiaba de texto a "Debe $X · liberar igual"
-                       se leía como un cartel sobre la deuda y no como algo que
-                       había que volver a tocar: parecía que el primer toque no
-                       había hecho nada. -->
+              @if (confirming() === mesa.sessionId) {
+                <!-- La confirmación es una pregunta con dos salidas. Un solo
+                     botón que cambiaba de texto a "Debe $X · liberar igual" se
+                     leía como un cartel sobre la deuda y no como algo que había
+                     que volver a tocar: parecía que el primer toque no había
+                     hecho nada. -->
+                <div class="cobro-zona">
                   <p class="release-ask">¿Liberar sin cobrar los {{ money(mesa.owed) }}?</p>
                   <div class="release-row">
                     <button
@@ -249,16 +269,8 @@ const CALL_LABELS: Record<string, string> = {
                       No
                     </button>
                   </div>
-                } @else {
-                  <button
-                    type="button"
-                    class="release"
-                    (click)="confirming.set(mesa.sessionId)"
-                  >
-                    Liberar sin cobrar
-                  </button>
-                }
-              </div>
+                </div>
+              }
             </article>
           }
         </section>
