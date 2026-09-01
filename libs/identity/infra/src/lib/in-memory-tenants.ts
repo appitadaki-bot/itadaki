@@ -25,6 +25,9 @@ interface Fila {
  * token fallaba primero.
  */
 /** El restaurante que trae la app para poder levantarla sin cargar nada. */
+/** Donde está la mayoría de los locales, y el de demostración. */
+const ZONA_POR_DEFECTO = 'America/Argentina/Buenos_Aires';
+
 const DEMO_TENANT_ID = 'itadaki';
 const DEMO_TENANT_NOMBRE = 'Restaurante demo';
 
@@ -184,6 +187,12 @@ export class InMemoryTenantStore {
       }
     }
     return ok(nombres);
+  }
+
+  /** En qué zona vive este restaurante. Lo mismo que en Postgres. */
+  async zonaDe(tenantId: string): Promise<Result<string | null, TenantError>> {
+    const local = InMemoryTenantStore.locales.get(tenantId);
+    return ok(local?.tenant.timezone ?? ZONA_POR_DEFECTO);
   }
 
   async mailVerificado(email: string): Promise<Result<boolean, TenantError>> {

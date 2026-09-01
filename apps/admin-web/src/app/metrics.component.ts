@@ -50,7 +50,19 @@ export interface MetricsDto {
   readonly bottomProducts: readonly ProductStat[];
 }
 
-const WINDOWS: ReadonlyArray<{ days: number; label: string }> = [
+/**
+ * Los períodos que se pueden mirar.
+ *
+ * "Hoy" primero porque es el que se mira todos los días: el dueño cierra la
+ * caja y quiere cuadrarla contra lo que dice el sistema. Los otros tres son
+ * para mirar cómo viene el mes, que se hace de vez en cuando.
+ *
+ * No es "1 día": las últimas veinticuatro horas incluirían el servicio de
+ * anoche, que fue otro turno con otra caja. Va como palabra y no como número
+ * justamente para que no se confundan.
+ */
+const WINDOWS: ReadonlyArray<{ days: number | 'hoy'; label: string }> = [
+  { days: 'hoy', label: 'Hoy' },
   { days: 7, label: '7 días' },
   { days: 30, label: '30 días' },
   { days: 90, label: '90 días' },
@@ -205,7 +217,7 @@ const WINDOWS: ReadonlyArray<{ days: number; label: string }> = [
             <summary>Ver como tabla</summary>
             <table>
               <caption class="itd-visually-hidden">
-                Productos vendidos en los últimos {{ m.windowDays }} días
+                Productos vendidos {{ elPeriodo() }}
               </caption>
               <thead>
                 <tr><th scope="col">Plato</th><th scope="col">Unidades</th><th scope="col">Facturado</th></tr>
@@ -236,12 +248,20 @@ export class MetricsComponent {
   private readonly auth = inject(AuthStore);
 
   protected readonly windows = WINDOWS;
+
+  /** El período, dicho como se lee dentro de una frase. */
+  protected readonly elPeriodo = computed(() => {
+    const elegido = this.days();
+    return elegido === 'hoy' ? 'hoy' : `en los últimos ${elegido} días`;
+  });
   /**
-   * Siete días, que es lo que un restaurante mira para decidir algo: cómo
-   * viene la semana. Treinta sirve para ver una tendencia, y para eso se
-   * elige a mano.
+   * Hoy, que es lo que se mira todos los días.
+   *
+   * El dueño cierra la caja y quiere cuadrarla contra lo que dice el sistema;
+   * la semana y el mes se miran de vez en cuando y se eligen a mano. Antes
+   * arrancaba en siete días y ver el día de hoy no era posible.
    */
-  protected readonly days = signal(7);
+  protected readonly days = signal<number | 'hoy'>('hoy');
   protected readonly data = signal<MetricsDto | null>(null);
   protected readonly error = signal<string | null>(null);
 
@@ -350,11 +370,11 @@ export class MetricsComponent {
     });
   }
 
-  protected setWindow(days: number): void {
+  protected setWindow(days: number | 'hoy'): void {
     this.days.set(days);
   }
 
-  private async load(base: string, days: number): Promise<void> {
+  private async load(base: string, days: number | 'hoy'): Promise<void> {
     this.error.set(null);
 
     try {
