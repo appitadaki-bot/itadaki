@@ -93,3 +93,39 @@ describe('si el local pide reseñas', () => {
     expect(pideResenas('https://g.page/r/abc/review')).toBe(true);
   });
 });
+
+/**
+ * Maps desde la computadora.
+ *
+ * Compartir ahí no da el link corto sino la dirección larga, y en Argentina
+ * con el dominio local. Es lo que tiene a mano el que está sentado
+ * configurando su local, y se rechazaba sin decir dónde estaba el "bueno".
+ */
+describe('el link que da Maps en la computadora', () => {
+  it.each([
+    'https://www.google.com/maps/place/Mi+Restaurante/@-34.6,-58.4,17z',
+    'https://www.google.com.ar/maps/place/Mi+Restaurante',
+    'https://google.com/maps/place/Mi+Restaurante',
+    'https://www.google.com/local/place/qa/review',
+  ])('acepta %s', (link) => {
+    expect(linkDeResena(link).isOk()).toBe(true);
+  });
+
+  /** Lo que quedó en el portapapeles no es un link de reseña. */
+  it.each(['https://www.google.com', 'https://www.google.com/', 'https://google.com/gmail'])(
+    'rechaza %s',
+    (link) => {
+      const resultado = linkDeResena(link);
+      expect(resultado.isErr()).toBe(true);
+      if (resultado.isErr()) expect(resultado.error.kind).toBe('NO_ES_DE_GOOGLE');
+    },
+  );
+
+  /** Un dominio que sólo empieza igual no es Google. */
+  it.each(['https://google.com.evil.example/maps/place/x', 'https://notgoogle.com/maps/place/x'])(
+    'no se deja engañar por %s',
+    (link) => {
+      expect(linkDeResena(link).isErr()).toBe(true);
+    },
+  );
+});

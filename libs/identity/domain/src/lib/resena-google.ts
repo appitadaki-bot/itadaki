@@ -22,12 +22,31 @@ const LARGO_MAXIMO = 500;
 /**
  * Los dominios donde Google aloja estos links.
  *
- * `g.page` es el corto que da el panel de Business; los otros dos aparecen
- * cuando el dueño copia desde el buscador o desde Maps. Los tres llevan al
- * mismo formulario, así que se aceptan los tres en vez de obligarlo a
- * encontrar el "correcto".
+ * `g.page` es el corto que da el panel de Business; los otros aparecen cuando
+ * el dueño copia desde el buscador o desde Maps en el teléfono. Todos llevan
+ * al mismo lugar, así que se aceptan todos en vez de obligarlo a encontrar el
+ * "correcto".
  */
 const DOMINIOS = ['g.page', 'search.google.com', 'maps.app.goo.gl', 'goo.gl'];
+
+/**
+ * Maps desde la computadora.
+ *
+ * Ahí Compartir no da el link corto sino `google.com/maps/place/...`, y en
+ * Argentina encima con el dominio local: `google.com.ar`. Es de Google igual,
+ * y es lo que tiene a mano el que está sentado frente a la computadora
+ * configurando su local — rechazarlo mandaba a buscar el link "bueno" sin
+ * decir dónde está.
+ *
+ * Se pide además que la dirección lleve a un lugar y no a la home: pegar
+ * `google.com` no es un link de reseña, es lo que quedó en el portapapeles.
+ */
+const CAMINOS_DE_GOOGLE = ['/maps', '/local', '/search'];
+
+function esGoogleDeEscritorio(host: string, camino: string): boolean {
+  const esDominioGoogle = host === 'google.com' || /^(www\.)?google\.[a-z.]{2,7}$/.test(host);
+  return esDominioGoogle && CAMINOS_DE_GOOGLE.some((inicio) => camino.startsWith(inicio));
+}
 
 /**
  * Valida el link que el dueño pegó.
@@ -61,9 +80,9 @@ export function linkDeResena(crudo: string): Result<string, ResenaError> {
   }
 
   const host = url.hostname.toLowerCase();
-  const esDeGoogle = DOMINIOS.some(
-    (dominio) => host === dominio || host.endsWith(`.${dominio}`),
-  );
+  const esDeGoogle =
+    DOMINIOS.some((dominio) => host === dominio || host.endsWith(`.${dominio}`)) ||
+    esGoogleDeEscritorio(host, url.pathname);
 
   if (!esDeGoogle) {
     return err({ kind: 'NO_ES_DE_GOOGLE', host });
