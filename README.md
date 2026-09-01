@@ -142,6 +142,11 @@ app. También acepta `DATABASE_URL`, pero si las dos están puestas y apuntan a
 bases distintas se niega a correr: respaldar desarrollo creyendo que es
 producción deja un archivo con nombre de respaldo y datos de otra base.
 
+Los dos verifican el certificado de la base —`sslmode=verify-full`— y se
+niegan a seguir si no cierra. Cifrar sin comprobar con quién se habla deja que
+alguien en el medio se quede con la copia entera, o devuelva datos inventados
+en una restauración.
+
 Antes de nada dice a dónde se conectó:
 
 ```

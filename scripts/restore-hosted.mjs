@@ -14,6 +14,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import pg from 'pg';
+import { conTlsVerificado, esProblemaDeCertificado } from './conexion.mjs';
 
 const archivo = process.argv[2];
 if (archivo === undefined) {
@@ -45,8 +46,19 @@ if (copia.origen?.host !== undefined && copia.origen.host !== destino && !proces
   process.exit(1);
 }
 
-const c = new pg.Client({ connectionString: conexion, ssl: { rejectUnauthorized: false } });
-await c.connect();
+const c = new pg.Client({ connectionString: conTlsVerificado(conexion) });
+
+try {
+  await c.connect();
+} catch (error) {
+  if (!esProblemaDeCertificado(error)) throw error;
+  console.error('No se pudo verificar el certificado de la base.');
+  console.error(`  ${error.message}`);
+  console.error('');
+  console.error('No se apaga la verificación: sin ella, alguien en el medio puede');
+  console.error('devolver datos inventados y quedan escritos en la base.');
+  process.exit(1);
+}
 
 /**
  * Qué columnas son JSON, por tabla.

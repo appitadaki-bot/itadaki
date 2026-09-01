@@ -8,6 +8,7 @@
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import pg from 'pg';
+import { conTlsVerificado, esProblemaDeCertificado } from './conexion.mjs';
 
 /*
  * Sirve la misma variable con la que se migra.
@@ -49,11 +50,20 @@ if (admin !== undefined && normal !== undefined && admin !== normal) {
   process.exit(1);
 }
 
-const c = new pg.Client({
-  connectionString: conexion,
-  ssl: { rejectUnauthorized: false },
-});
-await c.connect();
+const c = new pg.Client({ connectionString: conTlsVerificado(conexion) });
+
+try {
+  await c.connect();
+} catch (error) {
+  if (!esProblemaDeCertificado(error)) throw error;
+  console.error('No se pudo verificar el certificado de la base.');
+  console.error(`  ${error.message}`);
+  console.error('');
+  console.error('No se apaga la verificación: sin ella, cualquiera en el medio');
+  console.error('puede quedarse con la copia entera de la base. Si el proveedor');
+  console.error('usa un certificado propio, agregale su CA a la cadena.');
+  process.exit(1);
+}
 
 /*
  * De dónde salió esto.
