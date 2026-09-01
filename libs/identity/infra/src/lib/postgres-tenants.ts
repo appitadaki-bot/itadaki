@@ -275,26 +275,35 @@ export class PostgresTenantStore {
    * La condición del vencimiento va en el SQL y no después: un token vencido
    * no tiene que llegar a coincidir con nada.
    */
+  /**
+   * Verifica el mail y dice de quién era.
+   *
+   * Devuelve el mail y no sólo el local porque verificar también abre la
+   * sesión: desde que el alta dejó de iniciarla —para no delatar qué
+   * direcciones ya tienen cuenta— éste es el único momento en que alguien
+   * probó que la casilla es suya, y con el `tenant_id` solo no se puede saber
+   * cuál de las personas del local abrió el link.
+   */
   async verificarMail(digest: string, ahora: Date): Promise<Result<string | null, TenantError>> {
     try {
-      const tenantId = await this.db.unscoped(async (client) => {
+      const email = await this.db.unscoped(async (client) => {
         // Mismo recorrido: sin alcance, el UPDATE no encuentra la fila aunque
         // el token sea correcto.
         return this.porCadaLocal(client, async () => {
-          const result = await client.query<{ tenant_id: string }>(
+          const result = await client.query<{ email: string }>(
             `UPDATE staff_users
                 SET email_verified_at = $2,
                     verify_digest = NULL,
                     verify_expires_at = NULL
               WHERE verify_digest = $1
                 AND verify_expires_at > $2
-              RETURNING tenant_id`,
+              RETURNING email`,
             [digest, ahora],
           );
-          return result.rows[0]?.tenant_id ?? null;
+          return result.rows[0]?.email ?? null;
         });
       });
-      return ok(tenantId);
+      return ok(email);
     } catch (error) {
       return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
     }

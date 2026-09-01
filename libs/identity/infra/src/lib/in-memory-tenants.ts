@@ -131,8 +131,9 @@ export class InMemoryTenantStore {
       InMemoryTenantStore.verificaciones.delete(email);
       InMemoryTenantStore.verificados.add(email);
 
-      const dueno = InMemoryStaffStore.compartidas.get(email);
-      return ok(dueno?.tenantId ?? null);
+      // El mail y no el local: verificar también abre la sesión, y con el
+      // local solo no se sabe cuál de las personas abrió el link.
+      return ok(email);
     }
     return ok(null);
   }
@@ -211,6 +212,12 @@ export class InMemoryTenantStore {
     input: SignUpInput,
   ): Promise<Result<{ tenant: Tenant; owner: import('@itadaki/identity/domain').StaffUser }, TenantError>> {
     const email = input.staff.email.toLowerCase();
+
+    // Con el personal de demostración ya cargado: el mapa se llena la primera
+    // vez que alguien lo consulta, y sin esto un alta antes del primer login
+    // no veía a la gente de la demo.
+    await new InMemoryStaffStore().sembrar();
+
     // El índice de mails es global en Postgres, así que acá también.
     if (InMemoryStaffStore.compartidas.has(email)) {
       return err({ kind: 'EMAIL_TAKEN', email: input.staff.email });

@@ -26,6 +26,7 @@ export { InMemoryStaffStore } from './lib/in-memory-staff';
 export {
   VERIFY_TOKEN_HORAS,
   digestDeVerificacion,
+  mailDeIntentoDeAlta,
   mailDeVerificacion,
   nuevoTokenDeVerificacion,
 } from './lib/verificacion-mail';

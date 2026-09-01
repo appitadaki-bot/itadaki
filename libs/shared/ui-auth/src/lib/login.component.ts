@@ -108,6 +108,29 @@ import { AuthStore } from './auth.store';
           </button>
         </p>
       </form>
+      } @else if (mailMandado()) {
+      <!-- El alta salió y lo que falta está en la casilla.
+           Reemplaza al formulario en vez de ponerse encima: dejar los campos
+           invitaría a intentar de nuevo creyendo que no funcionó.
+
+           Dice lo mismo tenga o no cuenta ese mail, que es justamente lo que
+           impide averiguar qué direcciones están registradas. Quien ya tenía
+           cuenta recibe un aviso distinto en su casilla. -->
+      <section class="card">
+        <header class="head">
+          <p class="eyebrow">{{ context() }}</p>
+          <h1 class="title">Revisá tu mail</h1>
+          <p class="lede">
+            Te mandamos un link a <strong>{{ email() }}</strong> para entrar a tu
+            restaurante. Si no lo ves, mirá en spam.
+          </p>
+        </header>
+        <p class="switch">
+          <button type="button" class="link" (click)="volverAEmpezar()">
+            Usar otro mail
+          </button>
+        </p>
+      </section>
       } @else {
       <form class="card" (submit)="submit($event)">
         <header class="head">
@@ -231,6 +254,15 @@ export class LoginComponent {
   protected readonly password = signal('');
   protected readonly restaurant = signal('');
   protected readonly registering = signal(false);
+
+  /**
+   * El alta salió y hay un mail en camino.
+   *
+   * Reemplaza al formulario en vez de ponerse encima: lo que hay que hacer
+   * ahora está en la casilla, no en esta pantalla, y dejar los campos
+   * invitaría a intentar de nuevo creyendo que no funcionó.
+   */
+  protected readonly mailMandado = signal(false);
   protected readonly resetSent = signal(false);
   protected readonly needsRestaurant = signal(false);
   protected readonly googleClientId = signal<string | null>(null);
@@ -295,7 +327,38 @@ export class LoginComponent {
       globalThis.history.replaceState({}, '', clean.toString());
     }
 
+    /*
+     * El link del mail de alta.
+     *
+     * Desde que el alta dejó de iniciar sesión —para no delatar qué mails ya
+     * tienen cuenta— ésta es la única puerta del dueño recién registrado, así
+     * que además de verificar tiene que dejarlo adentro.
+     */
+    const verificacion = params.get('t');
+    if (globalThis.location.pathname.includes('/verificar') && verificacion) {
+      void this.verificarElMail(verificacion);
+      // Fuera de la barra de direcciones: es una credencial de un solo uso, y
+      // ahí queda en el historial y en cualquier captura de pantalla.
+      const limpio = new URL(globalThis.location.href);
+      limpio.searchParams.delete('t');
+      globalThis.history.replaceState({}, '', limpio.toString());
+    }
+
     void this.setUpGoogle();
+  }
+
+  /**
+   * Verifica el mail y entra.
+   *
+   * Un token vencido o ya usado no es un error del que lo abre —el link vale
+   * tres días y se puede haber abierto dos veces— así que se explica en vez de
+   * dejarlo en una pantalla rota.
+   */
+  private async verificarElMail(token: string): Promise<void> {
+    const entro = await this.auth.verificarMail(token);
+    if (!entro) {
+      this.mailMandado.set(false);
+    }
   }
 
   /**
@@ -402,12 +465,25 @@ export class LoginComponent {
     this.restaurant.set((event.target as HTMLInputElement).value);
   }
 
+  /** Vuelve al formulario, para quien se equivocó de dirección. */
+  protected volverAEmpezar(): void {
+    this.mailMandado.set(false);
+    this.password.set('');
+  }
+
   protected async submit(event: Event): Promise<void> {
     event.preventDefault();
     if (!this.filled() || this.auth.busy()) return;
 
     if (this.registering()) {
-      await this.auth.signUp(this.restaurant().trim(), this.email().trim(), this.password());
+      const salio = await this.auth.signUp(
+        this.restaurant().trim(),
+        this.email().trim(),
+        this.password(),
+      );
+      // El alta ya no entra al panel: se entra por el link del mail. Eso es lo
+      // que permite que el servidor conteste igual tenga o no cuenta ese mail.
+      if (salio) this.mailMandado.set(true);
       return;
     }
     await this.auth.signIn(this.email().trim(), this.password());

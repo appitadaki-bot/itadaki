@@ -18,6 +18,7 @@ import {
   RESET_TOKEN_MINUTES,
   digestDeVerificacion,
   digestOf,
+  mailDeIntentoDeAlta,
   mailDeVerificacion,
   nuevoTokenDeVerificacion,
   hashPassword,
@@ -105,6 +106,27 @@ export class AuthController {
    * have an account. It returns a session so signing up lands the owner
    * straight in the panel rather than at a login form.
    */
+  /**
+   * Le avisa al dueño que alguien intentó anotarse con su mail.
+   *
+   * Sin link de acción: un mail que llega sin que uno lo pidiera y trae un
+   * botón es la forma de todo phishing, y acá no hay nada que hacer — la
+   * cuenta sigue como estaba. Lleva la dirección del panel, que es la que el
+   * dueño ya conoce.
+   *
+   * Su fallo no se propaga: la respuesta al que intentó anotarse tiene que ser
+   * la misma pase lo que pase, o el tiempo que tarda vuelve a delatar cuál de
+   * los dos caminos se tomó.
+   */
+  private async avisarDelIntento(email: string): Promise<void> {
+    try {
+      const { subject, body } = mailDeIntentoDeAlta(ADMIN_APP_URL);
+      await this.resets.mailer.send({ to: email, subject, body });
+    } catch (error) {
+      log.error('no se pudo avisar del intento de alta', { detail: String(error) });
+    }
+  }
+
   /**
    * Manda el link de verificación.
    *
@@ -206,7 +228,25 @@ export class AuthController {
       throw new HttpException({ kind: 'TOKEN_INVALIDO' }, HttpStatus.BAD_REQUEST);
     }
 
-    return { verificado: true };
+    /*
+     * Verificar el mail también entra al panel.
+     *
+     * Es el único momento en que alguien probó que la casilla es suya, y desde
+     * que el alta dejó de iniciar sesión —para no delatar qué mails ya tienen
+     * cuenta— es también la única puerta que le queda al dueño recién
+     * registrado. Sin esto, verificaría y caería en la pantalla de entrada sin
+     * haber estado nunca adentro.
+     */
+    // `verificarMail` devuelve el mail, no la fila: la sesión necesita el
+    // usuario, así que se busca con lo que acaba de confirmarse.
+    const quien = await this.staff.store.findByEmail(verificado.value);
+    if (quien.isErr()) {
+      // Verificado quedó, aunque no podamos abrir la sesión acá: entra con su
+      // mail y contraseña, que es lo que la pantalla ofrece si esto falla.
+      return { verificado: true };
+    }
+
+    return { verificado: true, ...this.sessionFor(quien.value) };
   }
 
   /**
@@ -348,13 +388,29 @@ export class AuthController {
       },
     });
 
-    if (created.isErr()) {
-      const status =
-        created.error.kind === 'EMAIL_TAKEN' ? HttpStatus.CONFLICT : HttpStatus.BAD_GATEWAY;
-      throw new HttpException(created.error, status);
+    /*
+     * Un mail ya registrado no se contesta distinto.
+     *
+     * Devolver "ese mail ya existe" deja recorrer una lista de direcciones y
+     * armar el padrón de qué restaurantes usan Itadaki y con qué mail — que es
+     * justo lo que hace falta para un phishing dirigido creíble.
+     *
+     * Callarse del todo tampoco sirve: si alguien está probando el mail de un
+     * dueño, ese dueño tiene derecho a enterarse. Así que la respuesta al que
+     * intenta es siempre la misma, y lo que cambia es el mail que llega.
+     */
+    if (created.isErr() && created.error.kind === 'EMAIL_TAKEN') {
+      void this.avisarDelIntento(checked.value.email);
+      return { creado: true };
     }
 
-    const { tenant, owner } = created.value;
+    if (created.isErr()) {
+      throw new HttpException(created.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    // Sólo el local: el alta ya no arma la sesión del dueño, así que no hace
+    // falta la fila del usuario acá.
+    const { tenant } = created.value;
 
     /*
      * El mail de verificación sale acá, y su fallo no vuelca el alta.
@@ -366,30 +422,19 @@ export class AuthController {
      */
     void this.mandarVerificacion(checked.value.email, tenant.name);
 
-    const expiresAt = Date.now() + SESSION_HOURS * 3_600_000;
-    const token = signToken(
-      {
-        userId: owner.id,
-        tenantId: owner.tenantId,
-        role: owner.role,
-        displayName: owner.displayName,
-        expiresAt,
-      },
-      AUTH_SECRET,
-    );
-
-    return {
-      token,
-      expiresAt,
-      restaurant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
-      user: {
-        id: owner.id,
-        displayName: owner.displayName,
-        role: owner.role,
-        tenantId: owner.tenantId,
-        permissions: permissionsOf(owner.role),
-      },
-    };
+    /*
+     * El alta no inicia sesión: se entra por el link del mail.
+     *
+     * Es lo que hace que la respuesta pueda ser idéntica para un mail libre y
+     * para uno que ya tiene cuenta. Devolver una sesión sólo en el primer caso
+     * delataba cuál era cuál —y con eso se recorre una lista de direcciones y
+     * se arma el padrón de qué restaurantes usan Itadaki—.
+     *
+     * De paso arregla algo que ya estaba mal: la cuenta quedaba usable sin que
+     * nadie hubiera probado que el mail era suyo, así que un tipeo en la
+     * dirección dejaba a un dueño con un restaurante que no puede recuperar.
+     */
+    return { creado: true };
   }
 
   /** Lets the panel show or hide the Google button without guessing. */
