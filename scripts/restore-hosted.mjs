@@ -48,17 +48,53 @@ if (copia.origen?.host !== undefined && copia.origen.host !== destino && !proces
 const c = new pg.Client({ connectionString: conexion, ssl: { rejectUnauthorized: false } });
 await c.connect();
 
+/**
+ * Qué columnas son JSON, por tabla.
+ *
+ * Hace falta saberlo antes de insertar: un array de JavaScript, el driver lo
+ * manda como array de Postgres —`{uno,dos}`— y una columna `jsonb` lo rechaza
+ * con "invalid input syntax for type json". Los objetos sí los serializa solo,
+ * así que el error aparecía únicamente en las tablas con listas adentro.
+ */
+const jsonPorTabla = new Map();
+
+async function columnasJson(tabla) {
+  const cacheada = jsonPorTabla.get(tabla);
+  if (cacheada !== undefined) return cacheada;
+
+  const { rows } = await c.query(
+    `SELECT column_name FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = $1
+        AND data_type IN ('json', 'jsonb')`,
+    [tabla],
+  );
+  const nombres = new Set(rows.map((r) => r.column_name));
+  jsonPorTabla.set(tabla, nombres);
+  return nombres;
+}
+
 /** Inserta las filas que falten; las que ya están se dejan como están. */
 async function reponer(tabla, filas) {
   const columnas = Object.keys(filas[0]);
   const lista = columnas.map((columna) => `"${columna}"`).join(', ');
   const huecos = columnas.map((_, i) => `$${i + 1}`).join(', ');
+  const esJson = await columnasJson(tabla);
   let puestas = 0;
 
   for (const fila of filas) {
+    const valores = columnas.map((columna) => {
+      const valor = fila[columna];
+      // Sólo las columnas JSON: en las demás un array es un array de Postgres
+      // de verdad —`allergens`, `diets`— y convertirlo lo rompería al revés.
+      if (esJson.has(columna) && valor !== null && typeof valor === 'object') {
+        return JSON.stringify(valor);
+      }
+      return valor;
+    });
+
     const resultado = await c.query(
       `INSERT INTO "${tabla}" (${lista}) VALUES (${huecos}) ON CONFLICT DO NOTHING`,
-      columnas.map((columna) => fila[columna]),
+      valores,
     );
     puestas += resultado.rowCount ?? 0;
   }
