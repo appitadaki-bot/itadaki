@@ -147,8 +147,12 @@ export class AjustesController {
    * Lo que la mesa necesita saber, sin sesión de personal.
    *
    * La pantalla de la cuenta lo usa para decir "pagando en efectivo ahorrás
-   * X" antes de que elijan. Devuelve sólo el porcentaje: no hay nada más del
-   * local que el comensal tenga que ver desde acá.
+   * X" antes de que elijan, y la bienvenida para saludar con el nombre del
+   * restaurante.
+   *
+   * Sólo lo que el comensal ya sabe por estar sentado ahí: cómo se llama el
+   * lugar y qué descuento anuncia. Pide el token de la mesa, así que esto no
+   * es un directorio de restaurantes que se pueda recorrer desde afuera.
    */
   @Public()
   @TableScoped()
@@ -159,7 +163,13 @@ export class AjustesController {
     // que poder mostrarse igual, sólo que sin anunciar el descuento.
     const resenas = await this.tenants.store.resenas(scope.tenantId);
 
+    // Cómo se llama el local, para la pantalla de bienvenida: el comensal
+    // entró a un restaurante, no a un sistema, y "Bienvenido a ITADAKI" le
+    // habla de una marca que no eligió ver.
+    const nombres = await this.tenants.store.nombresDe([scope.tenantId]);
+
     return {
+      nombre: nombres.isOk() ? (nombres.value.get(scope.tenantId) ?? null) : null,
       descuentoEfectivo: puntos.isOk() ? puntos.value : 0,
       // Sin link no se ofrece nada: mejor eso que mandar a un cliente
       // conforme a una página rota.
