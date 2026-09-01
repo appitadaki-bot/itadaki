@@ -22,6 +22,10 @@ interface Fila {
  * creaba a medias y el mail de verificación nunca salía, porque guardar su
  * token fallaba primero.
  */
+/** El restaurante que trae la app para poder levantarla sin cargar nada. */
+const DEMO_TENANT_ID = 'itadaki';
+const DEMO_TENANT_NOMBRE = 'Restaurante demo';
+
 export class InMemoryTenantStore {
   /** Compartidas entre instancias: cada guard construye su propio store. */
   private static readonly locales = new Map<string, Fila>();
@@ -138,12 +142,23 @@ export class InMemoryTenantStore {
     return ok(null);
   }
 
-  /** Cómo se llaman estos restaurantes. Lo mismo que en Postgres. */
+  /**
+   * Cómo se llaman estos restaurantes. Lo mismo que en Postgres.
+   *
+   * El local de demostración no pasa por el alta —viene con la app— así que no
+   * está en el mapa y no tenía nombre. Sin esto, la bienvenida del comensal
+   * saludaba sin nombre en todo el desarrollo local y no había forma de ver
+   * que el nombre funciona.
+   */
   async nombresDe(ids: readonly string[]): Promise<Result<Map<string, string>, TenantError>> {
     const nombres = new Map<string, string>();
     for (const id of ids) {
       const local = InMemoryTenantStore.locales.get(id);
-      if (local !== undefined) nombres.set(id, local.tenant.name);
+      if (local !== undefined) {
+        nombres.set(id, local.tenant.name);
+      } else if (id === DEMO_TENANT_ID) {
+        nombres.set(id, DEMO_TENANT_NOMBRE);
+      }
     }
     return ok(nombres);
   }
