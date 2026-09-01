@@ -252,8 +252,14 @@ export class AuthController {
   /**
    * Entrar con usuario y PIN, para el personal sin mail de trabajo.
    *
-   * El restaurante viene en el link que el dueño le pasó —el slug es el id
-   * del local— así que el mozo escribe dos cosas y no tres.
+   * El usuario es único en toda la base, así que identifica a la persona sin
+   * necesidad del restaurante: el mozo escribe dos cosas y no tres, y el mismo
+   * usuario le sirve en todos los locales donde trabaja.
+   *
+   * Quien trabaja en más de uno recibe la lista para elegir. Se le pregunta
+   * después de verificar el PIN y no antes: preguntarlo antes le diría a
+   * cualquiera en qué restaurantes trabaja esa persona con sólo escribir su
+   * usuario.
    *
    * Lo que se traba es la cuenta y no la dirección de red: quien prueba PINes
    * a ciegas cambia de IP cuando quiere, pero no cambia de usuario.
@@ -264,9 +270,10 @@ export class AuthController {
   async loginConPin(@Body() body: unknown) {
     const parsed = z
       .object({
-        local: z.string().min(1).max(80),
         usuario: z.string().min(1).max(30),
         pin: z.string().min(1).max(20),
+        /** Sólo cuando la persona trabaja en varios y ya eligió. */
+        local: z.string().min(1).max(80).optional(),
       })
       .safeParse(body);
     if (!parsed.success) {
@@ -280,12 +287,28 @@ export class AuthController {
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
     }
 
-    const encontrado = await this.staff.store.findByUsername(parsed.data.local, usuario.value);
-    if (encontrado.isErr()) {
+    const locales = await this.staff.store.localesDe(usuario.value);
+    if (locales.isErr() || locales.value.length === 0) {
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
     }
 
-    const persona = encontrado.value;
+    /*
+     * Cuál de sus locales.
+     *
+     * Con uno solo, ése. Con varios y sin elegir, se verifica el PIN contra el
+     * primero —el mismo PIN vale en todos, es la misma persona— y recién ahí
+     * se le ofrece la lista.
+     */
+    const elegido =
+      parsed.data.local === undefined
+        ? locales.value[0]
+        : locales.value.find((una) => una.tenantId === parsed.data.local);
+
+    if (elegido === undefined) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const persona = elegido;
     const ahora = new Date();
 
     if (estaTrabada(persona.trabadoHasta, ahora)) {
@@ -306,7 +329,7 @@ export class AuthController {
     const resultado = trasElIntento(persona.intentos, acerto, ahora);
 
     await this.staff.store.registrarIntento(
-      parsed.data.local,
+      persona.tenantId,
       persona.id,
       acerto,
       resultado.trabadoHasta,
@@ -314,6 +337,28 @@ export class AuthController {
 
     if (!acerto) {
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    /*
+     * Trabaja en varios y todavía no eligió: se le pregunta.
+     *
+     * Recién acá, con el PIN ya verificado. Preguntarlo antes le diría a
+     * cualquiera en qué restaurantes trabaja esa persona con sólo escribir su
+     * usuario, que es justo lo que el PIN protege.
+     */
+    if (locales.value.length > 1 && parsed.data.local === undefined) {
+      const nombres = await this.tenants.store.nombresDe(
+        locales.value.map((una) => una.tenantId),
+      );
+
+      return {
+        elegirLocal: locales.value.map((una) => ({
+          id: una.tenantId,
+          nombre: nombres.isOk() ? (nombres.value.get(una.tenantId) ?? una.tenantId) : una.tenantId,
+          // El puesto cambia entre locales: mozo en uno, encargado en otro.
+          role: una.role,
+        })),
+      };
     }
 
     const expiresAt = Date.now() + SESSION_HOURS * 3_600_000;

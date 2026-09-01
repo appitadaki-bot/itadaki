@@ -117,6 +117,36 @@ export class InMemoryStaffStore {
     { username: string; pinHash: string; intentos: number; trabadoHasta: Date | null }
   >();
 
+  /**
+   * Dónde trabaja quien usa este usuario. Lo mismo que en Postgres.
+   *
+   * Todos sus locales y no uno: el usuario es único en toda la base, así que
+   * la misma persona puede estar en varios, y el login necesita verlos para
+   * preguntarle en cuál entra.
+   */
+  async localesDe(username: string): Promise<Result<readonly StaffConPin[], StaffError>> {
+    await this.sembrar();
+
+    const encontrados: StaffConPin[] = [];
+    for (const [userId, datos] of InMemoryStaffStore.pines) {
+      if (datos.username !== username.toLowerCase()) continue;
+
+      const persona = [...this.rows.values()].find((u) => u.id === userId && u.active);
+      if (persona === undefined) continue;
+
+      const { passwordHash: _, ...sinHash } = persona;
+      encontrados.push({ ...sinHash, ...datos });
+    }
+
+    return ok(encontrados);
+  }
+
+  /** Si un usuario ya está tomado, en cualquier restaurante. */
+  async usuarioTomado(username: string): Promise<Result<boolean, StaffError>> {
+    const encontrados = await this.localesDe(username);
+    return encontrados.isErr() ? err(encontrados.error) : ok(encontrados.value.length > 0);
+  }
+
   async findByUsername(
     tenantId: string,
     username: string,

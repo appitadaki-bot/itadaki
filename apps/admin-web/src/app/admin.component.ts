@@ -1182,14 +1182,11 @@ const ROLE_NAMES: Record<string, string> = {
               <span>Nombre</span>
               <input name="displayName" required maxlength="60" placeholder="Ej: Nico" autofocus />
             </label>
-            <label class="field">
-              <span>Email</span>
-              <input name="email" type="email" required placeholder="Nico@turestaurante.ar" />
-            </label>
-            <label class="field">
-              <span>Contraseña inicial</span>
-              <input name="password" type="password" required minlength="8" />
-            </label>
+            <!-- Sin mail ni contraseña: el sistema arma el usuario a partir del
+                 nombre y genera el PIN. Pedirle un mail al mozo de diecinueve
+                 años era pedirle algo que no tiene —usaría el suyo personal, y
+                 quedaría dentro del sistema cuando renuncie— y una contraseña
+                 que el dueño inventa se dicta peor que seis dígitos. -->
             <label class="field">
               <span>Puesto</span>
               <select name="role" required>
@@ -1204,9 +1201,29 @@ const ROLE_NAMES: Record<string, string> = {
           @if (staffError(); as message) {
             <p class="error-note" role="alert">{{ message }}</p>
           }
-          <p class="muted qr-hint">
-            Le pasás vos la contraseña; después la puede seguir usando para entrar.
-          </p>
+
+          <!-- Quien ya trabaja en otro restaurante que usa Itadaki entra con el
+               usuario que ya tiene: es la misma persona, y llevar dos cuentas
+               con dos PIN es lo que hace que termine anotándolos en un papel. -->
+          <details class="details">
+            <summary>Ya trabaja en otro restaurante con Itadaki</summary>
+            <form class="new-form staff-form" (submit)="sumarStaff($event)">
+              <label class="field">
+                <span>Su usuario</span>
+                <input name="usuario" required maxlength="30" placeholder="Ej: nico" />
+                <small class="hint">Se lo dicta esa persona. Entra con el PIN que ya usa.</small>
+              </label>
+              <label class="field">
+                <span>Puesto acá</span>
+                <select name="role" required>
+                  <option value="KITCHEN">Cocina — ve y avanza los pedidos</option>
+                  <option value="WAITER">Mozo — pedidos y cuentas</option>
+                  <option value="MANAGER">Encargado — todo menos el equipo</option>
+                </select>
+              </label>
+              <button type="submit" class="secondary">Sumar al equipo</button>
+            </form>
+          </details>
         </div>
       </div>
     }
@@ -2164,11 +2181,9 @@ export class AdminComponent {
     const data = new FormData(form);
     const payload = {
       displayName: String(data.get('displayName') ?? '').trim(),
-      email: String(data.get('email') ?? '').trim(),
-      password: String(data.get('password') ?? ''),
       role: String(data.get('role') ?? 'KITCHEN'),
     };
-    if (payload.displayName === '' || payload.email === '' || payload.password === '') return;
+    if (payload.displayName === '') return;
 
     const response = await this.auth.apiFetch(`${API}/staff`, {
       method: 'POST',
@@ -2177,15 +2192,58 @@ export class AdminComponent {
     });
 
     if (!response.ok) {
+      const detail = (await response.json().catch(() => null)) as {
+        kind?: string;
+        sugerido?: string;
+      } | null;
+      this.staffError.set(
+        detail?.kind === 'USUARIO_TOMADO'
+          ? `Ese usuario ya está tomado. Probá con "${detail.sugerido ?? ''}".`
+          : 'No pudimos dar de alta a esa persona',
+      );
+      return;
+    }
+
+    // El PIN sale en claro una sola vez: se muestra hasta que el dueño lo
+    // cierra, porque después no se puede volver a ver.
+    const alta = (await response.json()) as { displayName: string; usuario: string; pin: string };
+    // La misma tarjeta que al regenerar un PIN: dice link, usuario y PIN, y
+    // queda hasta que el dueño la cierra porque el PIN no se puede volver a ver.
+    this.pinNuevo.set({ nombre: alta.displayName, usuario: alta.usuario, pin: alta.pin });
+
+    form.reset();
+    await this.loadStaff();
+  }
+
+  /**
+   * Suma a alguien que ya trabaja en otro restaurante con Itadaki.
+   *
+   * No genera PIN: es la misma persona, y el que ya usa le sirve acá. Por eso
+   * tampoco hay nada que dictarle.
+   */
+  protected async sumarStaff(event: Event): Promise<void> {
+    event.preventDefault();
+    this.staffError.set(null);
+
+    const form = event.target as HTMLFormElement;
+    const data = new FormData(form);
+    const usuario = String(data.get('usuario') ?? '').trim();
+    if (usuario === '') return;
+
+    const response = await this.auth.apiFetch(`${API}/staff/sumar`, {
+      method: 'POST',
+      headers: { ...this.auth.headers(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario, role: String(data.get('role') ?? 'WAITER') }),
+    });
+
+    if (!response.ok) {
       const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
       this.staffError.set(
-        detail?.kind === 'EMAIL_TAKEN'
-          ? 'Ya existe una cuenta con ese email'
-          : detail?.kind === 'PASSWORD_TOO_SHORT'
-            ? 'La contraseña necesita al menos 8 caracteres'
-            : detail?.kind === 'INVALID_EMAIL'
-              ? 'Revisá el email'
-              : 'No pudimos dar de alta a esa persona',
+        detail?.kind === 'USUARIO_NO_EXISTE'
+          ? 'No encontramos ese usuario. Pedile que te lo dicte de nuevo.'
+          : detail?.kind === 'YA_ESTA_EN_EL_EQUIPO'
+            ? 'Esa persona ya está en tu equipo'
+            : 'No pudimos sumar a esa persona',
       );
       return;
     }
@@ -2194,6 +2252,7 @@ export class AdminComponent {
     this.closeModal();
     await this.loadStaff();
   }
+
 
   /** Revoking access is reversible, so it confirms but does not alarm. */
   protected async toggleStaff(member: StaffMember): Promise<void> {

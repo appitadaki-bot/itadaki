@@ -162,6 +162,63 @@ export class PostgresStaffStore {
   }
 
   /**
+   * Dónde trabaja quien usa este usuario.
+   *
+   * Sin el local, porque el usuario ya no depende de él: es único en toda la
+   * base, así que "nico" identifica a una persona y no a una etiqueta que se
+   * repite en veinte restaurantes.
+   *
+   * Devuelve todos sus locales y no uno: en gastronomía trabajar en dos
+   * lugares es lo normal, y esa persona tiene que poder elegir en cuál entra
+   * hoy con un solo usuario y un solo PIN.
+   *
+   * Pasa por la función que ve por encima del aislamiento, igual que el login
+   * por mail: buscar quién es alguien ocurre antes de saber de qué local es.
+   */
+  async localesDe(username: string): Promise<Result<readonly StaffConPin[], StaffError>> {
+    try {
+      const rows = await this.db.unscoped(async (client) => {
+        const result = await client.query<StaffRow>(
+          'SELECT * FROM staff_username_lookup_fn($1)',
+          [username],
+        );
+        return result.rows;
+      });
+
+      return ok(
+        rows
+          .filter((row) => row.username !== null && row.pin_hash !== null)
+          .map((row) => ({
+            id: row.id,
+            tenantId: row.tenant_id,
+            email: row.email,
+            displayName: row.display_name,
+            role: row.role as Role,
+            active: row.active,
+            username: row.username as string,
+            pinHash: row.pin_hash as string,
+            intentos: row.pin_intentos ?? 0,
+            trabadoHasta:
+              row.pin_trabado_hasta === null ? null : new Date(row.pin_trabado_hasta),
+          })),
+      );
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /**
+   * Si un usuario ya está tomado, en cualquier restaurante.
+   *
+   * Global y no por local: es lo que hace que "nico" sea una identidad. El
+   * alta lo consulta para sugerir uno libre en vez de fallar.
+   */
+  async usuarioTomado(username: string): Promise<Result<boolean, StaffError>> {
+    const encontrados = await this.localesDe(username);
+    return encontrados.isErr() ? err(encontrados.error) : ok(encontrados.value.length > 0);
+  }
+
+  /**
    * Guarda el resultado de un intento de PIN.
    *
    * Se traba la cuenta y no la dirección de red: quien prueba PINes a ciegas

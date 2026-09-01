@@ -67,9 +67,29 @@ import { AuthStore } from './auth.store';
             {{ auth.busy() ? 'Guardando…' : 'Guardar y entrar' }}
           </button>
         </form>
+      } @else if (auth.localesParaElegir().length > 0) {
+      <!-- Trabaja en varios restaurantes: elige en cuál entra hoy.
+           Después de verificar el PIN y no antes: preguntarlo antes diría en
+           qué locales trabaja alguien con sólo escribir su usuario. -->
+      <section class="card">
+        <header class="head">
+          <p class="eyebrow">{{ context() }}</p>
+          <h1 class="title">¿Dónde entrás hoy?</h1>
+          <p class="lede">Trabajás en más de un restaurante con Itadaki.</p>
+        </header>
+
+        <div class="locales">
+          @for (uno of auth.localesParaElegir(); track uno.id) {
+            <button type="button" class="local" (click)="entrarEn(uno.id)">
+              <span class="local-nombre">{{ uno.nombre }}</span>
+              <span class="local-puesto">{{ puestoDe(uno.role) }}</span>
+            </button>
+          }
+        </div>
+      </section>
       } @else if (conPin()) {
-      <!-- El personal entra con usuario y PIN. Aparece cuando el link trae un
-           local: sin eso no sabríamos de qué restaurante es. -->
+      <!-- El personal entra con usuario y PIN. El usuario es único en toda la
+           base, así que no hace falta saber de qué restaurante es. -->
       <form class="card" (submit)="entrarConPin($event)">
         <header class="head">
           <p class="eyebrow">{{ context() }}</p>
@@ -328,11 +348,27 @@ export class LoginComponent {
     this.pin.set((evento.target as HTMLInputElement).value.replace(/\D/g, ''));
   }
 
+  /** Entra al local elegido, con el PIN que ya se verificó. */
+  protected async entrarEn(local: string): Promise<void> {
+    await this.auth.signInConPin(this.usuario().trim(), this.pin(), local);
+  }
+
+  /** El puesto, como se lee. */
+  protected puestoDe(role: string): string {
+    const puestos: Record<string, string> = {
+      OWNER: 'Dueño',
+      MANAGER: 'Encargado',
+      WAITER: 'Mozo',
+      KITCHEN: 'Cocina',
+    };
+    return puestos[role] ?? role;
+  }
+
   protected async entrarConPin(evento: Event): Promise<void> {
     evento.preventDefault();
     if (this.auth.busy()) return;
 
-    await this.auth.signInConPin(this.local(), this.usuario().trim(), this.pin());
+    await this.auth.signInConPin(this.usuario().trim(), this.pin());
   }
 
   private readonly googleSlot = viewChild<ElementRef<HTMLElement>>('googleSlot');

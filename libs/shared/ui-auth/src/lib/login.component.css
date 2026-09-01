@@ -169,3 +169,49 @@
   justify-content: center;
   min-height: 44px;
 }
+
+/* ═══ ELEGIR EL RESTAURANTE ═══
+ *
+ * Para quien trabaja en más de uno. El usuario es único en toda la base, así
+ * que la misma persona con el mismo PIN puede entrar a cualquiera de sus
+ * trabajos — y acá elige a cuál.
+ *
+ * Botones grandes y no una lista: se toca de parado, entrando a trabajar, con
+ * el teléfono en una mano. */
+
+.locales {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.local {
+  display: grid;
+  gap: 0.15rem;
+  text-align: start;
+  padding: 0.9rem 1rem;
+  min-height: 60px;
+  border: 1px solid var(--itadaki-border);
+  border-radius: var(--itadaki-radius-card);
+  background: var(--itadaki-surface-raised);
+  cursor: pointer;
+}
+
+.local-nombre {
+  font-family: var(--itadaki-font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--itadaki-ink-strong);
+}
+
+/* El puesto: la misma persona puede ser mozo acá y encargado allá. */
+.local-puesto {
+  font-size: 0.82rem;
+  color: var(--itadaki-ink-subtle);
+}
+
+@media (hover: hover) {
+  .local:hover {
+    border-color: var(--itadaki-accent);
+    background: var(--itadaki-accent-tint);
+  }
+}
