@@ -272,7 +272,31 @@ const ROLE_NAMES: Record<string, string> = {
             </div>
           }
           } @empty {
-            <p class="muted">Cargando la carta…</p>
+            <!-- Tres estados y no uno. El más importante es el del restaurante
+                 recién creado: su carta está vacía porque todavía no cargó
+                 nada, y decirle "cargando" lo deja esperando. -->
+            @switch (cartaEstado()) {
+              @case ('cargando') {
+                <p class="muted">Cargando la carta…</p>
+              }
+              @case ('falló') {
+                <p class="muted">
+                  No pudimos traer la carta.
+                  <button type="button" class="link" (click)="reintentarCarta()">
+                    Probar de nuevo
+                  </button>
+                </p>
+              }
+              @default {
+                <div class="carta-vacia">
+                  <p class="carta-vacia-titulo">Todavía no cargaste ningún plato</p>
+                  <p class="muted">
+                    Empezá por una categoría —Entradas, Parrilla, Postres— y después
+                    agregá los platos que van adentro.
+                  </p>
+                </div>
+              }
+            }
           }
         </div>
 
@@ -1291,6 +1315,17 @@ export class AdminComponent {
     return true;
   }
 
+  /**
+   * En qué estado está la carta.
+   *
+   * Un solo "Cargando la carta…" servía para tres cosas distintas: que todavía
+   * no llegó, que llegó vacía, y que la petición falló. El dueño que acaba de
+   * crear su restaurante veía "cargando" para siempre sobre una carta que no
+   * tiene nada — esperando algo que nunca iba a aparecer, en vez de entender
+   * que le toca cargarla a él.
+   */
+  protected readonly cartaEstado = signal<'cargando' | 'lista' | 'falló'>('cargando');
+
   protected readonly products = signal<readonly MenuProduct[]>([]);
   protected readonly categories = signal<readonly MenuCategory[]>([]);
   /**
@@ -1853,7 +1888,12 @@ export class AdminComponent {
     void this.cargarDescuento();
 
     const response = await this.auth.apiFetch(`${API}/menu`, { headers: this.auth.headers() });
-    if (!response.ok) return;
+    if (!response.ok) {
+      // Sin esto la pantalla se quedaba en "cargando" para siempre: el fallo
+      // no dejaba rastro y parecía una carta que tarda mucho.
+      this.cartaEstado.set('falló');
+      return;
+    }
 
     const menu = (await response.json()) as {
       products: MenuProduct[];
@@ -1861,9 +1901,16 @@ export class AdminComponent {
     };
     this.products.set([...menu.products].sort((a, b) => a.name.localeCompare(b.name, 'es')));
     this.categories.set(menu.categories);
+    this.cartaEstado.set('lista');
     await this.loadTables();
     await this.loadStaff();
     await this.loadTrial();
+  }
+
+  /** Vuelve a pedir la carta después de un fallo. */
+  protected reintentarCarta(): void {
+    this.cartaEstado.set('cargando');
+    void this.load();
   }
 
   private async loadTables(): Promise<void> {

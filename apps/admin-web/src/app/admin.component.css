@@ -2661,3 +2661,30 @@
     }
   }
 }
+
+/* ═══ LA CARTA VACÍA ═══
+ *
+ * Lo primero que ve un dueño que acaba de crear su restaurante. Antes decía
+ * "Cargando la carta…" —el mismo texto que mientras llega— así que se quedaba
+ * esperando algo que nunca iba a aparecer, en vez de entender que le toca
+ * cargarla a él. */
+
+.carta-vacia {
+  padding: 2rem 1.25rem;
+  text-align: center;
+}
+
+.carta-vacia-titulo {
+  margin: 0 0 0.4rem;
+  font-family: var(--itadaki-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--itadaki-ink-strong);
+}
+
+/* La explicación, más angosta: una línea larga centrada se lee peor. */
+.carta-vacia .muted {
+  max-width: 34rem;
+  margin: 0 auto;
+  line-height: 1.6;
+}
