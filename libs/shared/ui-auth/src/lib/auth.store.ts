@@ -307,12 +307,25 @@ export class AuthStore {
   }
 
   /**
+   * Los restaurantes donde trabaja quien acaba de entrar, si son varios.
+   *
+   * Vacío mientras haya uno solo, que es el caso normal: ahí se entra directo
+   * sin preguntar nada.
+   */
+  readonly localesParaElegir = signal<
+    readonly { id: string; nombre: string; role: string }[]
+  >([]);
+
+  /**
    * Entrar con usuario y PIN, para el personal sin mail de trabajo.
    *
-   * El local viene del link que el dueño compartió, así que quien entra
-   * escribe dos cosas y no tres.
+   * El usuario es único en toda la base, así que identifica a la persona sin
+   * el restaurante: el mismo usuario y el mismo PIN le sirven en todos los
+   * locales donde trabaja.
+   *
+   * `local` sólo va cuando trabaja en varios y ya eligió uno.
    */
-  async signInConPin(local: string, usuario: string, pin: string): Promise<boolean> {
+  async signInConPin(usuario: string, pin: string, local?: string): Promise<boolean> {
     this.busy.set(true);
     this.error.set(null);
 
@@ -320,7 +333,7 @@ export class AuthStore {
       const response = await fetch(`${this.baseUrl}/auth/login-pin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ local, usuario, pin }),
+        body: JSON.stringify(local === undefined ? { usuario, pin } : { local, usuario, pin }),
       });
 
       if (!response.ok) {
@@ -337,10 +350,29 @@ export class AuthStore {
         return false;
       }
 
-      const session = (await response.json()) as { token: string; user: StaffProfile };
-      this.token.set(session.token);
-      this.profile.set(session.user);
-      localStorage.setItem(STORAGE_KEY, session.token);
+      const respuesta = (await response.json()) as {
+        token?: string;
+        user?: StaffProfile;
+        elegirLocal?: readonly { id: string; nombre: string; role: string }[];
+      };
+
+      /*
+       * Trabaja en varios: elige antes de entrar.
+       *
+       * El PIN ya se verificó —el servidor no devuelve esta lista sin eso— así
+       * que preguntar acá no expone dónde trabaja nadie.
+       */
+      if (respuesta.elegirLocal !== undefined) {
+        this.localesParaElegir.set(respuesta.elegirLocal);
+        return false;
+      }
+
+      if (respuesta.token === undefined || respuesta.user === undefined) return false;
+
+      this.localesParaElegir.set([]);
+      this.token.set(respuesta.token);
+      this.profile.set(respuesta.user);
+      localStorage.setItem(STORAGE_KEY, respuesta.token);
       return true;
     } catch {
       this.error.set('No pudimos conectar con el servidor');
@@ -366,10 +398,29 @@ export class AuthStore {
         return false;
       }
 
-      const session = (await response.json()) as { token: string; user: StaffProfile };
-      this.token.set(session.token);
-      this.profile.set(session.user);
-      localStorage.setItem(STORAGE_KEY, session.token);
+      const respuesta = (await response.json()) as {
+        token?: string;
+        user?: StaffProfile;
+        elegirLocal?: readonly { id: string; nombre: string; role: string }[];
+      };
+
+      /*
+       * Trabaja en varios: elige antes de entrar.
+       *
+       * El PIN ya se verificó —el servidor no devuelve esta lista sin eso— así
+       * que preguntar acá no expone dónde trabaja nadie.
+       */
+      if (respuesta.elegirLocal !== undefined) {
+        this.localesParaElegir.set(respuesta.elegirLocal);
+        return false;
+      }
+
+      if (respuesta.token === undefined || respuesta.user === undefined) return false;
+
+      this.localesParaElegir.set([]);
+      this.token.set(respuesta.token);
+      this.profile.set(respuesta.user);
+      localStorage.setItem(STORAGE_KEY, respuesta.token);
       return true;
     } catch {
       this.error.set('No pudimos conectar con el servidor');

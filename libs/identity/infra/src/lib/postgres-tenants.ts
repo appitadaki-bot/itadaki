@@ -309,6 +309,34 @@ export class PostgresTenantStore {
     }
   }
 
+  /**
+   * Cómo se llaman estos restaurantes.
+   *
+   * Para la pantalla donde alguien que trabaja en varios elige en cuál entra:
+   * un id como "parrilla-don-pepe-64005" no le dice nada a quien tiene que
+   * reconocer su lugar de trabajo.
+   *
+   * Sin alcance de restaurante porque justamente cruza varios, y la tabla de
+   * locales no lleva datos de nadie: son los nombres que el propio dueño puso.
+   */
+  async nombresDe(ids: readonly string[]): Promise<Result<Map<string, string>, TenantError>> {
+    if (ids.length === 0) return ok(new Map());
+
+    try {
+      const filas = await this.db.unscoped(async (client) => {
+        const result = await client.query<{ id: string; name: string }>(
+          'SELECT id, name FROM tenants WHERE id = ANY($1)',
+          [[...ids]],
+        );
+        return result.rows;
+      });
+
+      return ok(new Map(filas.map((fila) => [fila.id, fila.name])));
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   /** Si el mail de esta persona ya está confirmado. */
   async mailVerificado(email: string): Promise<Result<boolean, TenantError>> {
     try {

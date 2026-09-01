@@ -138,6 +138,16 @@ export class InMemoryTenantStore {
     return ok(null);
   }
 
+  /** Cómo se llaman estos restaurantes. Lo mismo que en Postgres. */
+  async nombresDe(ids: readonly string[]): Promise<Result<Map<string, string>, TenantError>> {
+    const nombres = new Map<string, string>();
+    for (const id of ids) {
+      const local = InMemoryTenantStore.locales.get(id);
+      if (local !== undefined) nombres.set(id, local.tenant.name);
+    }
+    return ok(nombres);
+  }
+
   async mailVerificado(email: string): Promise<Result<boolean, TenantError>> {
     return ok(InMemoryTenantStore.verificados.has(email.toLowerCase()));
   }
