@@ -84,15 +84,25 @@ import { SessionStore } from './session.store';
       font-size: 0.78rem;
       color: var(--itadaki-ink-subtle);
     }
+    /* Con contorno y no como texto suelto: en tono menor se dejaba de leer
+       como algo que se puede tocar. Vacío contra el lleno de la reseña, que
+       es lo que se quiere primero. */
     .despues {
-      margin-top: 0.6rem;
+      margin-top: 0.8rem;
       background: none;
-      color: var(--itadaki-ink-subtle);
-      border: none;
-      font-family: inherit;
+      color: var(--itadaki-ink);
+      border: 1px solid var(--itadaki-border);
+      border-radius: var(--itadaki-radius-pill);
+      padding: 0.75rem 1.4rem;
+      font-family: var(--itadaki-font-display);
+      font-weight: 600;
       font-size: 0.85rem;
       cursor: pointer;
       min-height: 44px;
+    }
+
+    .despues:hover {
+      border-color: var(--itadaki-ink);
     }
   `],
   template: `
