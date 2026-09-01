@@ -9,6 +9,8 @@ interface Fila {
   paid: boolean;
   paidUntil: Date | null;
   estrenado: boolean;
+  /** Cuándo pidió darse de baja; null si sigue activo. */
+  cancelledAt: Date | null;
   plan: string | null;
   /** Puntos porcentuales de descuento por pagar en efectivo. */
   descuento: number;
@@ -75,7 +77,28 @@ export class InMemoryTenantStore {
       trialEndsAt: fila.trialEndsAt,
       paid: alDia,
       estrenado: fila.estrenado,
+      cancelledAt: fila.cancelledAt ?? null,
+      paidUntil: fila.paidUntil,
     });
+  }
+
+  /** El restaurante pide la baja. Lo mismo que en Postgres. */
+  async darDeBaja(tenantId: string, cuando: Date): Promise<Result<void, TenantError>> {
+    const fila = InMemoryTenantStore.locales.get(tenantId);
+    // Idempotente: pedirla dos veces no mueve la fecha.
+    if (fila !== undefined && fila.cancelledAt == null) {
+      InMemoryTenantStore.locales.set(tenantId, { ...fila, cancelledAt: cuando });
+    }
+    return ok(undefined);
+  }
+
+  /** Vuelve a suscribirse: es el mismo restaurante, con su carta y su historial. */
+  async reactivar(tenantId: string): Promise<Result<void, TenantError>> {
+    const fila = InMemoryTenantStore.locales.get(tenantId);
+    if (fila !== undefined) {
+      InMemoryTenantStore.locales.set(tenantId, { ...fila, cancelledAt: null });
+    }
+    return ok(undefined);
   }
 
   async setSubscription(
@@ -264,6 +287,8 @@ export class InMemoryTenantStore {
       paid: false,
       paidUntil: null,
       estrenado: false,
+      // Nace sin baja pedida, como cualquier restaurante nuevo.
+      cancelledAt: null,
       plan: null,
       descuento: 0,
     });

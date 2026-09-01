@@ -186,3 +186,77 @@ describe('el reloj arranca con el primer pedido', () => {
     expect(arrancaElTrial(pago)).toBe(false);
   });
 });
+
+/**
+ * Darse de baja.
+ *
+ * La landing promete "te damos de baja cuando quieras, desde tu panel" y eso
+ * no existía: la única forma era escribirnos. Prometer una salida fácil y no
+ * darla es peor que no prometerla — quien quiere irse y no puede lo cuenta.
+ *
+ * Lo que se cuida acá es que la baja no corte el servicio. El mes ya está
+ * pagado, así que el restaurante sigue trabajando hasta que termine: cortar el
+ * día que alguien la pide sería quedarse con plata de un servicio que no se
+ * dio, y dejar un salón sin sistema en medio del turno.
+ */
+describe('darse de baja', () => {
+  const AHORA = new Date('2026-09-01T12:00:00Z');
+  const enQuinceDias = new Date('2026-09-16T12:00:00Z');
+  const ayer = new Date('2026-08-31T12:00:00Z');
+
+  it('sigue tomando pedidos hasta que termine el mes pagado', () => {
+    const estado = describeSubscription(
+      { trialEndsAt: null, paid: true, cancelledAt: AHORA, paidUntil: enQuinceDias },
+      AHORA,
+    );
+
+    expect(canTakeOrders(estado)).toBe(true);
+  });
+
+  it('dice cuántos días le quedan', () => {
+    // Es lo que el panel necesita para explicar hasta cuándo tiene servicio.
+    const estado = describeSubscription(
+      { trialEndsAt: null, paid: true, cancelledAt: AHORA, paidUntil: enQuinceDias },
+      AHORA,
+    );
+
+    expect(estado.daysLeft).toBe(15);
+  });
+
+  it('se distingue de una cuenta activa', () => {
+    // El panel tiene que poder decir "no se renueva" sin inventarlo.
+    const estado = describeSubscription(
+      { trialEndsAt: null, paid: true, cancelledAt: AHORA, paidUntil: enQuinceDias },
+      AHORA,
+    );
+
+    expect(estado.status).toBe('DADO_DE_BAJA');
+  });
+
+  it('cuando se acaba lo pagado, ahí sí se suspende', () => {
+    const estado = describeSubscription(
+      { trialEndsAt: null, paid: true, cancelledAt: ayer, paidUntil: ayer },
+      AHORA,
+    );
+
+    expect(estado.status).toBe('SUSPENDED');
+    expect(canTakeOrders(estado)).toBe(false);
+  });
+
+  it('sin fecha de pago, la baja corta enseguida', () => {
+    // Es quien estaba en prueba: no hay mes pagado que respetar.
+    const estado = describeSubscription(
+      { trialEndsAt: null, paid: false, cancelledAt: AHORA, paidUntil: null },
+      AHORA,
+    );
+
+    expect(estado.status).toBe('SUSPENDED');
+  });
+
+  it('sin baja pedida, nada cambia', () => {
+    // El caso de siempre: que agregar esto no toque a quien no lo usó.
+    const estado = describeSubscription({ trialEndsAt: null, paid: true }, AHORA);
+
+    expect(estado.status).toBe('ACTIVE');
+  });
+});
