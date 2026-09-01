@@ -27,8 +27,11 @@ describe('los tres estados de la carta', () => {
   });
 
   it('explica por dónde empezar', () => {
-    // Sin esto queda un cartel que dice que falta algo pero no qué hacer.
-    expect(PANEL).toMatch(/Empezá por una categoría/);
+    // Sin esto queda un cartel que dice que falta algo pero no qué hacer. La
+    // explicación pasó a ser los dos pasos numerados, que además dicen en qué
+    // orden van: un plato necesita una categoría que exista antes.
+    expect(PANEL).toContain('Creá tus categorías');
+    expect(PANEL).toContain('Agregá tus platos');
   });
 
   it('un fallo se dice y deja reintentar', () => {
