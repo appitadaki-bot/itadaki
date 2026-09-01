@@ -2576,7 +2576,7 @@ export class AdminComponent {
         const detalle = (await respuesta.json().catch(() => null)) as { kind?: string } | null;
         this.resenaError.set(
           detalle?.kind === 'NO_ES_DE_GOOGLE'
-            ? 'Ese link no es de Google. Copialo desde tu Perfil de Empresa.'
+            ? 'Ese link no es de Google. Copialo desde tu Perfil de Empresa, o desde Compartir en Google Maps.'
             : detalle?.kind === 'NO_ES_UNA_URL'
               ? 'Eso no parece un link. Tiene que empezar con https://'
               : 'No pudimos guardarlo. Probá de nuevo.',
