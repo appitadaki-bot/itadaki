@@ -6,7 +6,6 @@ import { RouterLink } from '@angular/router';
 import { type PaymentMethod } from '@itadaki/ordering/domain';
 import { DINER_PALETTE } from '@itadaki/shared/ui-tokens';
 import { BackLinkComponent } from './back-link.component';
-import { PaymentSheetComponent } from './payment-sheet.component';
 import { ApiClient } from './api-client';
 import { CallStore } from './call.store';
 import { BillStore, type MoneyDto, type SplitKind, type TipChoice } from './bill.store';
@@ -50,7 +49,7 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
 @Component({
   selector: 'itd-bill',
   standalone: true,
-  imports: [RouterLink, BackLinkComponent, PaymentSheetComponent],
+  imports: [RouterLink, BackLinkComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './bill.page.css',
   template: `
@@ -101,32 +100,35 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
 
         <!-- Cómo pagan, antes de cómo dividen: el descuento en efectivo
              cambia el total, y dividir un número que después baja obliga a
-             rehacer la cuenta. Sólo aparece si el local ofrece descuento —
-             sin eso, elegir el medio acá no cambiaría nada y sería un paso
-             que no sirve. -->
-        @if (ofreceDescuento()) {
-          <section class="card">
-            <h2 class="card-title">Cómo pagan</h2>
-            <div class="options">
-              @for (medio of mediosDePago; track medio.id) {
-                <button
-                  type="button"
-                  class="option"
-                  [attr.aria-pressed]="medioElegido() === medio.id"
-                  (click)="elegirMedio(medio.id)"
-                >
-                  <span class="option-text">
-                    <span class="option-label">{{ medio.label }}</span>
-                    <span class="option-hint">{{ medio.hint }}</span>
-                  </span>
-                  @if (medio.id === 'CASH') {
-                    <span class="ahorro">-{{ store.split()?.descuentoOfrecido ?? descuentoOfrecido() }}%</span>
-                  }
-                </button>
-              }
-            </div>
-          </section>
-        }
+             rehacer la cuenta.
+             Siempre, aunque el local no ofrezca descuento: es lo que el mozo
+             necesita saber antes de levantarse —si lleva el posnet, si lleva
+             cambio— y es la única vez que se pregunta. Antes aparecía sólo con
+             descuento y el resto de las veces se preguntaba en una segunda
+             hoja, con las dos respuestas sin hablarse entre sí. -->
+        <section class="card">
+          <h2 class="card-title">Cómo pagan</h2>
+          <div class="options">
+            @for (medio of mediosDePago; track medio.id) {
+              <button
+                type="button"
+                class="option"
+                [attr.aria-pressed]="medioElegido() === medio.id"
+                (click)="elegirMedio(medio.id)"
+              >
+                <span class="option-text">
+                  <span class="option-label">{{ medio.label }}</span>
+                  <span class="option-hint">{{ medio.hint }}</span>
+                </span>
+                <!-- El ahorro sólo si el local lo ofrece: sin descuento, un
+                     "-0%" sería ruido. -->
+                @if (medio.id === 'CASH' && ofreceDescuento()) {
+                  <span class="ahorro">-{{ store.split()?.descuentoOfrecido ?? descuentoOfrecido() }}%</span>
+                }
+              </button>
+            }
+          </div>
+        </section>
 
         <section class="card">
           <h2 class="card-title">Cómo dividimos</h2>
@@ -299,11 +301,17 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
                Antes el botón se podía tocar igual: la mesa elegía "por plato",
                dejaba platos sin asignar y avisaba al mozo lo mismo, que llegaba
                a cobrar una división que el servidor nunca calculó. -->
+          <!-- Avisa con el medio que ya está elegido arriba.
+               Antes abría una segunda hoja preguntando lo mismo, y las dos
+               respuestas no se hablaban: quien elegía efectivo arriba —con su
+               descuento— y tarjeta abajo avisaba tarjeta y seguía viendo el
+               total rebajado. La mesa contestaba dos veces la misma pregunta y
+               el sistema se quedaba con las dos. -->
           <button
             type="button"
             class="cta"
             [disabled]="!listoParaPagar()"
-            (click)="confirming.set(true)"
+            (click)="pedirLaCuenta()"
           >
             Pedir la cuenta
           </button>
@@ -312,20 +320,6 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
           }
         }
       </footer>
-
-      <!-- Elegir cómo pagan es una pregunta, no un tercer piso del pie: al
-           abrirse ahí abajo empujaba el total fuera de la pantalla y las tres
-           formas de pago competían con los botones de propina que quedaban al
-           lado. La hoja es la misma que abre el timbre, para que la mesa no
-           tenga que contestar dos preguntas distintas según por dónde entró. -->
-      @if (confirming()) {
-        <itd-payment-sheet
-          [busy]="calls.busy()"
-          [error]="calls.error()"
-          (choose)="tell($event)"
-          (close)="confirming.set(false)"
-        />
-      }
 
     } @else {
       <main class="body empty">
@@ -495,7 +489,6 @@ export class BillPage {
     });
   }
 
-  protected readonly confirming = signal(false);
 
   /** Ya salió el aviso al salón, para no mandar tres seguidos. */
   protected readonly told = computed(() => this.calls.waitingFor().has('BILL'));
@@ -507,12 +500,22 @@ export class BillPage {
    * después, y del lado del local: el teléfono del comensal no puede dar por
    * cobrada una cuenta — antes podía, y bastaba con tocar un botón.
    */
-  protected async tell(method: PaymentMethod): Promise<void> {
+  /**
+   * Avisa al mozo con el medio que la mesa ya eligió.
+   *
+   * Sin volver a preguntar: la pregunta está arriba, junto al total, que es
+   * donde tiene sentido — el descuento en efectivo cambia lo que se paga, así
+   * que elegir el medio y ver el número van juntos.
+   *
+   * Antes esto abría una segunda hoja con la misma pregunta, y las dos
+   * respuestas no se hablaban: quien elegía efectivo arriba y tarjeta abajo
+   * avisaba tarjeta y seguía viendo el total con descuento.
+   */
+  protected async pedirLaCuenta(): Promise<void> {
     const id = this.sessionId();
     if (id === null) return;
 
-    const done = await this.calls.raise(id, 'BILL', '', method);
-    if (done) this.confirming.set(false);
+    await this.calls.raise(id, 'BILL', '', this.medioElegido() ?? 'UNDECIDED');
   }
 
   protected async openBill(): Promise<void> {
