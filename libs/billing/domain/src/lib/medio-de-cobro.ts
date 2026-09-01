@@ -56,16 +56,54 @@ export function esMedioDeCobro(valor: unknown): valor is MedioDeCobro {
 /**
  * Los medios que el mozo elige al cerrar la mesa, en orden.
  *
- * Efectivo primero porque es el más frecuente y el que tiene descuento; "en la
- * caja" último porque no es un medio de pago sino que la plata la cobró otro.
+ * Efectivo primero: es el más frecuente y el que tiene descuento.
+ *
+ * Sin "en la caja". No era un medio de pago sino un lugar, y ofrecerlo al
+ * cobrar no tenía sentido: si el mozo está cerrando la mesa, la plata la tuvo
+ * él. Para la mesa que se va sin pagar por la mesa está "liberar sin cobrar",
+ * que es lo que de verdad pasó.
  */
 export const MEDIOS_QUE_ELIGE_EL_MOZO: readonly MedioDeCobro[] = [
   'CASH',
   'DEBIT',
   'CREDIT',
   'TRANSFER',
-  'COUNTER',
 ];
+
+/**
+ * Los medios que elige el comensal al pedir la cuenta.
+ *
+ * Los mismos que el mozo, menos "en la caja": esa no es una forma de pagar
+ * sino un lugar, y el comensal que la elegía dejaba a la mesa sin registrar
+ * —nadie cobra en la mesa, así que el sistema no se entera de si pagaron—.
+ * Si van a la caja, el mozo lo marca al liberar.
+ *
+ * Que sean los mismos importa porque el descuento por efectivo depende de lo
+ * que la mesa eligió: con vocabularios distintos, la mesa decía "tarjeta" y el
+ * mozo tenía que traducir a débito o crédito, y en el medio se perdía si
+ * correspondía descontar.
+ */
+export const MEDIOS_QUE_ELIGE_LA_MESA: readonly MedioDeCobro[] = [
+  'CASH',
+  'DEBIT',
+  'CREDIT',
+  'TRANSFER',
+];
+
+/**
+ * Cómo se le explica cada medio a la mesa.
+ *
+ * Distinto del nombre que ve el mozo: el comensal no está declarando cómo
+ * cobró, está pidiendo que le traigan algo. "Débito" solo no dice que el mozo
+ * va a venir con el posnet.
+ */
+export const LO_QUE_PASA_SI_ELIGE: Record<MedioDeCobro, string> = {
+  CASH: 'te llevan el cambio',
+  DEBIT: 'te llevan el posnet a la mesa',
+  CREDIT: 'te llevan el posnet a la mesa',
+  TRANSFER: 'te pasan los datos para transferir',
+  COUNTER: 'pagan al salir, en el mostrador',
+};
 
 /**
  * Cuánto entró en la caja con esta cuenta, en unidades menores.

@@ -7,7 +7,7 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { nombreDelMedio } from '@itadaki/billing/domain';
+import { MEDIOS_QUE_ELIGE_EL_MOZO, nombreDelMedio } from '@itadaki/billing/domain';
 import { AuthStore } from '@itadaki/shared/ui-auth';
 
 interface MoneyDto {
@@ -260,11 +260,38 @@ export class MetricsComponent {
    * Las cuentas sin declarar quedan afuera de la lista: se dicen aparte, en
    * una nota, porque no son un medio de pago sino un dato que falta.
    */
-  protected readonly cobros = computed<readonly CobroDto[]>(() =>
-    [...(this.data()?.cobros ?? [])]
-      .filter((cobro) => cobro.medio !== null)
-      .sort((a, b) => b.cobrado.amountInMinorUnits - a.cobrado.amountInMinorUnits),
-  );
+  protected readonly cobros = computed<readonly CobroDto[]>(() => {
+    const llegados = [...(this.data()?.cobros ?? [])].filter((cobro) => cobro.medio !== null);
+
+    /*
+     * Los cuatro medios siempre, aunque alguno esté en cero.
+     *
+     * Antes se listaban sólo los que habían tenido cobros, así que un medio
+     * sin usar no aparecía — y no se distinguía "nadie pagó con transferencia"
+     * de "el sistema no lo está midiendo". Justamente lo que el dueño mira
+     * acá es cuánto entra por cada uno, y un cero es una respuesta.
+     */
+    const moneda = llegados[0]?.cobrado.currency ?? 'ARS';
+    const vacio = (medio: string): CobroDto => ({
+      medio,
+      cuentas: 0,
+      cobrado: { amountInMinorUnits: 0, currency: moneda },
+      descuento: { amountInMinorUnits: 0, currency: moneda },
+    });
+
+    const completos = [
+      ...llegados,
+      ...MEDIOS_QUE_ELIGE_EL_MOZO.filter(
+        (medio) => !llegados.some((cobro) => cobro.medio === medio),
+      ).map(vacio),
+    ];
+
+    // De mayor a menor: el dueño mira esto para saber por dónde le entra la
+    // plata, y esa respuesta tiene que estar en la primera línea.
+    return completos.sort(
+      (a, b) => b.cobrado.amountInMinorUnits - a.cobrado.amountInMinorUnits,
+    );
+  });
 
   /** Cuántas cuentas se cobraron sin que nadie dijera con qué. */
   protected readonly sinDeclarar = computed<number>(

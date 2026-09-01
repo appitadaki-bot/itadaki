@@ -71,14 +71,36 @@ describe('table calls', () => {
 });
 
 describe('how the table means to pay', () => {
-  it('offers the four answers a table can give', () => {
-    // COUNTER es el que el sistema no puede confirmar solo: nadie cobra en
-    // la mesa, así que el mozo tiene que decir si pagaron.
-    expect([...PAYMENT_METHODS]).toEqual(['CARD', 'CASH', 'COUNTER', 'UNDECIDED']);
+  it('ofrece los mismos medios que confirma el mozo', () => {
+    // Con vocabularios distintos, la mesa decía "tarjeta" y el mozo traducía a
+    // débito o crédito: en esa traducción se perdía si correspondía descontar.
+    for (const medio of ['CASH', 'DEBIT', 'CREDIT', 'TRANSFER']) {
+      expect(PAYMENT_METHODS).toContain(medio);
+    }
+  });
+
+  it('deja decir que todavía no lo definieron', () => {
+    // Es una respuesta, no una respuesta faltante: el mozo se acerca igual.
+    expect(PAYMENT_METHODS).toContain('UNDECIDED');
+  });
+
+  it('sigue reconociendo los llamados viejos', () => {
+    // 'CARD' y 'COUNTER' están guardados en llamados anteriores: ninguna
+    // pantalla los vuelve a escribir, pero llegan de la base.
+    expect(PAYMENT_METHODS).toContain('CARD');
+    expect(PAYMENT_METHODS).toContain('COUNTER');
   });
 
   it('tells the waiter to bring the card reader', () => {
     // The point of asking: walking over without it means a second trip.
+    // Débito y crédito son el mismo viaje para el mozo.
+    expect(needsCardReader(call({ reason: 'BILL', paymentMethod: 'DEBIT' }))).toBe(true);
+    expect(needsCardReader(call({ reason: 'BILL', paymentMethod: 'CREDIT' }))).toBe(true);
+  });
+
+  it('el posnet también para los llamados viejos', () => {
+    // Guardados cuando débito y crédito eran uno solo: ese mozo lo necesita
+    // igual, y perder el aviso le cuesta un viaje de más.
     expect(needsCardReader(call({ reason: 'BILL', paymentMethod: 'CARD' }))).toBe(true);
   });
 

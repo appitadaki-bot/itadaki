@@ -18,7 +18,23 @@ export type CallStatus = 'PENDING' | 'ACKNOWLEDGED';
  * the card reader before walking over, and a free-text line is something you
  * read rather than something you see.
  */
-export const PAYMENT_METHODS = ['CARD', 'CASH', 'COUNTER', 'UNDECIDED'] as const;
+/*
+ * Los mismos medios que confirma el mozo, más los dos que sólo existen acá.
+ *
+ * 'CARD' queda para los llamados guardados cuando débito y crédito eran uno
+ * solo; ninguna pantalla lo vuelve a escribir. 'COUNTER' tampoco se ofrece ya
+ * —nadie cobra en la mesa, así que el sistema no se enteraba de si pagaron—
+ * pero sigue llegando de llamados viejos.
+ */
+export const PAYMENT_METHODS = [
+  'CASH',
+  'DEBIT',
+  'CREDIT',
+  'TRANSFER',
+  'UNDECIDED',
+  'CARD',
+  'COUNTER',
+] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export interface TableCall {
@@ -69,9 +85,21 @@ export function alreadyWaiting(
   );
 }
 
-/** Whether the waiter should take the card reader to the table. */
+/**
+ * Si el mozo tiene que llevar el posnet.
+ *
+ * Débito y crédito los dos: la mesa ahora elige cuál, y para el mozo son el
+ * mismo viaje. `CARD` sigue reconociéndose porque los llamados guardados
+ * cuando eran uno solo tienen ese valor, y ese mozo necesita el posnet igual.
+ */
 export function needsCardReader(call: TableCall): boolean {
-  return call.reason === 'BILL' && call.paymentMethod === 'CARD';
+  if (call.reason !== 'BILL') return false;
+
+  return (
+    call.paymentMethod === 'DEBIT' ||
+    call.paymentMethod === 'CREDIT' ||
+    call.paymentMethod === 'CARD'
+  );
 }
 
 /**
