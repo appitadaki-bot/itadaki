@@ -64,6 +64,7 @@ export class SessionStore {
   private socket: Socket | null = null;
   private readonly orderListeners = new Set<() => void>();
   private readonly callListeners = new Set<() => void>();
+  private readonly sessionListeners = new Set<() => void>();
 
   readonly session = signal<SessionDto | null>(null);
   readonly myDinerId = signal<string | null>(null);
@@ -294,9 +295,13 @@ export class SessionStore {
       void this.refresh(sessionId);
       this.orderListeners.forEach((notify) => notify());
       this.callListeners.forEach((notify) => notify());
+      this.sessionListeners.forEach((notify) => notify());
     });
     this.socket.on('disconnect', () => this.connected.set(false));
-    this.socket.on('session.changed', () => void this.refresh(sessionId));
+    this.socket.on('session.changed', () => {
+      void this.refresh(sessionId);
+      this.sessionListeners.forEach((notify) => notify());
+    });
     this.socket.on('order.changed', () => this.orderListeners.forEach((notify) => notify()));
     // El mozo atendió el llamado desde el salón: el timbre se apaga solo, sin
     // que nadie de la mesa tenga que abrir la hoja para enterarse.
@@ -316,6 +321,19 @@ export class SessionStore {
   onCallChanged(listener: () => void): () => void {
     this.callListeners.add(listener);
     return () => this.callListeners.delete(listener);
+  }
+
+  /**
+   * Y lo mismo para la mesa entera, que es donde se ve el cobro.
+   *
+   * La pantalla de la cuenta no se enteraba de nada: leía la cuenta una vez al
+   * abrirla y se quedaba con eso. El mozo cobraba, la mesa quedaba cerrada del
+   * lado del servidor, y el comensal seguía viendo "pagar" — nunca llegaba a
+   * ver el "gracias" ni el pedido de reseña.
+   */
+  onSessionChanged(listener: () => void): () => void {
+    this.sessionListeners.add(listener);
+    return () => this.sessionListeners.delete(listener);
   }
 
   async refresh(sessionId: string): Promise<void> {
