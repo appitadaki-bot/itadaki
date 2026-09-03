@@ -286,6 +286,17 @@
   white-space: nowrap;
 }
 
+/* Por qué el número es menor que la suma de los platos. Debajo del botón y
+   en chico: el mozo cobra lo que dice el botón, y esto es la explicación por
+   si el cliente pregunta. */
+.con-descuento {
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--itadaki-ink-subtle);
+  text-align: right;
+  max-width: 16rem;
+}
+
 /* Thumb-sized: tapped while carrying plates. */
 .action {
   border: none;

@@ -199,9 +199,17 @@ const CALL_LABELS: Record<string, string> = {
                   <!-- Cobrar es la acción normal y cierra la cuenta; liberar sin
                        cobrar existe para la mesa que pagó por fuera del sistema. -->
                   @if (cobrando() !== mesa.sessionId && confirming() !== mesa.sessionId) {
+                    <!-- Lo que hay que cobrar, no lo que suman los platos: si
+                         la mesa acordó pagar en efectivo con descuento, cobrar
+                         el total es cobrarle de más. -->
                     <button type="button" class="action" (click)="cobrando.set(mesa.sessionId)">
-                      Cobré {{ money(mesa.owed) }}
+                      Cobré {{ money({ amountInMinorUnits: mesa.aCobrar, currency: mesa.owed.currency }) }}
                     </button>
+                    @if (mesa.descuento !== null) {
+                      <span class="con-descuento">
+                        {{ money(mesa.owed) }} menos {{ money(mesa.descuento) }} en efectivo
+                      </span>
+                    }
                     <button
                       type="button"
                       class="release"

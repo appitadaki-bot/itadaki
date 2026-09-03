@@ -49,7 +49,12 @@ export interface TicketDto {
 export interface UnsettledDto {
   readonly sessionId: string;
   readonly tableId: string;
+  /** Lo que suman los platos, sin descuento. */
   readonly owed: { readonly amountInMinorUnits: number; readonly currency: string };
+  /** Lo acordado con la mesa por pagar en efectivo, o null si no hubo. */
+  readonly descuento: { readonly amountInMinorUnits: number; readonly currency: string } | null;
+  /** Lo que hay que cobrar de verdad: `owed` menos el descuento. */
+  readonly aCobrar: number;
   readonly since: string | null;
   readonly diners: number;
 }

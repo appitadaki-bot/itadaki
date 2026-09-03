@@ -38,6 +38,7 @@ import { database } from './database';
 import { CatalogService } from './catalog.service';
 import { OrdersService } from './orders.service';
 import { CallsService } from './calls.service';
+import { BillsService } from './bills.service';
 import { RealtimeGateway } from './realtime.gateway';
 import { SessionsService } from './sessions.service';
 import { toMoneyDto, toOrderDto } from './contracts';
@@ -161,6 +162,7 @@ export class SessionsController {
     private readonly orders: OrdersService,
     private readonly realtime: RealtimeGateway,
     private readonly calls: CallsService,
+    private readonly bills: BillsService,
   ) {}
 
   /** El código de cada mesa vive acá, no en la sesión. */
@@ -236,13 +238,33 @@ export class SessionsController {
       throw new HttpException(result.error, HttpStatus.BAD_GATEWAY);
     }
 
-    return result.value.map((table) => ({
-      sessionId: table.sessionId,
-      tableId: table.tableId,
-      owed: toMoneyDto(table.owed),
-      since: table.since?.toISOString() ?? null,
-      diners: table.diners,
-    }));
+    /*
+     * Con el descuento que la mesa ya acordó.
+     *
+     * Lo adeudado se arma de las comandas, que no saben nada de cómo se paga.
+     * Si la mesa abrió la cuenta y eligió efectivo, el descuento quedó
+     * guardado ahí: sin mirarlo, el salón le cobraba el total y el mozo tenía
+     * que acordarse de restar el diez por ciento de memoria — o cobrarlo de
+     * más, que es lo que iba a pasar en la mesa apurada.
+     */
+    return Promise.all(
+      result.value.map(async (table) => {
+        const cuenta = await this.bills.store.findBySession(tenantId, table.sessionId);
+        const descuento = cuenta.isOk() ? (cuenta.value?.descuentoMinor ?? 0) : 0;
+
+        return {
+          sessionId: table.sessionId,
+          tableId: table.tableId,
+          owed: toMoneyDto(table.owed),
+          // Aparte y no restado del total: el mozo cobra uno y el otro le
+          // dice por qué es menos de lo que suman los platos.
+          descuento: descuento === 0 ? null : { amountInMinorUnits: descuento, currency: table.owed.currency },
+          aCobrar: toMoneyDto(table.owed).amountInMinorUnits - descuento,
+          since: table.since?.toISOString() ?? null,
+          diners: table.diners,
+        };
+      }),
+    );
   }
 
   /**
