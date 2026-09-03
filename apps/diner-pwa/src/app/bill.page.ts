@@ -3,12 +3,12 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, injec
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { type PaymentMethod } from '@itadaki/ordering/domain';
 import {
   LO_QUE_PASA_SI_ELIGE,
   MEDIOS_QUE_ELIGE_LA_MESA,
-  NOMBRE_DEL_MEDIO,
+  nombreDelMedio,
 } from '@itadaki/billing/domain';
-import { type PaymentMethod } from '@itadaki/ordering/domain';
 import { DINER_PALETTE } from '@itadaki/shared/ui-tokens';
 import { BackLinkComponent } from './back-link.component';
 import { ApiClient } from './api-client';
@@ -36,23 +36,26 @@ const TIP_OPTIONS: ReadonlyArray<{ label: string; choice: TipChoice }> = [
   { label: '20%', choice: { kind: 'PERCENTAGE', percent: 0.2 } },
 ];
 
-const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
 
 /**
  * Cómo puede pagar la mesa.
  *
- * Los mismos medios que confirma el mozo al cobrar, sacados del vocabulario
- * compartido y no escritos acá. Esta lista tenía dos opciones —efectivo y un
- * "tarjeta" genérico— de cuando débito y crédito iban juntos: quedó atrás al
- * unificar el resto, así que la mesa no podía elegir transferencia ni decir
- * cuál de las dos tarjetas, y el mozo se enteraba recién en la mesa.
+ * Sólo se muestra si el local ofrece descuento en efectivo: sin eso, elegir
+ * acá no cambia nada y sería un paso que no sirve. Quien no elige paga como
+ * siempre, y el mozo pregunta en la mesa igual que ahora.
+ */
+/*
+ * Los cuatro medios, tomados del dominio.
  *
- * Quien no elige paga como siempre y el mozo pregunta al llegar.
+ * Acá había una lista propia con dos —efectivo y "tarjeta"— mientras el mozo
+ * elegía entre cuatro. La mesa decía "tarjeta" y el mozo tenía que traducir a
+ * débito o crédito al cobrar, así que las métricas por medio nunca cuadraban
+ * con lo que la mesa había elegido.
  */
 const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: string }> =
   MEDIOS_QUE_ELIGE_LA_MESA.map((medio) => ({
     id: medio as PaymentMethod,
-    label: NOMBRE_DEL_MEDIO[medio],
+    label: nombreDelMedio(medio),
     hint: LO_QUE_PASA_SI_ELIGE[medio],
   }));
 
@@ -86,27 +89,6 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
             <span class="amount">{{ money(bill.subtotal) }}</span>
           </div>
 
-          @if (displayCurrency() !== bill.currency && bill.display) {
-            <p class="converted">
-              ≈ {{ money(bill.display) }} · cotización del momento del pedido
-            </p>
-          }
-        </section>
-
-        <section class="card">
-          <h2 class="card-title">Ver en</h2>
-          <div class="chips">
-            @for (code of currencies; track code) {
-              <button
-                type="button"
-                class="chip"
-                [attr.aria-pressed]="displayCurrency() === code"
-                (click)="setCurrency(code)"
-              >
-                {{ code }}
-              </button>
-            }
-          </div>
         </section>
 
         <!-- Cómo pagan, antes de cómo dividen: el descuento en efectivo
@@ -417,12 +399,10 @@ export class BillPage {
     this.recompute();
   }
   protected readonly tipOptions = TIP_OPTIONS;
-  protected readonly currencies = CURRENCIES;
 
   protected readonly splitKind = signal<SplitKind>('BY_DINER');
   protected readonly parts = signal(2);
   protected readonly tipLabel = signal('Sin propina');
-  protected readonly displayCurrency = signal<string>('ARS');
   private readonly assignments = signal<ReadonlyMap<string, readonly string[]>>(new Map());
 
   private tip: TipChoice = { kind: 'NONE' };
@@ -639,12 +619,6 @@ export class BillPage {
     this.tipLabel.set(option.label);
     this.tip = option.choice;
     this.recompute();
-  }
-
-  protected setCurrency(code: string): void {
-    this.displayCurrency.set(code);
-    const id = this.sessionId();
-    if (id !== null) void this.store.load(id, code);
   }
 
   protected isAssigned(lineId: string, payerId: string): boolean {

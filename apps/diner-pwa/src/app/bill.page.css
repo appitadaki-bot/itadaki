@@ -25,7 +25,6 @@
 .line.sub { color: var(--itadaki-ink-subtle); font-size: 0.8rem; }
 .line.total { font-family: var(--itadaki-font-display); font-weight: 700; font-size: 1.05rem; color: var(--itadaki-ink-strong); margin-top: 0.5rem; padding-top: 0.6rem; border-top: 1px dashed var(--itadaki-border-dashed); }
 .amount { font-variant-numeric: tabular-nums; }
-.converted { font-size: 0.75rem; color: var(--itadaki-ink-subtle); margin: 0.5rem 0 0; text-align: right; }
 .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .chip { border: 1px solid var(--itadaki-border); background: var(--itadaki-surface); border-radius: var(--itadaki-radius-pill); padding: 0.5rem 0.9rem; font-family: inherit; font-size: 0.8rem; font-weight: 600; color: var(--itadaki-ink-muted); cursor: pointer; min-height: 38px; }
 .chip[aria-pressed='true'] { background: var(--itadaki-accent); border-color: var(--itadaki-accent); color: white; }
