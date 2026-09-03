@@ -796,50 +796,6 @@ const ROLE_NAMES: Record<string, string> = {
           </details>
         </section>
 
-        <!--
-          Darse de baja.
-
-          Al pie de la solapa y dentro de un desplegable cerrado: es lo último
-          que alguien busca, y ponerlo a la vista lo convierte en una opción
-          que se ofrece. Pero está, y se resuelve acá — la landing promete "te
-          damos de baja cuando quieras, desde tu panel", y prometer una salida
-          fácil sin darla es peor que no prometerla.
-        -->
-        @if (trial()?.status !== 'DADO_DE_BAJA') {
-          <section class="panel">
-            <details class="details">
-              <summary>Dar de baja mi suscripción</summary>
-
-              <div class="baja">
-                <p class="muted">
-                  No se corta nada hoy: seguís con todo el servicio hasta que
-                  termine el mes que ya pagaste, y después no se renueva. Tu
-                  carta, tus mesas y tu historial quedan como están.
-                </p>
-
-                @if (confirmandoBaja()) {
-                  <p class="baja-pregunta">¿Damos de baja tu suscripción?</p>
-                  <div class="baja-acciones">
-                    <button type="button" class="release confirm" (click)="darmeDeBaja()">
-                      Sí, dar de baja
-                    </button>
-                    <button type="button" class="secondary" (click)="confirmandoBaja.set(false)">
-                      No, seguir
-                    </button>
-                  </div>
-                } @else {
-                  <button type="button" class="secondary" (click)="confirmandoBaja.set(true)">
-                    Dar de baja
-                  </button>
-                }
-
-                @if (bajaError(); as error) {
-                  <p class="error-note" role="alert">{{ error }}</p>
-                }
-              </div>
-            </details>
-          </section>
-        }
       }
       }
 
@@ -940,7 +896,27 @@ const ROLE_NAMES: Record<string, string> = {
       <a href="/legal/tratamiento-de-datos.html" target="_blank" rel="noopener">
         Tratamiento de datos
       </a>
+      <!--
+        Darse de baja, acá.
+
+        Estaba en una tarjeta propia dentro de "Tu local", con el peso visual
+        de una función del día a día. Es lo último que alguien busca: va donde
+        están las otras cosas que se leen una vez —los legales— y sin tarjeta.
+
+        Pero está, y se resuelve en un click: la landing promete "te damos de
+        baja cuando quieras, desde tu panel", y prometer una salida fácil sin
+        darla es peor que no prometerla.
+      -->
+      @if (auth.can('staff:manage') && trial()?.status !== 'DADO_DE_BAJA') {
+        <button type="button" class="legal-baja" (click)="pedirLaBaja()">
+          Dar de baja mi suscripción
+        </button>
+      }
     </footer>
+
+    @if (bajaError(); as error) {
+      <p class="baja-error" role="alert">{{ error }}</p>
+    }
 
     <!-- Los modales, al final del template para que queden por encima de
          todo sin depender del orden de la página. -->
@@ -1639,10 +1615,30 @@ export class AdminComponent {
     ),
   );
   protected readonly staffError = signal<string | null>(null);
-  /** Si está preguntando antes de dar de baja. */
-  protected readonly confirmandoBaja = signal(false);
 
   protected readonly bajaError = signal<string | null>(null);
+
+  /**
+   * Pregunta con el mismo diálogo que el resto del panel.
+   *
+   * Antes tenía su propio par de botones —"sí, dar de baja" y "no, seguir"—
+   * que hacía lo mismo que el diálogo de todas las otras acciones que no se
+   * deshacen. Uno solo, y el botón dice lo que hace.
+   */
+  protected async pedirLaBaja(): Promise<void> {
+    const seguro = await this.preguntar({
+      titulo: 'Dar de baja tu suscripción',
+      detalle:
+        'No se corta nada hoy: seguís con todo el servicio hasta que termine ' +
+        'el mes que ya pagaste, y después no se renueva. Tu carta, tus mesas y ' +
+        'tu historial quedan como están.',
+      accion: 'Dar de baja',
+      peligro: true,
+    });
+    if (!seguro) return;
+
+    await this.darmeDeBaja();
+  }
 
   /**
    * Da de baja la suscripción.
@@ -1672,7 +1668,6 @@ export class AdminComponent {
     // El estado nuevo viene en la respuesta: sin esto habría que volver a
     // preguntarlo, y el aviso tardaría en aparecer.
     this.trial.set((await response.json()) as { status: string; daysLeft: number | null });
-    this.confirmandoBaja.set(false);
   }
 
   /** Vuelve a suscribirse: es el mismo restaurante, con todo lo que tenía. */

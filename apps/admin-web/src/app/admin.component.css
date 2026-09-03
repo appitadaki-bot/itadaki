@@ -1925,6 +1925,36 @@
   text-decoration: underline;
 }
 
+/* Se ve como los legales de al lado: acá abajo están las cosas que se leen
+   una vez, no las del día a día. Es un botón porque abre una pregunta, no
+   una página. */
+.legal-baja {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--itadaki-ink-subtle);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.legal-baja:hover {
+  color: var(--itadaki-status-late);
+  text-decoration: underline;
+}
+
+/* Si algo falla, se dice bajo el pie y no adentro de una tarjeta que ya no
+   existe. */
+.baja-error {
+  max-width: 1180px;
+  margin: 0.6rem auto 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--itadaki-status-late);
+}
+
 /*
  * Elegir el plato sin salir de la solapa de fotos.
  *
@@ -2786,37 +2816,3 @@
   }
 }
 
-/* ═══ DAR DE BAJA ═══
- *
- * Al pie de la solapa del local y dentro de un desplegable cerrado: es lo
- * último que alguien busca, y ponerlo a la vista lo convertiría en una opción
- * que se ofrece. Pero está y se resuelve acá — la landing promete "te damos de
- * baja cuando quieras, desde tu panel". */
-
-.baja {
-  padding: 0.9rem 0 0.2rem;
-  display: grid;
-  gap: 0.8rem;
-  justify-items: start;
-  max-width: 42rem;
-}
-
-/*
- * La pregunta antes de confirmar.
- *
- * Dos pasos y no uno: dar de baja no es reversible sin volver a suscribirse, y
- * un toque de más es barato comparado con el susto de haberlo hecho sin
- * querer.
- */
-.baja-pregunta {
-  margin: 0;
-  font-family: var(--itadaki-font-display);
-  font-weight: 700;
-  color: var(--itadaki-ink-strong);
-}
-
-.baja-acciones {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
