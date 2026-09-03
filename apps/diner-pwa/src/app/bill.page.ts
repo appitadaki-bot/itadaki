@@ -26,8 +26,16 @@ const SPLIT_LABELS: ReadonlyArray<{ kind: SplitKind; label: string; hint: string
   { kind: 'SINGLE_PAYER', label: 'Paga una persona', hint: 'uno se hace cargo de todo' },
   { kind: 'BY_DINER', label: 'Cada uno lo suyo', hint: 'pagás lo que pediste' },
   { kind: 'EQUAL', label: 'Partes iguales', hint: 'el total dividido' },
-  { kind: 'BY_ITEM', label: 'Uno por uno', hint: 'elegís quién paga qué' },
 ];
+
+/*
+ * "Uno por uno" no está.
+ *
+ * Repartir plato por plato entre los de la mesa es una lista larga de botones
+ * justo cuando se quiere terminar, y las otras tres cubren cómo paga la gente
+ * de verdad. El servidor la sigue soportando: si alguna vez vuelve, vuelve
+ * acá y nada más.
+ */
 
 const TIP_OPTIONS: ReadonlyArray<{ label: string; choice: TipChoice }> = [
   { label: 'Sin propina', choice: { kind: 'NONE' } },
@@ -174,44 +182,6 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
             </div>
           }
 
-          @if (splitKind() === 'BY_ITEM') {
-            <!-- Que se pueda tocar más de uno no es un error: una picada entre
-                 dos se paga entre dos, y el plato se divide en partes iguales.
-                 La pantalla decía "tocá un nombre", en singular, así que
-                 marcar dos se leía como que algo había salido mal. -->
-            <p class="assign-hint">
-              Tocá quién paga cada cosa. Si la compartieron, marcá a todos y se
-              divide entre ellos.
-            </p>
-            @for (line of bill.lines; track line.id) {
-              <div class="assign" [class.pendiente]="!estaAsignado(line.id)">
-                <span class="assign-name">{{ line.quantity }}× {{ line.name }}</span>
-                <div class="assign-people">
-                  @for (person of bill.participants; track person.id) {
-                    <button
-                      type="button"
-                      class="person"
-                      [style.background]="isAssigned(line.id, person.id) ? color(person.colorIndex) : 'transparent'"
-                      [style.color]="isAssigned(line.id, person.id) ? 'white' : 'inherit'"
-                      [attr.aria-pressed]="isAssigned(line.id, person.id)"
-                      (click)="toggleAssign(line.id, person.id)"
-                    >
-                      {{ person.nickname }}
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-
-            <!-- Cuántos faltan, no sólo que falta alguno: en una mesa larga el
-                 comensal quedaba recorriendo la lista para encontrarlo. -->
-            @if (faltanAsignar() > 0) {
-              <p class="assign-falta" role="status">
-                Falta{{ faltanAsignar() > 1 ? 'n' : '' }} {{ faltanAsignar() }}
-                sin asignar
-              </p>
-            }
-          }
         </section>
 
         <section class="card">
@@ -419,7 +389,6 @@ export class BillPage {
   protected readonly splitKind = signal<SplitKind>('BY_DINER');
   protected readonly parts = signal(2);
   protected readonly tipLabel = signal('Sin propina');
-  private readonly assignments = signal<ReadonlyMap<string, readonly string[]>>(new Map());
 
   private tip: TipChoice = { kind: 'NONE' };
 
@@ -537,15 +506,6 @@ export class BillPage {
   /** Quién paga, cuando paga uno solo. */
   protected readonly payerId = signal<string | null>(null);
 
-  /** Los platos que todavía no tienen a nadie asignado. */
-  protected readonly faltanAsignar = computed(() => {
-    const bill = this.store.bill();
-    if (bill === null || this.splitKind() !== 'BY_ITEM') return 0;
-
-    const asignados = this.assignments();
-    return bill.lines.filter((line) => (asignados.get(line.id) ?? []).length === 0).length;
-  });
-
   /**
    * Si se puede avisar al mozo.
    *
@@ -563,8 +523,6 @@ export class BillPage {
         const participants = this.store.bill()?.participants ?? [];
         return elegido !== null && participants.some((person) => person.id === elegido);
       }
-      case 'BY_ITEM':
-        return this.faltanAsignar() === 0;
       default:
         return true;
     }
@@ -574,14 +532,10 @@ export class BillPage {
   protected readonly queFalta = computed(() => {
     if (this.listoParaPagar()) return null;
 
-    return this.splitKind() === 'SINGLE_PAYER'
-      ? 'Elegí quién paga para poder avisar'
-      : 'Asigná todo para poder avisar';
+    // Sólo queda una forma que necesita que alguien elija algo: la de un
+    // pagador. Las otras dos están listas apenas se tocan.
+    return 'Elegí quién paga para poder avisar';
   });
-
-  protected estaAsignado(lineId: string): boolean {
-    return (this.assignments().get(lineId) ?? []).length > 0;
-  }
 
   protected choosePayer(id: string): void {
     this.payerId.set(id);
@@ -637,25 +591,6 @@ export class BillPage {
     this.recompute();
   }
 
-  protected isAssigned(lineId: string, payerId: string): boolean {
-    return (this.assignments().get(lineId) ?? []).includes(payerId);
-  }
-
-  protected toggleAssign(lineId: string, payerId: string): void {
-    this.assignments.update((current) => {
-      const next = new Map(current);
-      const existing = next.get(lineId) ?? [];
-      next.set(
-        lineId,
-        existing.includes(payerId)
-          ? existing.filter((id) => id !== payerId)
-          : [...existing, payerId],
-      );
-      return next;
-    });
-    this.recompute();
-  }
-
   private recompute(): void {
     const id = this.sessionId();
     if (id === null || this.store.bill() === null) return;
@@ -669,19 +604,12 @@ export class BillPage {
       return;
     }
 
-    const assignments =
-      this.splitKind() === 'BY_ITEM'
-        ? [...this.assignments().entries()]
-            .filter(([, payerIds]) => payerIds.length > 0)
-            .map(([lineId, payerIds]) => ({ lineId, payerIds }))
-        : undefined;
-
     void this.store.computeSplit(
       id,
       this.splitKind(),
       this.tip,
       this.parts(),
-      assignments,
+      undefined,
       this.payerId() ?? undefined,
       this.medioElegido() ?? undefined,
     );
