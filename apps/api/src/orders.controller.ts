@@ -10,7 +10,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { advanceOrder, clearSubmittedLines, submitOrder } from '@itadaki/ordering/application';
-import { claveDeEnvio } from '@itadaki/ordering/domain';
+import { claveDeEnvio } from './clave-de-envio';
 import {
   type DinerScope,
   Public,
