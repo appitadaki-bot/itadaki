@@ -14,12 +14,18 @@
 function texto(estado: {
   visible: boolean;
   huboPlatos: boolean;
+  loVacieYo?: boolean;
   platosAhora: number;
   envio: string;
 }): string | null {
   if (!estado.visible) return null;
   if (estado.envio === 'sent') return 'Pedido enviado · la cocina ya lo está viendo';
-  if (estado.huboPlatos && estado.platosAhora === 0 && estado.envio === 'idle') {
+  if (
+    estado.huboPlatos &&
+    estado.loVacieYo !== true &&
+    estado.platosAhora === 0 &&
+    estado.envio === 'idle'
+  ) {
     return 'Alguien de la mesa envió el pedido a la cocina';
   }
   return null;
@@ -59,5 +65,24 @@ describe('el aviso de que otro envió el pedido', () => {
   it('se apaga solo pasado un rato', () => {
     // Un cartel flotante que no se va tapa la lista.
     expect(muestraElAviso({ ...base, visible: false })).toBe(false);
+  });
+});
+
+/**
+ * Sacar un plato no es que otro haya enviado.
+ *
+ * Bajar el último a cero deja la mesa vacía igual que un envío, así que el
+ * aviso decía que alguien había mandado el pedido a la cocina cuando lo único
+ * que pasó fue que alguien se arrepintió.
+ */
+describe('cuando el carrito lo vacía uno mismo', () => {
+  it('no avisa nada', () => {
+    expect(texto({ ...base, loVacieYo: true })).toBeNull();
+  });
+
+  it('y vuelve a avisar cuando la mesa pide de nuevo y se envía', () => {
+    expect(texto({ ...base, loVacieYo: false })).toBe(
+      'Alguien de la mesa envió el pedido a la cocina',
+    );
   });
 });
