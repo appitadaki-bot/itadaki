@@ -16,6 +16,7 @@ import { CallStore } from './call.store';
 import { BillStore, type MoneyDto, type SplitKind, type TipChoice } from './bill.store';
 import { SessionStore } from './session.store';
 import { medirElPie } from './medir-el-pie';
+import { juntarLoIgual } from './juntar-lo-igual';
 import { hayQueReleerLaCuenta } from './releer-la-cuenta';
 
 // Primera la de uno solo: es la forma más común de cerrar una mesa —el que
@@ -77,8 +78,12 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
 
     @if (store.bill(); as bill) {
       <main class="body">
+        <!-- Juntado por plato: la cuenta se arma de las comandas, en el orden
+             en que salieron de la cocina, así que una mesa que pidió agua tres
+             veces la veía en tres renglones separados por todo lo demás. Para
+             controlarla había que sumar de memoria. -->
         <section class="card">
-          @for (line of bill.lines; track line.id) {
+          @for (line of lineasJuntadas(); track line.id) {
             <div class="line">
               <span>{{ line.quantity }}× {{ line.name }}</span>
               <span class="amount">{{ format(line.unitTotal, line.quantity) }}</span>
@@ -362,6 +367,17 @@ export class BillPage {
 
   /** Dónde deja la reseña, o null si el local no las pide. */
   protected readonly resenaUrl = signal<string | null>(null);
+
+  /**
+   * Lo consumido, un renglón por plato.
+   *
+   * Sólo para leer el total. La lista de "cada uno lo suyo" sigue línea por
+   * línea: ahí se asigna quién paga qué, y dos aguas pedidas por dos personas
+   * distintas no son una cosa sola.
+   */
+  protected readonly lineasJuntadas = computed(() =>
+    juntarLoIgual(this.store.bill()?.lines ?? []),
+  );
 
   /** Para no contar dos veces el mismo ofrecimiento. */
   private resenaContada = false;
