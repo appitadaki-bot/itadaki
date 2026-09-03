@@ -273,9 +273,26 @@ export class PostgresOrderStore implements OrderReader, OrderWriter {
       });
       return ok(order);
     } catch (error) {
+      /*
+       * Dos teléfonos de la misma mesa, en el mismo instante.
+       *
+       * Los dos leyeron que no había comanda con esa clave y los dos
+       * insertaron: el índice único frena al segundo. La comanda existe y es
+       * la que pidió la mesa, así que se devuelve esa — decir "no pudimos
+       * enviar" mandaría a pedir de nuevo algo que ya está en la cocina.
+       */
+      if (esClaveRepetida(error)) {
+        const yaEstaba = await this.findByClientRequestId(tenantId, order.clientRequestId);
+        if (yaEstaba.isOk() && yaEstaba.value !== null) return ok(yaEstaba.value);
+      }
       return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
     }
   }
+}
+
+/** El índice único de `(tenant_id, client_request_id)`. */
+function esClaveRepetida(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === '23505';
 }
 
 interface SessionRow {

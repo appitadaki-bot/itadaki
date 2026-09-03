@@ -98,3 +98,4 @@ export {
   minutosEsperando,
   redondearEspera,
 } from './lib/cuanto-falta';
+export { claveDeEnvio } from './lib/clave-de-envio';
