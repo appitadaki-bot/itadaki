@@ -14,7 +14,7 @@ import { join } from 'node:path';
  * consecuencia era un error que no explicaba qué hacer.
  */
 
-const PANEL = readFileSync(join(__dirname, 'admin.component.ts'), 'utf-8');
+const PANEL = readFileSync(join(__dirname, 'admin.component.ts'), 'utf-8').replace(/\r\n/g, "\n");
 
 describe('los pasos se muestran en orden', () => {
   it('las categorías son el primero', () => {

@@ -13,8 +13,8 @@ import { join } from 'node:path';
  * la pueda pedir quien paga.
  */
 
-const CONTROLLER = readFileSync(join(__dirname, 'auth.controller.ts'), 'utf-8');
-const LANDING = readFileSync(join(__dirname, '../../../apps/landing/index.html'), 'utf-8');
+const CONTROLLER = readFileSync(join(__dirname, 'auth.controller.ts'), 'utf-8').replace(/\r\n/g, "\n");
+const LANDING = readFileSync(join(__dirname, '../../../apps/landing/index.html'), 'utf-8').replace(/\r\n/g, "\n");
 
 describe('lo que promete la landing existe', () => {
   it('la landing lo sigue prometiendo', () => {

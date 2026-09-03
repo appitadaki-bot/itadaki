@@ -15,7 +15,7 @@ import { join } from 'node:path';
  * diferencia que no puede explicar.
  */
 
-const CONTROLLER = readFileSync(join(__dirname, 'bills.controller.ts'), 'utf-8');
+const CONTROLLER = readFileSync(join(__dirname, 'bills.controller.ts'), 'utf-8').replace(/\r\n/g, "\n");
 
 /** Lo que decide el cierre: qué descuento se guarda. */
 function descuentoAlCobrar(input: {

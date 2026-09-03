@@ -24,7 +24,7 @@ function ultimoCheck(columna: string): string {
 
   let vigente = '';
   for (const archivo of archivos) {
-    const sql = readFileSync(join(MIGRACIONES, archivo), 'utf-8');
+    const sql = readFileSync(join(MIGRACIONES, archivo), 'utf-8').replace(/\r\n/g, "\n");
     // Sin comentarios: los medios viejos se nombran ahí al explicar por qué
     // se conservan, y eso no es lo que la base acepta.
     const limpio = sql.replace(/--[^\n]*/g, '');

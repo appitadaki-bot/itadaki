@@ -13,8 +13,8 @@ import { join } from 'node:path';
  * alguien agrega un bloque nuevo: lo urgente arriba, lo de consulta abajo.
  */
 
-const PLANTILLA = readFileSync(join(__dirname, 'floor.component.ts'), 'utf-8');
-const ESTILOS = readFileSync(join(__dirname, 'floor.component.css'), 'utf-8');
+const PLANTILLA = readFileSync(join(__dirname, 'floor.component.ts'), 'utf-8').replace(/\r\n/g, "\n");
+const ESTILOS = readFileSync(join(__dirname, 'floor.component.css'), 'utf-8').replace(/\r\n/g, "\n");
 
 describe('las dos zonas de la pantalla', () => {
   it('lo urgente va antes que lo de consulta', () => {

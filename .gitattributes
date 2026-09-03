@@ -1,0 +1,14 @@
+# Todo el texto se guarda con saltos de línea de Unix, también en Windows.
+#
+# Sin esto, git entrega los archivos con CRLF en Windows y los tests que leen
+# código fuente para comprobar cómo está escrito no encuentran lo que buscan:
+# un patrón con "\n" no coincide contra un archivo con "\r\n". Costó una tarde
+# entender por qué un test fallaba con el código correcto delante.
+* text=auto eol=lf
+
+# Binarios: que no los toque.
+*.png binary
+*.jpg binary
+*.webp binary
+*.avif binary
+*.ico binary

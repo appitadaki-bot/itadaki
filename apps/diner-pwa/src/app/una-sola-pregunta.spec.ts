@@ -14,8 +14,8 @@ import { join } from 'node:path';
  * con las dos respuestas, cada una para algo distinto.
  */
 
-const CUENTA = readFileSync(join(__dirname, 'bill.page.ts'), 'utf-8');
-const TIMBRE = readFileSync(join(__dirname, 'call-button.component.ts'), 'utf-8');
+const CUENTA = readFileSync(join(__dirname, 'bill.page.ts'), 'utf-8').replace(/\r\n/g, "\n");
+const TIMBRE = readFileSync(join(__dirname, 'call-button.component.ts'), 'utf-8').replace(/\r\n/g, "\n");
 
 describe('se pregunta una sola vez', () => {
   it('la segunda hoja ya no existe', () => {

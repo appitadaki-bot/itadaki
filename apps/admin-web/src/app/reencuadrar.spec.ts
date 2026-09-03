@@ -17,7 +17,7 @@ import { join } from 'node:path';
  * preguntar nunca.
  */
 
-const PANEL = readFileSync(join(__dirname, 'admin.component.ts'), 'utf-8');
+const PANEL = readFileSync(join(__dirname, 'admin.component.ts'), 'utf-8').replace(/\r\n/g, "\n");
 const EDITOR = readFileSync(
   join(__dirname, '../../../../libs/shared/ui-image-editor/src/lib/image-editor.component.ts'),
   'utf-8',

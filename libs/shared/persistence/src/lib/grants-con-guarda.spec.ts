@@ -27,7 +27,7 @@ describe('los GRANT de las migraciones', () => {
   });
 
   it.each(archivos)('%s sólo le da permisos al rol si existe', (archivo) => {
-    const contenido = readFileSync(join(CARPETA, archivo), 'utf8');
+    const contenido = readFileSync(join(CARPETA, archivo), 'utf8').replace(/\r\n/g, "\n");
 
     for (const grant of [...contenido.matchAll(/^[ \t]*GRANT\b.*$/gm)]) {
       const hasta = grant.index ?? 0;

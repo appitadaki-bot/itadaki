@@ -14,8 +14,8 @@ import { join } from 'node:path';
  * pediría el editor de imágenes, la sesión y la API.
  */
 
-const COMPONENTE = readFileSync(join(__dirname, 'admin.component.ts'), 'utf-8');
-const ESTILOS = readFileSync(join(__dirname, 'admin.component.css'), 'utf-8');
+const COMPONENTE = readFileSync(join(__dirname, 'admin.component.ts'), 'utf-8').replace(/\r\n/g, "\n");
+const ESTILOS = readFileSync(join(__dirname, 'admin.component.css'), 'utf-8').replace(/\r\n/g, "\n");
 
 describe('la cortina de carga', () => {
   it('se muestra mientras se sube', () => {
