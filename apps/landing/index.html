@@ -612,10 +612,10 @@
 <section class="seccion" id="alta">
   <div class="ancho angosto">
     <p class="numero">06</p>
-    <h2 class="titulo centrado">Dejanos tus datos y te escribimos.</h2>
+    <h2 class="titulo centrado">Dejanos tus datos y te armamos la carta.</h2>
     <p class="lede">
-      Te contactamos por WhatsApp <strong>dentro de las 24 horas hábiles</strong>,
-      con la carta ya cargada.
+      Te escribimos por WhatsApp <strong>dentro de las 24 horas hábiles</strong>.
+      Cuando entres al panel, tu carta ya va a estar cargada.
     </p>
 
     <form class="form" id="form" novalidate>
@@ -626,33 +626,8 @@
       </label>
 
       <label class="campo">
-        <span>Tu nombre y apellido</span>
+        <span>Tu nombre</span>
         <input name="nombre" type="text" required autocomplete="name" />
-        <em class="error"></em>
-      </label>
-
-      <label class="campo">
-        <span>Tu mail</span>
-        <input name="email" type="email" required autocomplete="email" />
-        <em class="error"></em>
-      </label>
-
-      <label class="campo">
-        <span>Una contraseña</span>
-        <input
-          name="password"
-          type="password"
-          required
-          minlength="8"
-          autocomplete="new-password"
-          placeholder="Mínimo 8 caracteres"
-        />
-        <em class="error"></em>
-      </label>
-
-      <label class="campo">
-        <span>Repetí la contraseña</span>
-        <input name="password2" type="password" required autocomplete="new-password" />
         <em class="error"></em>
       </label>
 
@@ -663,12 +638,54 @@
       </label>
 
       <label class="campo">
-        <span>Cuántas mesas tenés, más o menos</span>
-        <input name="mesas" type="number" min="1" max="500" required />
+        <span>Tu mail <em class="opcional">opcional</em></span>
+        <input name="email" type="email" autocomplete="email" />
         <em class="error"></em>
       </label>
 
-      <button class="btn btn-acento ancho-total" type="submit" id="enviar">Crear mi cuenta</button>
+      <!--
+        La pregunta que decide cuánto trabajo es cada alta.
+
+        Opcional en el sentido que importa: ninguna respuesta deja a nadie
+        afuera. El restaurante chico sin web es justamente el cliente, y sería
+        el único que no podría completar el formulario si el link fuera
+        obligatorio.
+      -->
+      <fieldset class="campo campo-carta">
+        <legend>¿Cómo tenés la carta hoy?</legend>
+
+        <label class="opcion">
+          <input type="radio" name="carta" value="link" required />
+          <span>Tengo un link</span>
+        </label>
+
+        <label class="campo campo-link" id="campoLink" hidden>
+          <span>Pegá el link de tu carta</span>
+          <input name="cartaLink" type="url" placeholder="https://" />
+          <em class="error"></em>
+        </label>
+
+        <label class="opcion">
+          <input type="radio" name="carta" value="foto" />
+          <span>Te mando una foto por WhatsApp</span>
+        </label>
+
+        <label class="opcion">
+          <input type="radio" name="carta" value="papel" />
+          <span>Está en papel, la armamos juntos</span>
+        </label>
+        <em class="error" data-error-carta></em>
+      </fieldset>
+
+      <label class="campo">
+        <span>Cuántas mesas tenés, más o menos <em class="opcional">opcional</em></span>
+        <input name="mesas" type="number" min="1" max="500" />
+        <em class="error"></em>
+      </label>
+
+      <button class="btn btn-acento ancho-total" type="submit" id="enviar">
+        Quiero que me armen la carta
+      </button>
 
       <p class="nota centrada">
         Al enviar aceptás los
@@ -696,27 +713,25 @@
       </a>
     </div>
 
-    <!-- El mail de verificación es lo primero que dice, y con la dirección a
-         la vista: si se tipeó mal, este es el momento de darse cuenta — no
-         tres días después, cuando no llegó nada y ya no se sabe por qué. -->
+    <!-- Lo que sigue, en el orden en que va a pasar. Nadie tiene que
+         adivinar si "listo" quiere decir que ya tiene cuenta. -->
     <div class="listo" id="listo" hidden role="status">
-      <p class="listo-titulo"><strong>Tu cuenta está lista.</strong></p>
+      <p class="listo-titulo"><strong>Listo, lo recibimos.</strong></p>
       <p class="listo-mail">
-        Te mandamos un mail a <strong id="mailEnviado">tu casilla</strong> para
-        confirmar que es tuya. <strong>Confirmalo para poder recuperar tu
-        contraseña</strong> si alguna vez la perdés.
+        Te escribimos por WhatsApp al <strong id="whatsappDejado">número que dejaste</strong>
+        dentro de las 24 horas hábiles.
       </p>
       <p class="listo-nota">
-        ¿No te llegó? Fijate en spam, o
-        <button type="button" class="como-link" id="reenviar">reenviámelo</button>.
+        Armamos tu carta con lo que nos pases, cargamos tus mesas y te
+        mandamos los QR listos para imprimir. Cuando entres al panel, ya va a
+        estar todo adentro.
       </p>
       <p class="listo-nota">
-        Te escribimos por WhatsApp dentro de las 24 horas hábiles con tu carta
-        cargada. <strong>Los 30 días arrancan con tu primer pedido</strong>, no
-        ahora.
+        <strong>Los 30 días arrancan con tu primer pedido</strong>, no cuando
+        te damos el acceso: el tiempo que tardemos en armarla no te lo
+        descontamos.
       </p>
-      <a class="btn btn-acento ancho-total" id="irAlPanel" href="#">Entrar al panel</a>
-    </div>
+    </div>    </div>
   </div>
 </section>
 

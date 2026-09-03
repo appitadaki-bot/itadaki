@@ -49,6 +49,13 @@ export {
 } from './lib/pago-recibido';
 export { type ResenaError, linkDeResena, pideResenas } from './lib/resena-google';
 export {
+  COMO_TIENE_LA_CARTA,
+  type ComoTieneLaCarta,
+  type Interesado,
+  type InteresadoError,
+  validarInteresado,
+} from './lib/interesado';
+export {
   type UsuarioError,
   INTENTOS_ANTES_DE_TRABAR,
   LARGO_DEL_PIN,
