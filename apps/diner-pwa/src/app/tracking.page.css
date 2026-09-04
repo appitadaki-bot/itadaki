@@ -249,35 +249,6 @@
  * cocina ocupada un sábado no es una falla. Lo que la mesa necesita acá no es
  * una alarma, es poder hacer algo.
  */
-.demorado {
-  margin: 0.9rem 0 0;
-  padding: 0.9rem 1rem;
-  border-radius: var(--itadaki-radius-card);
-  background: var(--itadaki-accent-tint);
-  border: 1px solid var(--itadaki-accent-line);
-  text-align: center;
-}
 
-.demorado-texto {
-  margin: 0 0 0.7rem;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: var(--itadaki-accent-deep);
-}
 
-.demorado-cta {
-  width: 100%;
-  padding: 0.7rem 1rem;
-  border: 0;
-  border-radius: var(--itadaki-radius-action);
-  background: var(--itadaki-accent);
-  color: white;
-  font-family: var(--itadaki-font-display);
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-}
 
-.demorado-cta:active {
-  transform: translateY(1px);
-}

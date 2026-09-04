@@ -216,7 +216,7 @@ import { TrackingStore } from './tracking.store';
               <button
                 type="button"
                 class="step"
-                (click)="cart.setQuantity(line.id, line.quantity - 1)"
+                (click)="cambiarCantidad(line.id, line.quantity - 1)"
                 [attr.aria-label]="'Quitar uno de ' + line.product.name"
               >
                 –
@@ -225,7 +225,7 @@ import { TrackingStore } from './tracking.store';
               <button
                 type="button"
                 class="step"
-                (click)="cart.setQuantity(line.id, line.quantity + 1)"
+                (click)="cambiarCantidad(line.id, line.quantity + 1)"
                 [attr.aria-label]="'Agregar uno de ' + line.product.name"
               >
                 +
@@ -370,6 +370,9 @@ export class CartPage {
   }
 
   protected change(line: SessionLine, delta: number): void {
+    // Si esto deja la mesa en cero, fue esta persona: sin marcarlo, el aviso
+    // dice que alguien envió el pedido a la cocina.
+    this.loVacieYo.set(true);
     void this.session.changeLine(line.id, line.quantity + delta);
   }
 
@@ -389,6 +392,7 @@ export class CartPage {
   }
 
   protected remove(line: SessionLine): void {
+    this.loVacieYo.set(true);
     void this.session.changeLine(line.id, 0);
   }
 
@@ -414,13 +418,34 @@ export class CartPage {
   /** Se apaga solo: un cartel flotante que no se va tapa la pantalla. */
   private readonly avisoVisible = signal(true);
 
+  /**
+   * Si el carrito quedó vacío por mano de esta persona.
+   *
+   * Bajar el último plato a cero deja la mesa en cero igual que un envío, y
+   * el aviso salía diciendo que alguien había mandado el pedido a la cocina
+   * cuando lo único que pasó fue que se sacó un plato.
+   */
+  private readonly loVacieYo = signal(false);
+
   protected readonly sentByOther = computed(
     () =>
       this.avisoVisible() &&
       this.hadLines() &&
+      !this.loVacieYo() &&
       this.tableLineCount() === 0 &&
       this.orders.submitState().kind === 'idle',
   );
+
+  /**
+   * Cambiar la cantidad de una línea.
+   *
+   * Pasa por acá y no derecho al carrito para dejar dicho que el vaciado, si
+   * llega a cero, fue una decisión de esta persona y no un envío de otra.
+   */
+  protected cambiarCantidad(lineId: string, cantidad: number): void {
+    this.loVacieYo.set(true);
+    this.cart.setQuantity(lineId, cantidad);
+  }
 
   /** Recuerda que había platos, para notar cuándo desaparecieron. */
   private readonly watchCart = effect(() => {
@@ -429,6 +454,9 @@ export class CartPage {
       // Vuelve a estar disponible: si la mesa sigue pidiendo y se envía de
       // nuevo, el aviso tiene que aparecer otra vez.
       this.avisoVisible.set(true);
+      // Y vuelve a haber platos, así que lo que se sacó antes ya no explica
+      // nada: el próximo vaciado puede ser de verdad un envío de otro.
+      this.loVacieYo.set(false);
     }
   });
 

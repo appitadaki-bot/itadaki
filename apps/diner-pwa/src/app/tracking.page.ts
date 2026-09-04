@@ -95,19 +95,17 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
               <p class="espera" role="status">
                 Acá suelen tardar unos {{ redondear(e.habitualMinutos) }} minutos
               </p>
-            } @else if (e.kind === 'DEMORADO') {
-              <!-- No una cuenta regresiva: contar los minutos de más convierte
-                   cada uno en una falta. Se dice una vez y se ofrece hacer
-                   algo, que es lo que la mesa quiere a esa altura. -->
-              <div class="demorado" role="status">
-                <p class="demorado-texto">
-                  Está tardando más de lo habitual. Ya podés preguntarle al mozo.
-                </p>
-                <button type="button" class="demorado-cta" (click)="llamarAlMozo()">
-                  Llamar al mozo
-                </button>
-              </div>
             }
+            <!--
+              Pasada la espera habitual no se dice nada.
+              Estaba el aviso de "está tardando" con un botón para llamar al
+              mozo, y eso es empujar a quejarse a alguien que todavía no se
+              quejó: la mesa que espera tranquila leía que le estaban tardando
+              y levantaba la mano por eso.
+              El estado se sigue calculando, y sirve para callar: decir "acá
+              suelen tardar doce minutos" cuando van veinticinco es peor que
+              no decir nada. El timbre está a mano para quien quiera usarlo.
+            -->
           }
 
           @if (readyCount() > 0 && readyCount() < dishes().length) {
@@ -231,19 +229,6 @@ export class TrackingPage {
   });
 
   protected readonly redondear = redondearEspera;
-
-  /**
-   * Llama al mozo por la demora.
-   *
-   * El mismo llamado que el timbre: la cocina no necesita otro canal, y para
-   * el mozo es la misma mesa levantando la mano.
-   */
-  protected async llamarAlMozo(): Promise<void> {
-    const sessionId = this.session.session()?.id;
-    if (sessionId === undefined) return;
-
-    await this.calls.raise(sessionId, 'WAITER', 'La mesa pregunta por su pedido');
-  }
 
   /**
    * Cuánto tarda la cocina de este local.

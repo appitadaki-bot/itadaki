@@ -3,12 +3,12 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, injec
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { type PaymentMethod } from '@itadaki/ordering/domain';
 import {
   LO_QUE_PASA_SI_ELIGE,
   MEDIOS_QUE_ELIGE_LA_MESA,
-  NOMBRE_DEL_MEDIO,
+  nombreDelMedio,
 } from '@itadaki/billing/domain';
-import { type PaymentMethod } from '@itadaki/ordering/domain';
 import { DINER_PALETTE } from '@itadaki/shared/ui-tokens';
 import { BackLinkComponent } from './back-link.component';
 import { ApiClient } from './api-client';
@@ -16,6 +16,7 @@ import { CallStore } from './call.store';
 import { BillStore, type MoneyDto, type SplitKind, type TipChoice } from './bill.store';
 import { SessionStore } from './session.store';
 import { medirElPie } from './medir-el-pie';
+import { juntarLoIgual } from './juntar-lo-igual';
 import { hayQueReleerLaCuenta } from './releer-la-cuenta';
 
 // Primera la de uno solo: es la forma más común de cerrar una mesa —el que
@@ -25,8 +26,16 @@ const SPLIT_LABELS: ReadonlyArray<{ kind: SplitKind; label: string; hint: string
   { kind: 'SINGLE_PAYER', label: 'Paga una persona', hint: 'uno se hace cargo de todo' },
   { kind: 'BY_DINER', label: 'Cada uno lo suyo', hint: 'pagás lo que pediste' },
   { kind: 'EQUAL', label: 'Partes iguales', hint: 'el total dividido' },
-  { kind: 'BY_ITEM', label: 'Uno por uno', hint: 'elegís quién paga qué' },
 ];
+
+/*
+ * "Uno por uno" no está.
+ *
+ * Repartir plato por plato entre los de la mesa es una lista larga de botones
+ * justo cuando se quiere terminar, y las otras tres cubren cómo paga la gente
+ * de verdad. El servidor la sigue soportando: si alguna vez vuelve, vuelve
+ * acá y nada más.
+ */
 
 const TIP_OPTIONS: ReadonlyArray<{ label: string; choice: TipChoice }> = [
   { label: 'Sin propina', choice: { kind: 'NONE' } },
@@ -36,23 +45,26 @@ const TIP_OPTIONS: ReadonlyArray<{ label: string; choice: TipChoice }> = [
   { label: '20%', choice: { kind: 'PERCENTAGE', percent: 0.2 } },
 ];
 
-const CURRENCIES = ['ARS', 'USD', 'EUR', 'BRL'] as const;
 
 /**
  * Cómo puede pagar la mesa.
  *
- * Los mismos medios que confirma el mozo al cobrar, sacados del vocabulario
- * compartido y no escritos acá. Esta lista tenía dos opciones —efectivo y un
- * "tarjeta" genérico— de cuando débito y crédito iban juntos: quedó atrás al
- * unificar el resto, así que la mesa no podía elegir transferencia ni decir
- * cuál de las dos tarjetas, y el mozo se enteraba recién en la mesa.
+ * Sólo se muestra si el local ofrece descuento en efectivo: sin eso, elegir
+ * acá no cambia nada y sería un paso que no sirve. Quien no elige paga como
+ * siempre, y el mozo pregunta en la mesa igual que ahora.
+ */
+/*
+ * Los cuatro medios, tomados del dominio.
  *
- * Quien no elige paga como siempre y el mozo pregunta al llegar.
+ * Acá había una lista propia con dos —efectivo y "tarjeta"— mientras el mozo
+ * elegía entre cuatro. La mesa decía "tarjeta" y el mozo tenía que traducir a
+ * débito o crédito al cobrar, así que las métricas por medio nunca cuadraban
+ * con lo que la mesa había elegido.
  */
 const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: string }> =
   MEDIOS_QUE_ELIGE_LA_MESA.map((medio) => ({
     id: medio as PaymentMethod,
-    label: NOMBRE_DEL_MEDIO[medio],
+    label: nombreDelMedio(medio),
     hint: LO_QUE_PASA_SI_ELIGE[medio],
   }));
 
@@ -74,8 +86,12 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
 
     @if (store.bill(); as bill) {
       <main class="body">
+        <!-- Juntado por plato: la cuenta se arma de las comandas, en el orden
+             en que salieron de la cocina, así que una mesa que pidió agua tres
+             veces la veía en tres renglones separados por todo lo demás. Para
+             controlarla había que sumar de memoria. -->
         <section class="card">
-          @for (line of bill.lines; track line.id) {
+          @for (line of lineasJuntadas(); track line.id) {
             <div class="line">
               <span>{{ line.quantity }}× {{ line.name }}</span>
               <span class="amount">{{ format(line.unitTotal, line.quantity) }}</span>
@@ -86,27 +102,6 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
             <span class="amount">{{ money(bill.subtotal) }}</span>
           </div>
 
-          @if (displayCurrency() !== bill.currency && bill.display) {
-            <p class="converted">
-              ≈ {{ money(bill.display) }} · cotización del momento del pedido
-            </p>
-          }
-        </section>
-
-        <section class="card">
-          <h2 class="card-title">Ver en</h2>
-          <div class="chips">
-            @for (code of currencies; track code) {
-              <button
-                type="button"
-                class="chip"
-                [attr.aria-pressed]="displayCurrency() === code"
-                (click)="setCurrency(code)"
-              >
-                {{ code }}
-              </button>
-            }
-          </div>
         </section>
 
         <!-- Cómo pagan, antes de cómo dividen: el descuento en efectivo
@@ -187,44 +182,6 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
             </div>
           }
 
-          @if (splitKind() === 'BY_ITEM') {
-            <!-- Que se pueda tocar más de uno no es un error: una picada entre
-                 dos se paga entre dos, y el plato se divide en partes iguales.
-                 La pantalla decía "tocá un nombre", en singular, así que
-                 marcar dos se leía como que algo había salido mal. -->
-            <p class="assign-hint">
-              Tocá quién paga cada cosa. Si la compartieron, marcá a todos y se
-              divide entre ellos.
-            </p>
-            @for (line of bill.lines; track line.id) {
-              <div class="assign" [class.pendiente]="!estaAsignado(line.id)">
-                <span class="assign-name">{{ line.quantity }}× {{ line.name }}</span>
-                <div class="assign-people">
-                  @for (person of bill.participants; track person.id) {
-                    <button
-                      type="button"
-                      class="person"
-                      [style.background]="isAssigned(line.id, person.id) ? color(person.colorIndex) : 'transparent'"
-                      [style.color]="isAssigned(line.id, person.id) ? 'white' : 'inherit'"
-                      [attr.aria-pressed]="isAssigned(line.id, person.id)"
-                      (click)="toggleAssign(line.id, person.id)"
-                    >
-                      {{ person.nickname }}
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-
-            <!-- Cuántos faltan, no sólo que falta alguno: en una mesa larga el
-                 comensal quedaba recorriendo la lista para encontrarlo. -->
-            @if (faltanAsignar() > 0) {
-              <p class="assign-falta" role="status">
-                Falta{{ faltanAsignar() > 1 ? 'n' : '' }} {{ faltanAsignar() }}
-                sin asignar
-              </p>
-            }
-          }
         </section>
 
         <section class="card">
@@ -381,6 +338,17 @@ export class BillPage {
   /** Dónde deja la reseña, o null si el local no las pide. */
   protected readonly resenaUrl = signal<string | null>(null);
 
+  /**
+   * Lo consumido, un renglón por plato.
+   *
+   * Sólo para leer el total. La lista de "cada uno lo suyo" sigue línea por
+   * línea: ahí se asigna quién paga qué, y dos aguas pedidas por dos personas
+   * distintas no son una cosa sola.
+   */
+  protected readonly lineasJuntadas = computed(() =>
+    juntarLoIgual(this.store.bill()?.lines ?? []),
+  );
+
   /** Para no contar dos veces el mismo ofrecimiento. */
   private resenaContada = false;
 
@@ -417,13 +385,10 @@ export class BillPage {
     this.recompute();
   }
   protected readonly tipOptions = TIP_OPTIONS;
-  protected readonly currencies = CURRENCIES;
 
   protected readonly splitKind = signal<SplitKind>('BY_DINER');
   protected readonly parts = signal(2);
   protected readonly tipLabel = signal('Sin propina');
-  protected readonly displayCurrency = signal<string>('ARS');
-  private readonly assignments = signal<ReadonlyMap<string, readonly string[]>>(new Map());
 
   private tip: TipChoice = { kind: 'NONE' };
 
@@ -541,15 +506,6 @@ export class BillPage {
   /** Quién paga, cuando paga uno solo. */
   protected readonly payerId = signal<string | null>(null);
 
-  /** Los platos que todavía no tienen a nadie asignado. */
-  protected readonly faltanAsignar = computed(() => {
-    const bill = this.store.bill();
-    if (bill === null || this.splitKind() !== 'BY_ITEM') return 0;
-
-    const asignados = this.assignments();
-    return bill.lines.filter((line) => (asignados.get(line.id) ?? []).length === 0).length;
-  });
-
   /**
    * Si se puede avisar al mozo.
    *
@@ -567,8 +523,6 @@ export class BillPage {
         const participants = this.store.bill()?.participants ?? [];
         return elegido !== null && participants.some((person) => person.id === elegido);
       }
-      case 'BY_ITEM':
-        return this.faltanAsignar() === 0;
       default:
         return true;
     }
@@ -578,14 +532,10 @@ export class BillPage {
   protected readonly queFalta = computed(() => {
     if (this.listoParaPagar()) return null;
 
-    return this.splitKind() === 'SINGLE_PAYER'
-      ? 'Elegí quién paga para poder avisar'
-      : 'Asigná todo para poder avisar';
+    // Sólo queda una forma que necesita que alguien elija algo: la de un
+    // pagador. Las otras dos están listas apenas se tocan.
+    return 'Elegí quién paga para poder avisar';
   });
-
-  protected estaAsignado(lineId: string): boolean {
-    return (this.assignments().get(lineId) ?? []).length > 0;
-  }
 
   protected choosePayer(id: string): void {
     this.payerId.set(id);
@@ -641,31 +591,6 @@ export class BillPage {
     this.recompute();
   }
 
-  protected setCurrency(code: string): void {
-    this.displayCurrency.set(code);
-    const id = this.sessionId();
-    if (id !== null) void this.store.load(id, code);
-  }
-
-  protected isAssigned(lineId: string, payerId: string): boolean {
-    return (this.assignments().get(lineId) ?? []).includes(payerId);
-  }
-
-  protected toggleAssign(lineId: string, payerId: string): void {
-    this.assignments.update((current) => {
-      const next = new Map(current);
-      const existing = next.get(lineId) ?? [];
-      next.set(
-        lineId,
-        existing.includes(payerId)
-          ? existing.filter((id) => id !== payerId)
-          : [...existing, payerId],
-      );
-      return next;
-    });
-    this.recompute();
-  }
-
   private recompute(): void {
     const id = this.sessionId();
     if (id === null || this.store.bill() === null) return;
@@ -679,19 +604,12 @@ export class BillPage {
       return;
     }
 
-    const assignments =
-      this.splitKind() === 'BY_ITEM'
-        ? [...this.assignments().entries()]
-            .filter(([, payerIds]) => payerIds.length > 0)
-            .map(([lineId, payerIds]) => ({ lineId, payerIds }))
-        : undefined;
-
     void this.store.computeSplit(
       id,
       this.splitKind(),
       this.tip,
       this.parts(),
-      assignments,
+      undefined,
       this.payerId() ?? undefined,
       this.medioElegido() ?? undefined,
     );

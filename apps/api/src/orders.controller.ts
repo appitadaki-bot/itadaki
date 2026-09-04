@@ -10,6 +10,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { advanceOrder, clearSubmittedLines, submitOrder } from '@itadaki/ordering/application';
+import { claveDeEnvio } from './clave-de-envio';
 import {
   type DinerScope,
   Public,
@@ -158,11 +159,28 @@ export class OrdersController {
       now: () => new Date(),
     });
 
+    /*
+     * La clave sale de lo que se envía, no de quién lo envía.
+     *
+     * El carrito es de la mesa. Con la clave que inventa cada teléfono, dos
+     * comensales tocando "enviar" a la vez mandaban las mismas líneas con
+     * claves distintas: se creaban dos comandas y la cocina cocinaba todo dos
+     * veces. Derivada de la mesa y las líneas, el segundo envío cae en la
+     * comanda que ya creó el primero.
+     *
+     * Sin `lineIds` no hay de dónde derivarla —un reintento de la cola vieja,
+     * por ejemplo— y ahí vale la del cliente, que es la que había.
+     */
+    const clave =
+      parsed.data.lineIds.length > 0
+        ? claveDeEnvio(parsed.data.sessionId, parsed.data.lineIds)
+        : (idempotencyKey ?? parsed.data.clientRequestId);
+
     const result = await run({
       tenantId,
       sessionId: parsed.data.sessionId,
       dinerId: parsed.data.dinerId,
-      clientRequestId: idempotencyKey ?? parsed.data.clientRequestId,
+      clientRequestId: clave,
       currency: 'ARS',
       lines: parsed.data.lines,
     });

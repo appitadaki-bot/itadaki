@@ -663,7 +663,13 @@
   margin: auto;
   padding: 1rem 1.1rem 0.85rem;
   border-radius: var(--itadaki-radius-card);
-  background: var(--itadaki-status-ready-bg);
+  /* Fondo opaco.
+     Estaba con el token del chip de "listo", que lleva 30% de opacidad porque
+     vive dentro de una tarjeta con superficie sólida detrás. Flotando sobre la
+     lista dejaba ver los platos por debajo del texto, y el cartel se leía
+     encima de la pantalla anterior. El verde queda en el borde y en la letra,
+     que es lo que lo hace reconocible. */
+  background: var(--itadaki-surface-raised);
   border: 1px solid var(--itadaki-status-ready);
   color: var(--itadaki-status-ready-fg);
   box-shadow: var(--itadaki-shadow-panel);
