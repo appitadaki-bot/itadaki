@@ -1,5 +1,5 @@
 import { apiUrl, socketUrl } from '@itadaki/shared/domain';
-import { provideZoneChangeDetection } from '@angular/core';
+import { ErrorHandler, provideZoneChangeDetection } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { AppComponent } from './app/app.component';
@@ -17,6 +17,47 @@ import { OfflineStore } from './app/offline.store';
 // Imported for its module side effect: it grabs `?t=` from the URL before the
 // router redirects '' to bienvenida and drops the query string.
 import './app/table-token.store';
+import { MARCA, hayQueRecargar } from './app/version-nueva';
+
+/**
+ * Recuperarse de un despliegue con la app abierta.
+ *
+ * Al publicar una versión nueva cambian los nombres de los archivos de cada
+ * pantalla. El teléfono que venía usando la app pide los viejos, el servidor
+ * le devuelve el `index.html` por el rewrite de SPA, y la pantalla no carga.
+ * Le pasa a alguien sentado en la mesa: toca "ver la cuenta" y la app deja de
+ * andar, sin nada que pueda hacer al respecto.
+ *
+ * Recargar lo arregla, así que se recarga. Una sola vez por sesión: si vuelve
+ * a fallar, el problema es otro y hay que dejarlo llegar a la pantalla en vez
+ * de parpadear para siempre.
+ */
+class RecargarSiCambioLaVersion implements ErrorHandler {
+  handleError(error: unknown): void {
+    // Sin almacenamiento —una ventana privada, o el navegador bloqueándolo—
+    // no se recarga: sin poder dejar la marca, sería un bucle.
+    if (hayQueRecargar(error, this.yaSeIntento())) {
+      try {
+        sessionStorage.setItem(MARCA, '1');
+      } catch {
+        console.error(error);
+        return;
+      }
+      globalThis.location.reload();
+      return;
+    }
+
+    console.error(error);
+  }
+
+  private yaSeIntento(): boolean {
+    try {
+      return sessionStorage.getItem(MARCA) === '1';
+    } catch {
+      return true;
+    }
+  }
+}
 
 const API_URL = apiUrl();
 // Tenant is app configuration, not server infrastructure: importing it from
@@ -30,6 +71,7 @@ const TENANT_ID = 'itadaki';
 void bootstrapApplication(AppComponent, {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
+    { provide: ErrorHandler, useClass: RecargarSiCambioLaVersion },
     provideRouter(routes, withComponentInputBinding()),
     { provide: API_BASE_URL, useValue: API_URL },
     { provide: WS_URL, useValue: socketUrl() },
