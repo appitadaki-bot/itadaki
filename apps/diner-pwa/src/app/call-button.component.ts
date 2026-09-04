@@ -347,7 +347,7 @@ export class CallButtonComponent {
      * Pedir la cuenta lleva a la pantalla de la cuenta, no avisa al mozo.
      *
      * Desde acá se avisaba derecho, y eso se saltea todo lo que la mesa
-     * necesita antes: ver el total, elegir cómo dividirlo y poner propina. El
+     * necesita antes: ver el total y elegir cómo dividirlo. El
      * mozo llegaba con una cuenta sola mientras la mesa todavía discutía quién
      * paga qué — que es exactamente el momento que este producto vino a
      * resolver.

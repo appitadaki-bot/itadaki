@@ -51,9 +51,6 @@ export function aplicaA(metodo: MedioDeCobro | 'CARD' | PaymentMethod | null): b
 /**
  * Cuánto se descuenta de un consumo.
  *
- * Sobre el consumo y nunca sobre el total con propina: el descuento lo pone
- * el restaurante y la propina es del mozo. Calcularlo sobre el total le
- * sacaría plata al mozo por una decisión que tomó el dueño.
  */
 export function montoDelDescuento(
   descuento: DescuentoEnEfectivo,

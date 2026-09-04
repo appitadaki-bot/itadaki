@@ -22,13 +22,9 @@ import {
   byItemSplit,
   customSplit,
   displayIn,
-  distributeTip,
   isSettled,
   equalSplit,
   singlePayerSplit,
-  tipAmount,
-  totalWithTip,
-  type Tip,
 } from '@itadaki/billing/domain';
 import { Money, type CurrencyCode, type MoneyError, ok } from '@itadaki/shared/domain';
 import { z } from 'zod';
@@ -67,13 +63,6 @@ const splitSchema = z.object({
   amounts: z
     .array(z.object({ payerId: z.string().min(1), amountInMinorUnits: z.number().int().min(0) }))
     .optional(),
-  tip: z
-    .discriminatedUnion('kind', [
-      z.object({ kind: z.literal('NONE') }),
-      z.object({ kind: z.literal('PERCENTAGE'), percent: z.number().min(0).max(1) }),
-      z.object({ kind: z.literal('FIXED'), amountInMinorUnits: z.number().int().min(0) }),
-    ])
-    .default({ kind: 'NONE' }),
   displayCurrency: z.enum(['ARS', 'USD', 'EUR', 'BRL']).optional(),
 });
 
@@ -394,24 +383,8 @@ export class BillsController {
       throw new HttpException(subtotal.error, HttpStatus.CONFLICT);
     }
 
-    const tip: Tip =
-      parsed.data.tip.kind === 'FIXED'
-        ? {
-            kind: 'FIXED',
-            amount:
-              Money.of(parsed.data.tip.amountInMinorUnits, bill.currency).unwrapOr(
-                Money.zero(bill.currency),
-              ),
-          }
-        : parsed.data.tip;
-
     /*
      * El descuento por pagar en efectivo, si el local lo ofrece.
-     *
-     * Va antes de la propina a propósito: el descuento lo pone el
-     * restaurante y la propina es del mozo, pero el mozo cobra su porcentaje
-     * sobre lo que la mesa realmente paga — que es lo que ocurre hoy cuando
-     * el descuento se arregla de palabra.
      *
      * Cualquier problema al leerlo deja el descuento en cero: un fallo no
      * puede inventar una rebaja que el local no ofrece.
@@ -431,12 +404,6 @@ export class BillsController {
     const base = subtotal.value.subtract(rebaja.value);
     if (base.isErr()) {
       throw new HttpException(base.error, HttpStatus.CONFLICT);
-    }
-
-    const tipValue = tipAmount(tip, base.value);
-    const grandTotal = totalWithTip(base.value, tip);
-    if (tipValue.isErr() || grandTotal.isErr()) {
-      throw new HttpException(tipValue.isErr() ? tipValue.error : 'tip failed', HttpStatus.BAD_REQUEST);
     }
 
     const shares = strategyFor(parsed.data, bill).split(bill);
@@ -463,10 +430,6 @@ export class BillsController {
       });
     }
 
-    // Tip is spread in proportion to what each payer owes, not evenly.
-    const withTip = distributeTip(shares.value, tipValue.value);
-    const tipped = withTip.isOk() ? withTip.value : shares.value;
-
     return {
       kind: parsed.data.kind,
       subtotal: toMoneyDto(subtotal.value),
@@ -475,13 +438,11 @@ export class BillsController {
       // efectivo ahorrás X" antes de que la mesa decida.
       descuento: toMoneyDto(rebaja.value),
       descuentoOfrecido: Math.round(descuento.porcentaje * 100),
-      tip: toMoneyDto(tipValue.value),
-      total: toMoneyDto(grandTotal.value),
-      shares: shares.value.map((share, index) => ({
+      total: toMoneyDto(base.value),
+      shares: shares.value.map((share) => ({
         payerId: share.payerId,
         label: share.label,
         amount: toMoneyDto(share.amount),
-        amountWithTip: toMoneyDto(tipped[index]?.amount ?? share.amount),
       })),
     };
   }

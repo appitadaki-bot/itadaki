@@ -31,18 +31,15 @@ export interface SplitDto {
   readonly descuento?: MoneyDto;
   /** Los puntos que el local ofrece, aunque todavía no hayan elegido. */
   readonly descuentoOfrecido?: number;
-  readonly tip: MoneyDto;
   readonly total: MoneyDto;
   readonly shares: ReadonlyArray<{
     payerId: string;
     label: string;
     amount: MoneyDto;
-    amountWithTip: MoneyDto;
   }>;
 }
 
 export type SplitKind = 'SINGLE_PAYER' | 'EQUAL' | 'BY_DINER' | 'BY_ITEM' | 'CUSTOM_AMOUNT';
-export type TipChoice = { kind: 'NONE' } | { kind: 'PERCENTAGE'; percent: number };
 
 /**
  * Por qué no se pudo abrir la cuenta, en algo que se pueda leer sentado a una
@@ -179,7 +176,6 @@ export class BillStore {
   async computeSplit(
     sessionId: string,
     kind: SplitKind,
-    tip: TipChoice,
     parts?: number,
     assignments?: ReadonlyArray<{ lineId: string; payerIds: readonly string[] }>,
     payerId?: string,
@@ -189,7 +185,6 @@ export class BillStore {
 
     const response = await this.api.send(`/bills/${sessionId}/split`, 'POST', {
       kind,
-      tip,
       parts,
       assignments,
       payerId,

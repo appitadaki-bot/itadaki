@@ -22,7 +22,7 @@ export interface SubmitOrderLine {
    * esto todas las líneas quedaban a nombre del que envió: en la cuenta,
    * "cada uno lo suyo" le cobraba todo a esa persona y $0 al resto.
    */
-  readonly dinerId?: string;
+  readonly dinerId?: string | undefined;
   readonly productId: string;
   readonly quantity: number;
   readonly notes: string;

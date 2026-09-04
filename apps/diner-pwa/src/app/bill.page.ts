@@ -13,7 +13,7 @@ import { DINER_PALETTE } from '@itadaki/shared/ui-tokens';
 import { BackLinkComponent } from './back-link.component';
 import { ApiClient } from './api-client';
 import { CallStore } from './call.store';
-import { BillStore, type MoneyDto, type SplitKind, type TipChoice } from './bill.store';
+import { BillStore, type MoneyDto, type SplitKind } from './bill.store';
 import { SessionStore } from './session.store';
 import { medirElPie } from './medir-el-pie';
 import { juntarLoIgual } from './juntar-lo-igual';
@@ -36,14 +36,6 @@ const SPLIT_LABELS: ReadonlyArray<{ kind: SplitKind; label: string; hint: string
  * de verdad. El servidor la sigue soportando: si alguna vez vuelve, vuelve
  * acá y nada más.
  */
-
-const TIP_OPTIONS: ReadonlyArray<{ label: string; choice: TipChoice }> = [
-  { label: 'Sin propina', choice: { kind: 'NONE' } },
-  { label: '5%', choice: { kind: 'PERCENTAGE', percent: 0.05 } },
-  { label: '10%', choice: { kind: 'PERCENTAGE', percent: 0.1 } },
-  { label: '15%', choice: { kind: 'PERCENTAGE', percent: 0.15 } },
-  { label: '20%', choice: { kind: 'PERCENTAGE', percent: 0.2 } },
-];
 
 
 /**
@@ -184,22 +176,6 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
 
         </section>
 
-        <section class="card">
-          <h2 class="card-title">Propina <em>(opcional)</em></h2>
-          <div class="chips">
-            @for (option of tipOptions; track option.label) {
-              <button
-                type="button"
-                class="chip"
-                [attr.aria-pressed]="tipLabel() === option.label"
-                (click)="chooseTip(option)"
-              >
-                {{ option.label }}
-              </button>
-            }
-          </div>
-        </section>
-
         @if (store.error(); as error) {
           <p class="error" role="alert">{{ error }}</p>
         }
@@ -210,7 +186,7 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
             @for (share of split.shares; track share.payerId) {
               <div class="share">
                 <span class="share-name">{{ share.label }}</span>
-                <span class="share-amount">{{ money(share.amountWithTip) }}</span>
+                <span class="share-amount">{{ money(share.amount) }}</span>
               </div>
             }
 
@@ -223,12 +199,6 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
               </div>
             }
 
-            @if (split.tip.amountInMinorUnits > 0) {
-              <div class="line sub">
-                <span>Propina incluida</span>
-                <span class="amount">{{ money(split.tip) }}</span>
-              </div>
-            }
             <div class="line total">
               <span>Total</span>
               <span class="amount">{{ money(split.total) }}</span>
@@ -384,13 +354,9 @@ export class BillPage {
     this.medioElegido.set(medio);
     this.recompute();
   }
-  protected readonly tipOptions = TIP_OPTIONS;
 
   protected readonly splitKind = signal<SplitKind>('BY_DINER');
   protected readonly parts = signal(2);
-  protected readonly tipLabel = signal('Sin propina');
-
-  private tip: TipChoice = { kind: 'NONE' };
 
   protected readonly sessionId = computed(() => this.session.session()?.id ?? null);
 
@@ -585,12 +551,6 @@ export class BillPage {
     this.recompute();
   }
 
-  protected chooseTip(option: { label: string; choice: TipChoice }): void {
-    this.tipLabel.set(option.label);
-    this.tip = option.choice;
-    this.recompute();
-  }
-
   private recompute(): void {
     const id = this.sessionId();
     if (id === null || this.store.bill() === null) return;
@@ -607,7 +567,6 @@ export class BillPage {
     void this.store.computeSplit(
       id,
       this.splitKind(),
-      this.tip,
       this.parts(),
       undefined,
       this.payerId() ?? undefined,
