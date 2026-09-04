@@ -67,3 +67,11 @@ export {
   pareceUnPin,
   usuarioLibre,
 } from './lib/usuario-y-pin';
+export {
+  correoDeVencimiento,
+  diasDeGraciaQueQuedan,
+  finDeLaGracia,
+  hayQueAvisar,
+  type CorreoDeVencimiento,
+  type RestauranteVencido,
+} from './lib/aviso-de-vencimiento';

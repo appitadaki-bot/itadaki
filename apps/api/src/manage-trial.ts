@@ -67,7 +67,9 @@ async function main(): Promise<void> {
       until.setTime(Date.now() + days * 86_400_000);
 
       const result = await client.query(
-        'UPDATE tenants SET trial_ends_at = $2, paid = false WHERE slug = $1',
+        `UPDATE tenants
+            SET trial_ends_at = $2, paid = false, vencimiento_avisado_at = NULL
+          WHERE slug = $1`,
         [slug, until],
       );
       console.log(
@@ -80,10 +82,10 @@ async function main(): Promise<void> {
 
     if (command === 'pay' || command === 'unpay') {
       const paid = command === 'pay';
-      const result = await client.query('UPDATE tenants SET paid = $2 WHERE slug = $1', [
-        slug,
-        paid,
-      ]);
+      const result = await client.query(
+        'UPDATE tenants SET paid = $2, vencimiento_avisado_at = NULL WHERE slug = $1',
+        [slug, paid],
+      );
       console.log(
         result.rowCount === 0
           ? `no existe ${slug}`
