@@ -21,6 +21,10 @@ import {
 import { ApiClient } from './api-client';
 import { BackLinkComponent } from './back-link.component';
 import { CallStore } from './call.store';
+import {
+  cuantosPlatos as contarPlatos,
+  juntarLoMismoEnCocina,
+} from './juntar-lo-mismo-en-cocina';
 import { medirElPie } from './medir-el-pie';
 import { SessionStore } from './session.store';
 import { TrackingStore, type TrackedOrder } from './tracking.store';
@@ -108,9 +112,9 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
             -->
           }
 
-          @if (readyCount() > 0 && readyCount() < dishes().length) {
+          @if (readyCount() > 0 && readyCount() < cuantosPlatos()) {
             <p class="partial" role="status">
-              {{ readyCount() }} de {{ dishes().length }} ya salieron
+              {{ readyCount() }} de {{ cuantosPlatos() }} ya salieron
             </p>
           }
         </section>
@@ -136,12 +140,6 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
           </section>
         }
 
-        @if (!store.allDelivered() && store.minutesRemaining() > 0) {
-          <section class="card eta">
-            <span class="eta-label">Llega en aproximadamente</span>
-            <span class="eta-value">{{ store.minutesRemaining() }} min</span>
-          </section>
-        }
       </main>
 
       <footer class="foot" #pie>
@@ -263,7 +261,8 @@ export class TrackingPage {
    * happened to be sent in.
    */
   protected readonly dishes = computed(() =>
-    this.store.active().flatMap((order) =>
+    juntarLoMismoEnCocina(
+      this.store.active().flatMap((order) =>
       order.items.map((item) => ({
         key: `${order.id}:${item.id}`,
         name: item.name,
@@ -274,8 +273,12 @@ export class TrackingPage {
         // La fecha cruda: la de arriba ya es el texto que se muestra.
         pedidoEn: order.placedAt === null ? null : new Date(order.placedAt),
       })),
+      ),
     ),
   );
+
+  /** Cuántos platos hay, contando las cantidades y no los renglones. */
+  protected readonly cuantosPlatos = computed(() => contarPlatos(this.dishes()));
 
   /**
    * En qué paso está el pedido en conjunto: el del plato más atrasado.
@@ -289,8 +292,10 @@ export class TrackingPage {
   });
 
   /** Cuántos platos ya salieron de la cocina, para el "2 de 5". */
-  protected readonly readyCount = computed(
-    () => this.dishes().filter((dish) => dish.status === 'READY' || dish.status === 'DELIVERED').length,
+  protected readonly readyCount = computed(() =>
+    contarPlatos(
+      this.dishes().filter((dish) => dish.status === 'READY' || dish.status === 'DELIVERED'),
+    ),
   );
 
   /** El estado de un plato en dos palabras, al lado de su nombre. */

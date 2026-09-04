@@ -527,6 +527,10 @@ export class CartPage {
       // La marca viaja con la línea: sin esto la mesa la prendía, se guardaba
       // bien, y al enviar el pedido la cocina lo recibía como cualquier otro.
       lines.map((line) => ({
+        // Cada línea se manda a nombre de quien la agregó. Va el carrito
+        // entero de la mesa en una sola comanda, así que sin esto la cuenta
+        // le cobraba todo a quien tocó "enviar".
+        dinerId: line.dinerId,
         productId: line.productId,
         quantity: line.quantity,
         notes: line.notes,

@@ -70,6 +70,8 @@ export class OrderService {
    */
   async submitLines(
     lines: ReadonlyArray<{
+      /** Quién pidió el plato, si no es quien envía. */
+      dinerId?: string;
       productId: string;
       quantity: number;
       notes: string;

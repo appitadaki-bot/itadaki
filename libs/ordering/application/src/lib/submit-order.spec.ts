@@ -130,6 +130,27 @@ describe('submitOrder', () => {
     expect(events.published[0]?.status).toBe('SENT');
   });
 
+  /**
+   * El carrito es de la mesa y va entero en una sola comanda. Sin esto todas
+   * las líneas quedaban a nombre de quien tocó "enviar": en la cuenta, "cada
+   * uno lo suyo" le cobraba todo a esa persona y $0 a los demás.
+   */
+  it('cada línea queda a nombre de quien la pidió', async () => {
+    const { submit } = makeSubmit();
+    const result = await submit(
+      command({
+        dinerId: 'steve',
+        lines: [
+          { productId: 'p1', quantity: 1, notes: '', modifierIds: [] },
+          { dinerId: 'lu', productId: 'p1', quantity: 1, notes: '', modifierIds: [] },
+        ],
+      }),
+    );
+
+    if (result.isErr()) throw new Error('expected ok');
+    expect(result.value.items.map((item) => item.dinerId)).toEqual(['steve', 'lu']);
+  });
+
   it('freezes the catalog price into the order', async () => {
     const { submit } = makeSubmit();
     const result = await submit(command());

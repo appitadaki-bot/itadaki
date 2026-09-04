@@ -10,6 +10,8 @@ export const submitOrderSchema = z.object({
   lines: z
     .array(
       z.object({
+        /** Quién pidió el plato, si no es quien envía. */
+        dinerId: z.string().min(1).max(64).optional(),
         productId: z.string().min(1).max(64),
         quantity: z.number().int().min(1).max(99),
         notes: z.string().max(280).default(''),

@@ -31,7 +31,6 @@ export const MESSAGES = {
   'bill.split.byDiner': { es: 'cada uno lo suyo', en: 'each pays their own', pt: 'cada um o seu' },
   'bill.split.equal': { es: 'partes iguales', en: 'split evenly', pt: 'partes iguais' },
   'bill.split.byItem': { es: 'por plato', en: 'by dish', pt: 'por prato' },
-  'bill.tip.none': { es: 'sin propina', en: 'no tip', pt: 'sem gorjeta' },
   'bill.pay': { es: 'pagar en caja', en: 'pay at the counter', pt: 'pagar no caixa' },
   'diet.VEGAN': { es: 'vegano', en: 'vegan', pt: 'vegano' },
   'diet.VEGETARIAN': { es: 'vegetariano', en: 'vegetarian', pt: 'vegetariano' },

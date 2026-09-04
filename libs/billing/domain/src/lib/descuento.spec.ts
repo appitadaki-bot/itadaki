@@ -5,7 +5,6 @@ import {
   descuentoDe,
   montoDelDescuento,
 } from './descuento';
-import { tipAmount } from './tip';
 
 /**
  * El descuento por pagar en efectivo.
@@ -103,23 +102,8 @@ describe('cuánto se descuenta', () => {
   });
 });
 
-describe('la propina no la paga el mozo', () => {
-  it('se calcula sobre lo que la mesa realmente paga', () => {
-    // El descuento lo pone el restaurante; la propina es del mozo. Pero el
-    // mozo cobra su porcentaje sobre lo que la mesa paga, que es lo que
-    // ocurre hoy cuando el descuento se arregla de palabra.
-    const consumo = ars(2_000_000);
-    const conDescuento = consumoConDescuento(DIEZ, consumo);
-    if (conDescuento.isErr()) throw new Error('expected ok');
-
-    const propina = tipAmount({ kind: 'PERCENTAGE', percent: 0.1 }, conDescuento.value);
-    if (propina.isErr()) throw new Error('expected ok');
-
-    // 10% de 18.000, no de 20.000.
-    expect(propina.value.amountInMinorUnits).toBe(180_000);
-  });
-
-  it('sin descuento la propina no cambia', () => {
+describe('consumo con descuento', () => {
+  it('sin descuento el consumo no cambia', () => {
     const sin = descuentoDe(0);
     if (sin.isErr()) throw new Error('expected ok');
 

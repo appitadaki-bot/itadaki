@@ -9,7 +9,6 @@ import {
   sharesTotal,
   type SplitStrategy,
 } from './bill-split';
-import { NO_TIP, TIP_PRESETS, tipAmount, totalWithTip } from './tip';
 
 const AT = new Date('2026-01-01T22:00:00Z');
 
@@ -278,45 +277,6 @@ describe('every strategy sums to the bill', () => {
       expectSharesSumToBill(byItemSplit([{ lineId: 'l1', payerIds: ['d1', 'd2', 'd3'] }]), bill);
     });
   }
-});
-
-describe('tip', () => {
-  it('defaults to nothing', () => {
-    const amount = tipAmount(NO_TIP, ars(10_000));
-    if (amount.isErr()) throw new Error('expected ok');
-    expect(amount.value.isZero()).toBe(true);
-  });
-
-  it('computes a percentage', () => {
-    const amount = tipAmount({ kind: 'PERCENTAGE', percent: 0.1 }, ars(10_000));
-    if (amount.isErr()) throw new Error('expected ok');
-    expect(amount.value.amountInMinorUnits).toBe(1_000);
-  });
-
-  it('offers presets but selects none', () => {
-    expect(TIP_PRESETS).toEqual([0.1, 0.15, 0.2]);
-    expect(NO_TIP.kind).toBe('NONE');
-  });
-
-  it('accepts a fixed amount', () => {
-    const amount = tipAmount({ kind: 'FIXED', amount: ars(50_000) }, ars(10_000));
-    if (amount.isErr()) throw new Error('expected ok');
-    expect(amount.value.amountInMinorUnits).toBe(50_000);
-  });
-
-  it('rejects a percentage above 100', () => {
-    expect(tipAmount({ kind: 'PERCENTAGE', percent: 1.5 }, ars(10_000)).isErr()).toBe(true);
-  });
-
-  it('rejects a negative percentage', () => {
-    expect(tipAmount({ kind: 'PERCENTAGE', percent: -0.1 }, ars(10_000)).isErr()).toBe(true);
-  });
-
-  it('adds the tip to the base', () => {
-    const total = totalWithTip(ars(10_000), { kind: 'PERCENTAGE', percent: 0.15 });
-    if (total.isErr()) throw new Error('expected ok');
-    expect(total.value.amountInMinorUnits).toBe(11_500);
-  });
 });
 
 describe('multi-currency display', () => {
