@@ -19,14 +19,6 @@ export interface TrackedOrder {
   readonly items: readonly TrackedItem[];
 }
 
-/** Rough per-status guess; the kitchen does not publish a real ETA yet. */
-const MINUTES_REMAINING: Record<string, number> = {
-  SENT: 20,
-  ACCEPTED: 18,
-  IN_PREP: 12,
-  READY: 0,
-};
-
 /**
  * Lo que la mesa tiene en cocina.
  *
@@ -59,14 +51,6 @@ export class TrackingStore {
   readonly allDelivered = computed(() => {
     const active = this.active();
     return active.length > 0 && active.every((order) => order.status === 'DELIVERED');
-  });
-
-  /** The least-advanced order drives the headline ETA. */
-  readonly minutesRemaining = computed(() => {
-    const pending = this.active().filter((order) => order.status !== 'DELIVERED');
-    if (pending.length === 0) return 0;
-
-    return Math.max(...pending.map((order) => MINUTES_REMAINING[order.status] ?? 0));
   });
 
   /** La sesión de la que son los pedidos que están en memoria. */

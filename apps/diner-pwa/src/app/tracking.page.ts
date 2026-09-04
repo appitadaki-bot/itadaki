@@ -136,12 +136,6 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
           </section>
         }
 
-        @if (!store.allDelivered() && store.minutesRemaining() > 0) {
-          <section class="card eta">
-            <span class="eta-label">Llega en aproximadamente</span>
-            <span class="eta-value">{{ store.minutesRemaining() }} min</span>
-          </section>
-        }
       </main>
 
       <footer class="foot" #pie>
