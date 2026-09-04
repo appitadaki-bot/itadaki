@@ -116,7 +116,21 @@ export function describeSubscription(input: TrialInput, now: Date): Subscription
     return { status: 'ACTIVE', trialEndsAt: null, daysLeft: null };
   }
 
-  if (input.trialEndsAt === null) {
+  /*
+   * Qué fecha manda: la última que se venció.
+   *
+   * Al principio sólo existía el trial, así que la cuenta se hacía sobre
+   * `trialEndsAt`. Cuando un restaurante empezó a pagar, `paidUntil` pasó a
+   * ser la fecha real y `trialEndsAt` quedó como un recuerdo de hace meses:
+   * el día que un pago dejaba de entrar, la cuenta contra esa fecha vieja daba
+   * semanas de atraso y el local caía directo en SUSPENDED, salteándose la
+   * semana de gracia que existe justamente para ese caso.
+   */
+  const vence = [input.trialEndsAt, input.paidUntil ?? null]
+    .filter((fecha): fecha is Date => fecha !== null)
+    .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+
+  if (vence === null) {
     /*
      * Sin fecha, dos casos distintos.
      *
@@ -136,7 +150,7 @@ export function describeSubscription(input: TrialInput, now: Date): Subscription
     };
   }
 
-  const daysLeft = daysUntil(input.trialEndsAt, now);
+  const daysLeft = daysUntil(vence, now);
 
   // Tres cortes, del más lejano al más cercano: aviso, panel bloqueado, y
   // recién después de la gracia el servicio suspendido.
@@ -149,7 +163,7 @@ export function describeSubscription(input: TrialInput, now: Date): Subscription
           ? 'TRIAL_ENDING'
           : 'TRIAL';
 
-  return { status, trialEndsAt: input.trialEndsAt, daysLeft };
+  return { status, trialEndsAt: vence, daysLeft };
 }
 
 /**
