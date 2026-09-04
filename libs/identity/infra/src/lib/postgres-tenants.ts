@@ -147,7 +147,10 @@ export class PostgresTenantStore {
               SET trial_ends_at = COALESCE($2, trial_ends_at),
                   paid = COALESCE($3, paid),
                   paid_until = CASE WHEN $5 THEN $4 ELSE paid_until END,
-                  plan = COALESCE($6, plan)
+                  plan = COALESCE($6, plan),
+                  -- Tocar la suscripción vuelve viejo el aviso de vencimiento:
+                  -- si más adelante vuelve a vencer, tiene que volver a salir.
+                  vencimiento_avisado_at = NULL
             WHERE id = $1`,
           [
             tenantId,
