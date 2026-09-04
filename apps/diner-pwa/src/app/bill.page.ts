@@ -90,7 +90,7 @@ const MEDIOS_DE_PAGO: ReadonlyArray<{ id: PaymentMethod; label: string; hint: st
             </div>
           }
           <div class="line total">
-            <span>total {{ bill.currency }}</span>
+            <span>Total</span>
             <span class="amount">{{ money(bill.subtotal) }}</span>
           </div>
 
