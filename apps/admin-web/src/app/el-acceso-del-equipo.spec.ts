@@ -64,7 +64,23 @@ describe('el link lleva a la app donde trabaja cada uno', () => {
 describe('los datos de acceso se ven', () => {
   it('son una ventana y no un cartel al pie', () => {
     // El PIN se ve una sola vez: si el dueño no lo ve, se perdió.
-    expect(PANEL).toMatch(/@if \(pinNuevo\(\); as datos\) \{\s*\n\s*<div class="modal"/);
+    expect(PANEL).toMatch(
+      /@if \(pinNuevo\(\); as datos\) \{[\s\S]{0,400}?<div class="modal acceso"/,
+    );
+  });
+
+  it('tapa la página de atrás', () => {
+    // Sin el fondo, la ventana quedaba fija mientras el panel seguía
+    // scrolleando por detrás, y era fácil no verla nunca.
+    expect(PANEL).toMatch(/@if \(pinNuevo\(\); as datos\) \{[\s\S]{0,400}?<div class="scrim"/);
+  });
+
+  it('el fondo de esta ventana no la cierra', () => {
+    // Un clic al costado cerraba lo único que muestra el PIN.
+    const desde = PANEL.indexOf('@if (pinNuevo(); as datos)');
+    const fondo = PANEL.slice(desde, PANEL.indexOf('class="modal acceso"', desde));
+    expect(fondo).toContain('<div class="scrim" aria-hidden="true"></div>');
+    expect(fondo).not.toContain('(click)');
   });
 
   it('no se cierra sola', () => {
@@ -72,8 +88,27 @@ describe('los datos de acceso se ven', () => {
     expect(PANEL).toContain('(click)="pinNuevo.set(null)"');
   });
 
+  it('"Listo" espera a que los datos hayan salido de la pantalla', () => {
+    expect(PANEL).toContain('[disabled]="!entregado()"');
+  });
+
+  it('copiar cuenta como haberlos entregado', () => {
+    expect(PANEL).toContain('this.entregado.set(true);');
+  });
+
   it('el link es el del puesto de esa persona', () => {
     expect(PANEL).toContain('linkPara(datos.role)');
+  });
+
+  it('copia el mismo link que muestra', () => {
+    // Mostraba el del salón y copiaba el del panel: el mozo recibía un link
+    // donde no puede entrar.
+    expect(PANEL).toContain('`Entrá por acá: ${this.linkPara(datos.role)}`');
+    expect(PANEL).not.toContain('`Entrá por acá: ${this.linkDelLocal()}`');
+  });
+
+  it('la página de atrás no se mueve mientras hay una ventana', () => {
+    expect(PANEL).toContain("document.body.style.overflow = this.hayVentana() ? 'hidden' : '';");
   });
 });
 

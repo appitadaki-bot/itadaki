@@ -963,31 +963,50 @@ const ROLE_NAMES: Record<string, string> = {
       momento —copiarlo y mandárselo— y una ventana lo dice sin decirlo.
     -->
     @if (pinNuevo(); as datos) {
-      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="acceso-title">
+      <!-- El fondo no cierra la ventana, a diferencia de los demás modales:
+           un clic al costado cerraba lo único que muestra el PIN, y no hay
+           forma de volver a verlo. -->
+      <div class="scrim" aria-hidden="true"></div>
+      <div class="modal acceso" role="dialog" aria-modal="true" aria-labelledby="acceso-title">
         <header class="modal-head">
           <h2 class="modal-title" id="acceso-title">Datos de acceso de {{ datos.nombre }}</h2>
         </header>
 
         <div class="modal-body">
+          <p class="pin-aviso">Este PIN se ve una sola vez. Si se pierde, generás otro.</p>
+
           <dl class="pin-datos">
             <dt>Link</dt>
             <dd>{{ linkPara(datos.role) }}</dd>
             <dt>Usuario</dt>
             <dd>{{ datos.usuario }}</dd>
-            <dt>PIN</dt>
-            <dd class="pin-numero">{{ datos.pin }}</dd>
           </dl>
 
-          <p class="pin-aviso">
-            Anotalo o mandáselo ahora: el PIN no se puede volver a ver. Si se
-            pierde, generás otro.
-          </p>
+          <!-- El PIN aparte y grande: es el único de los tres que se pierde. -->
+          <div class="pin-caja">
+            <span class="pin-rotulo">PIN</span>
+            <span class="pin-numero">{{ datos.pin }}</span>
+          </div>
+
+          <label class="pin-anotado">
+            <input
+              type="checkbox"
+              [checked]="entregado()"
+              (change)="entregado.set(!entregado())"
+            />
+            <span>Ya se los pasé a {{ primerNombre(datos.nombre) }}</span>
+          </label>
 
           <div class="pin-acciones">
             <button type="button" class="create" (click)="copiarAcceso(datos)">
               {{ copiado() ? 'Copiado ✓' : 'Copiar los tres datos' }}
             </button>
-            <button type="button" class="secondary" (click)="pinNuevo.set(null)">
+            <button
+              type="button"
+              class="secondary"
+              [disabled]="!entregado()"
+              (click)="pinNuevo.set(null)"
+            >
               Listo
             </button>
           </div>
@@ -2089,7 +2108,24 @@ export class AdminComponent {
   protected readonly status = signal<string | null>(null);
   protected readonly result = signal<{ variants: Array<{ url: string; width: number; format: string }>; lqip: string } | null>(null);
 
+  /** Si hay alguna ventana abierta encima de la página. */
+  private readonly hayVentana = computed(
+    () => this.modal() !== null || this.confirma() !== null || this.pinNuevo() !== null,
+  );
+
   constructor() {
+    /*
+     * La página de atrás no se mueve mientras hay una ventana abierta.
+     *
+     * La ventana está fija a la pantalla, así que al scrollear se quedaba
+     * quieta mientras todo lo demás corría por detrás: parecía pegada al
+     * vidrio y despegada del panel. Peor con los datos de acceso, que hay que
+     * leer y copiar de una.
+     */
+    effect(() => {
+      document.body.style.overflow = this.hayVentana() ? 'hidden' : '';
+    });
+
     this.auth.configure(API);
     void this.auth.restore().then(() => {
       if (this.auth.signedIn()) void this.load();
@@ -2335,6 +2371,8 @@ export class AdminComponent {
 
     // El PIN sale en claro una sola vez: se muestra hasta que el dueño lo
     // cierra, porque después no se puede volver a ver.
+    this.entregado.set(false);
+    this.copiado.set(false);
     const alta = (await response.json()) as {
       displayName: string;
       usuario: string;
@@ -2800,6 +2838,16 @@ export class AdminComponent {
   } | null>(null);
 
   protected readonly copiado = signal(false);
+  /**
+   * Si los datos ya salieron de esta pantalla.
+   *
+   * "Listo" espera a esto. El PIN se muestra una sola vez, y la ventana se
+   * cerraba de un clic sin que nadie se hubiera llevado nada: el dueño volvía
+   * a la lista y tenía que generar otro. Se marca solo al copiar, que es lo
+   * que hace casi todo el mundo; la tilde queda para quien lo anotó a mano o
+   * no tiene permiso al portapapeles.
+   */
+  protected readonly entregado = signal(false);
   protected readonly copiadoLink = signal(false);
 
   /**
@@ -2855,6 +2903,7 @@ export class AdminComponent {
   }): Promise<void> {
     this.generandoPin.set(member.id);
     this.copiado.set(false);
+    this.entregado.set(false);
 
     try {
       const respuesta = await fetch(`${API}/staff/${member.id}/pin`, {
@@ -2877,14 +2926,24 @@ export class AdminComponent {
     nombre: string;
     usuario: string;
     pin: string;
+    role: string;
   }): Promise<void> {
     const texto = [
-      `Entrá por acá: ${this.linkDelLocal()}`,
+      `Entrá por acá: ${this.linkPara(datos.role)}`,
       `Usuario: ${datos.usuario}`,
       `PIN: ${datos.pin}`,
     ].join('\n');
 
-    await this.alPortapapeles(texto, this.copiado);
+    // Copiar cuenta como haberlos entregado: es el camino normal, y pedir
+    // además la tilde sería hacer dos veces lo mismo.
+    if (await this.alPortapapeles(texto, this.copiado)) {
+      this.entregado.set(true);
+    }
+  }
+
+  /** Sólo el nombre de pila, que es como lo llaman en el local. */
+  protected primerNombre(nombre: string): string {
+    return nombre.split(' ')[0] ?? nombre;
   }
 
   protected async copiarLink(): Promise<void> {
@@ -2897,14 +2956,16 @@ export class AdminComponent {
    * Sin el aviso nadie sabe si funcionó, y termina copiando tres veces por las
    * dudas. Vuelve solo a los dos segundos.
    */
-  private async alPortapapeles(texto: string, marca: WritableSignal<boolean>): Promise<void> {
+  private async alPortapapeles(texto: string, marca: WritableSignal<boolean>): Promise<boolean> {
     try {
       await navigator.clipboard.writeText(texto);
       marca.set(true);
       setTimeout(() => marca.set(false), 2000);
+      return true;
     } catch {
       // Sin permiso al portapapeles, el texto está a la vista para copiarlo
       // a mano: no hay nada que avisar.
+      return false;
     }
   }
 
