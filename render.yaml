@@ -108,3 +108,44 @@ databases:
     # El plan gratis de Render borra la base a los 90 días. Antes de eso hay
     # que pasar a un plan pago o migrarla — scripts/backup.sh saca el dump.
     postgresMajorVersion: "16"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# El aviso de vencimiento, cuando haga falta prenderlo.
+#
+# El correo que avisa que la suscripción venció sale de un proceso que hay que
+# correr todos los días. Está escrito y probado, pero sin cron: un cron job en
+# Render se cobra por minuto corrido, y sin restaurantes que puedan vencer
+# estaría pagando por leer una tabla vacía. Hasta entonces se corre a mano:
+#
+#     DATABASE_ADMIN_URL=... npm run avisos:vencimiento -- --secos
+#
+# `--secos` dice a quién le tocaría sin mandar nada. Sacarlo lo manda.
+#
+# Cuando el primer local esté pagando, se crea el cron desde el panel de
+# Render — New → Cron Job — con estos valores:
+#
+#     Name                 itadaki-avisos-vencimiento
+#     Language             Docker
+#     Branch               main
+#     Region               oregon (la misma que la base)
+#     Root Directory       (vacío)
+#     Schedule             0 11 * * *      11 UTC = 8 de la mañana acá
+#     Compute              el más chico: 0.5 CPU, 512 MB
+#     Dockerfile Path      ./Dockerfile
+#     Docker Command       node dist/api/apps/api/src/avisar-vencimientos.js
+#
+# El Docker Command es el campo que importa. Vacío, Render usa el CMD del
+# Dockerfile y levanta la API entera: un proceso que no termina nunca, en un
+# servicio que se cobra por minuto, y ningún correo enviado.
+#
+# Y NO `npm run avisos:vencimiento`, que es lo que se corre en una máquina de
+# desarrollo: ese script compila primero, y la imagen de runtime se instala
+# con `npm ci --omit=dev`, sin TypeScript.
+#
+# Variables: DATABASE_ADMIN_URL (la Internal Database URL de itadaki-db),
+# RESEND_API_KEY y MAIL_FROM (las mismas que itadaki-api). NODE_ENV ya viene
+# en production desde el Dockerfile.
+#
+# A propósito no está declarado acá abajo como servicio: si este archivo está
+# sincronizado como Blueprint, agregarlo lo crearía solo, que es justamente lo
+# que no se quiere todavía.
