@@ -2484,6 +2484,53 @@
 }
 
 /*
+ * El PIN aparte de los otros dos datos.
+ *
+ * El link y el usuario se pueden volver a ver cuando quieran; el PIN no. En
+ * la misma lista los tres pesaban igual, y lo único irrecuperable pasaba
+ * desapercibido entre lo que no importa perder.
+ */
+.pin-caja {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 0.9rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--itadaki-accent);
+  border-radius: var(--itadaki-radius-action);
+  background: var(--itadaki-surface-sunken);
+}
+
+.pin-rotulo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--itadaki-accent-deep);
+}
+
+/* La tilde para quien lo anotó a mano: sin esto, no copiar al portapapeles
+   dejaba "Listo" apagado para siempre. */
+.pin-anotado {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 0.9rem;
+  font-size: 0.85rem;
+  color: var(--itadaki-ink-strong);
+  cursor: pointer;
+}
+
+.pin-anotado input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--itadaki-accent);
+  cursor: pointer;
+  flex: none;
+}
+
+/*
  * El PIN, grande y separado.
  *
  * Se dicta en voz alta: los dígitos de ancho fijo y el espaciado hacen que se
@@ -2498,16 +2545,36 @@
 }
 
 .pin-aviso {
-  margin: 0 0 0.85rem;
+  margin: 0 0 0.9rem;
   font-size: 0.82rem;
   line-height: 1.5;
   color: var(--itadaki-accent-deep);
 }
 
+/* Los dos del mismo ancho: uno más grande que el otro decía cuál era el
+   importante, y el importante es el que se lleva los datos. */
 .pin-acciones {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.pin-acciones .secondary {
+  margin-top: 0;
+  padding: 0.8rem;
+  min-height: 44px;
+  font-family: var(--itadaki-font-display);
+  font-size: 0.875rem;
+}
+
+/* Apagado hasta que los datos salieron de acá. */
+.pin-acciones .secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pin-acciones .secondary:disabled:hover {
+  background: transparent;
 }
 
 /* ═══ EL TELÉFONO ═══
