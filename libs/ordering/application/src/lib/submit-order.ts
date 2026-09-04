@@ -15,6 +15,14 @@ import {
 } from './ports';
 
 export interface SubmitOrderLine {
+  /**
+   * Quién pidió este plato, cuando no es quien toca "enviar".
+   *
+   * El carrito es de la mesa y va entero en una sola comanda, así que sin
+   * esto todas las líneas quedaban a nombre del que envió: en la cuenta,
+   * "cada uno lo suyo" le cobraba todo a esa persona y $0 al resto.
+   */
+  readonly dinerId?: string;
   readonly productId: string;
   readonly quantity: number;
   readonly notes: string;
@@ -92,7 +100,7 @@ export function submitOrder(deps: {
 
       const item = OrderItem.create({
         id: deps.newId(),
-        dinerId: command.dinerId,
+        dinerId: line.dinerId ?? command.dinerId,
         product: priced.value.product,
         modifiers: priced.value.modifiers,
         quantity: line.quantity,
