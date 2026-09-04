@@ -86,7 +86,7 @@ describe('cuándo se pregunta el local', () => {
   it('nunca antes de verificar el PIN', () => {
     // Preguntarlo antes diría en qué restaurantes trabaja alguien con sólo
     // escribir su usuario, que es justo lo que el PIN protege.
-    const codigo = readFileSync(join(__dirname, 'auth.controller.ts'), 'utf-8');
+    const codigo = readFileSync(join(__dirname, 'auth.controller.ts'), 'utf-8').replace(/\r\n/g, "\n");
 
     const login = codigo.slice(codigo.indexOf('async loginConPin('));
     const verificacion = login.indexOf('verifyPassword(');

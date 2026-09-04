@@ -220,12 +220,10 @@
 
   const MENSAJES = {
     local: 'Poné el nombre de tu restaurante',
-    nombre: 'Poné tu nombre y apellido',
-    email: 'Necesitamos tu mail para crear la cuenta',
-    password: 'Elegí una contraseña de 8 caracteres o más',
-    password2: 'Repetí la misma contraseña',
+    nombre: 'Poné tu nombre',
     whatsapp: 'Necesitamos un WhatsApp para escribirte',
-    mesas: 'Decinos cuántas mesas tenés, más o menos',
+    cartaLink: 'Pegá el link de tu carta, o elegí otra opción',
+    mesas: 'Poné un número entre 1 y 500',
   };
 
   /*
@@ -242,18 +240,6 @@
   const api = enLaMaquina
     ? `${globalThis.location.protocol}//${globalThis.location.hostname}:3000`
     : (document.querySelector('meta[name="itadaki-api"]')?.content ?? '');
-  /*
-   * Dónde está el panel del dueño.
-   *
-   * En localhost, el de la máquina —igual que la API— para poder probar el
-   * camino entero sin publicar nada. En producción sale del meta, que hoy
-   * está vacío: sin él, el botón "Entrar al panel" simplemente no aparece, y
-   * eso es mejor que mandar a una URL que no existe.
-   */
-  const panel = enLaMaquina
-    ? `${globalThis.location.protocol}//${globalThis.location.hostname}:4400`
-    : (document.querySelector('meta[name="itadaki-panel"]')?.content ?? '');
-
   function revisar(input) {
     const campo = input.closest('.campo');
     if (campo === null) return true;
@@ -263,11 +249,9 @@
       input.type === 'number' && !vacio && (Number(input.value) < 1 || Number(input.value) > 500);
     // Un mail sin arroba o una contraseña corta se rechazan acá y no después:
     // el servidor los rechaza igual, y enterarse recién ahí es peor.
+    // El mail es opcional: sólo se revisa si escribió algo.
     const malMail = input.type === 'email' && !vacio && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.value);
-    const malClave = input.type === 'password' && !vacio && input.value.length < 8;
-    const otra = form?.querySelector('[name="password"]')?.value ?? '';
-    const noCoincide = input.name === 'password2' && !vacio && input.value !== otra;
-    const mal = (input.required && vacio) || malNumero || malMail || malClave || noCoincide;
+    const mal = (input.required && vacio) || malNumero || malMail;
 
     campo.classList.toggle('mal', mal);
     const error = campo.querySelector('.error');
@@ -277,9 +261,7 @@
           ? 'Poné un número entre 1 y 500'
           : malMail
             ? 'Ese mail no parece válido'
-            : noCoincide
-              ? 'Las dos contraseñas tienen que ser iguales'
-              : (MENSAJES[input.name] ?? 'Falta completar esto')
+            : (MENSAJES[input.name] ?? 'Falta completar esto')
         : '';
     }
     return !mal;
@@ -295,15 +277,17 @@
   function completo() {
     if (form === null) return false;
 
-    const clave = form.querySelector('[name="password"]')?.value ?? '';
+    // Una de las tres opciones de la carta, sí o sí: es lo que decide qué
+    // hacemos después de recibirlo.
+    if (form.querySelector('input[name="carta"]:checked') === null) return false;
 
     return [...form.querySelectorAll('input')].every((input) => {
+      if (input.type === 'radio') return true;
       const valor = input.value.trim();
       if (input.required && valor === '') return false;
-      if (input.type === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(valor)) return false;
-      if (input.type === 'password' && valor.length < 8) return false;
-      if (input.name === 'password2' && input.value !== clave) return false;
-      if (input.type === 'number' && (Number(valor) < 1 || Number(valor) > 500)) return false;
+      // El mail es opcional; si lo escribió, que sea un mail.
+      if (input.type === 'email' && valor !== '' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(valor)) return false;
+      if (input.type === 'number' && valor !== '' && (Number(valor) < 1 || Number(valor) > 500)) return false;
       return true;
     });
   }
@@ -336,24 +320,35 @@
     });
   }
 
-  refrescarBoton();
-
   /*
-   * "Contratar ahora" pasa por el mismo formulario.
+   * El campo del link, sólo cuando hace falta.
    *
-   * El cobro necesita saber de qué restaurante es el pago, y ese restaurante
-   * tiene que existir antes: sin cuenta, llega la plata y no hay a quién
-   * acreditársela. Así que los dos botones crean la cuenta; lo que cambia es
-   * a dónde va después.
+   * Suelto y siempre visible parece obligatorio, y el que no tiene carta
+   * online —que es justamente el cliente— se frena ahí. Aparece al elegir esa
+   * opción y se va con cualquier otra, para que nadie mande un link pegado
+   * por error en la respuesta equivocada.
    */
-  let vaAPagar = false;
+  const campoLink = document.getElementById('campoLink');
+  const inputLink = campoLink?.querySelector('input') ?? null;
 
-  for (const link of document.querySelectorAll('[data-contratar]')) {
-    link.addEventListener('click', () => {
-      vaAPagar = true;
-      if (boton !== null) boton.textContent = 'Crear cuenta y contratar';
+  for (const opcion of form?.querySelectorAll('input[name="carta"]') ?? []) {
+    opcion.addEventListener('change', () => {
+      const conLink = opcion.value === 'link' && opcion.checked;
+      if (campoLink !== null) campoLink.hidden = !conLink;
+      if (inputLink !== null) {
+        inputLink.required = conLink;
+        if (!conLink) {
+          inputLink.value = '';
+          campoLink?.classList.remove('mal');
+        } else {
+          inputLink.focus();
+        }
+      }
+      refrescarBoton();
     });
   }
+
+  refrescarBoton();
 
   /** Un error que no es de un campo puntual: sin red, el mail ya usado. */
   function errorGeneral(texto) {
@@ -365,35 +360,6 @@
       boton?.insertAdjacentElement('beforebegin', aviso);
     }
     aviso.textContent = texto;
-  }
-
-  /**
-   * El botón de reenviar el mail de verificación.
-   *
-   * Se apaga después de usarlo: el segundo link invalida al primero, así que
-   * tocarlo tres veces deja tres mails en la casilla de los cuales sólo el
-   * último sirve — y la persona probablemente abra el primero que ve.
-   */
-  function prepararReenvio(email) {
-    const reenviar = document.getElementById('reenviar');
-    if (reenviar === null) return;
-
-    reenviar.addEventListener('click', async () => {
-      reenviar.disabled = true;
-      reenviar.textContent = 'Enviando…';
-
-      try {
-        await fetch(`${api}/api/auth/reenviar-verificacion`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ email }),
-        });
-        reenviar.textContent = 'Listo, fijate de nuevo';
-      } catch {
-        reenviar.textContent = 'No pudimos reenviarlo';
-        reenviar.disabled = false;
-      }
-    });
   }
 
   form?.addEventListener('submit', async (evento) => {
@@ -410,79 +376,57 @@
     }
 
     if (api === '') {
-      errorGeneral('No podemos crear la cuenta ahora. Escribinos por WhatsApp.');
+      errorGeneral('No podemos recibirlo ahora. Escribinos por WhatsApp.');
       return;
     }
 
     const datos = Object.fromEntries(new FormData(form));
 
-    // Bloqueado mientras se manda: dos toques seguidos son dos cuentas, y la
-    // segunda falla con "el mail ya está en uso" — que se lee como un error
-    // del usuario cuando en realidad hizo todo bien.
+    // Bloqueado mientras se manda: dos toques seguidos son dos pedidos, y del
+    // otro lado alguien escribe dos veces al mismo restaurante.
     if (boton !== null) {
       boton.disabled = true;
-      boton.textContent = 'Creando tu cuenta…';
+      boton.textContent = 'Enviando…';
     }
     form.querySelector('.error-envio')?.remove();
 
     try {
-      const respuesta = await fetch(`${api}/api/auth/signup`, {
+      const mesas = Number(datos.mesas);
+      const respuesta = await fetch(`${api}/api/interesados`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          restaurant: datos.local,
-          email: datos.email,
-          password: datos.password,
-          displayName: datos.nombre,
+          local: datos.local,
+          nombre: datos.nombre,
+          whatsapp: datos.whatsapp,
+          ...(String(datos.email ?? '').trim() === '' ? {} : { email: datos.email }),
+          ...(Number.isFinite(mesas) && mesas > 0 ? { mesas } : {}),
+          carta: datos.carta,
+          ...(datos.carta === 'link' ? { cartaLink: datos.cartaLink } : {}),
         }),
       });
 
       if (!respuesta.ok) {
-        const detalle = await respuesta.json().catch(() => null);
         errorGeneral(
-          detalle?.kind === 'EMAIL_TAKEN'
-            ? 'Ese mail ya tiene una cuenta. Entrá al panel con él.'
-            : // 429: se probó varias veces seguidas. Decir "probá de nuevo"
-              // sin más invita justamente a lo que está bloqueado.
-              respuesta.status === 429
-              ? 'Probaste varias veces seguidas. Esperá un minuto y volvé a intentar.'
-              : 'No pudimos crear la cuenta. Probá de nuevo en un momento.',
+          // 429: probó varias veces seguidas. Decir "probá de nuevo" sin más
+          // invita justamente a lo que está bloqueado.
+          respuesta.status === 429
+            ? 'Probaste varias veces seguidas. Esperá un minuto y volvé a intentar.'
+            : 'No pudimos recibir tus datos. Probá de nuevo o escribinos por WhatsApp.',
         );
         if (boton !== null) {
           boton.disabled = false;
-          boton.textContent = 'Crear mi cuenta';
+          boton.textContent = 'Quiero que me armen la carta';
         }
-        return;
-      }
-
-      /*
-       * Quien viene de "Contratar ahora" va derecho al pago.
-       *
-       * El alta devuelve la sesión, así que el panel lo recibe ya adentro y
-       * puede abrir el cobro sin pedirle que entre de nuevo. Sin panel
-       * configurado se cae al mensaje de siempre: la cuenta ya está creada, y
-       * eso es lo que importaba.
-       */
-      if (vaAPagar && panel !== '') {
-        globalThis.location.href = `${panel}/?contratar=1`;
         return;
       }
 
       form.hidden = true;
       if (listo !== null) {
-        // La dirección a la vista: si se tipeó mal, este es el momento de
-        // darse cuenta, no tres días después cuando no llegó nada.
-        const donde = document.getElementById('mailEnviado');
-        if (donde !== null) donde.textContent = String(datos.email);
-        prepararReenvio(String(datos.email));
-
-        // El botón al panel sólo si sabemos dónde está: mandar a una URL que
-        // no existe es peor que no ofrecer el botón.
-        const irAlPanel = document.getElementById('irAlPanel');
-        if (irAlPanel !== null) {
-          if (panel === '') irAlPanel.remove();
-          else irAlPanel.href = panel;
-        }
+        // El número a la vista: si se tipeó mal, este es el momento de darse
+        // cuenta y no dos días después, cuando no llegó ningún mensaje.
+        const donde = document.getElementById('whatsappDejado');
+        if (donde !== null) donde.textContent = String(datos.whatsapp);
         listo.hidden = false;
         listo.scrollIntoView({ behavior: quieto ? 'auto' : 'smooth', block: 'center' });
       }
@@ -490,20 +434,18 @@
       /*
        * Un `fetch` que tira no siempre es falta de red.
        *
-       * También tira cuando el navegador bloquea la llamada por CORS —el
-       * dominio de esta página no está en la lista que acepta la API— y ahí
-       * decir "fijate la red" manda a la persona a revisar su wifi por un
-       * problema nuestro. El texto no promete cuál de los dos fue, y ofrece
-       * la salida que funciona en los dos casos.
+       * También tira cuando el navegador bloquea la llamada por CORS, y ahí
+       * decir "fijate la red" manda a revisar el wifi por un problema
+       * nuestro. El texto ofrece la salida que sirve en los dos casos.
        */
       errorGeneral(
         navigator.onLine === false
           ? 'Sin conexión. Fijate la red y probá de nuevo.'
-          : 'No pudimos crear la cuenta ahora. Escribinos por WhatsApp y te damos de alta nosotros.',
+          : 'No pudimos recibir tus datos. Escribinos por WhatsApp y lo resolvemos ahí.',
       );
       if (boton !== null) {
         boton.disabled = false;
-        boton.textContent = 'Crear mi cuenta';
+        boton.textContent = 'Quiero que me armen la carta';
       }
     }
   });

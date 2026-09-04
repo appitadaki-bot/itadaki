@@ -43,7 +43,7 @@ function declaracionesSinCerrar(css: string): readonly string[] {
 
 describe('el CSS cierra sus declaraciones', () => {
   it.each(hojasDeEstilo())('%s', (ruta) => {
-    const css = readFileSync(join(RAIZ, ruta), 'utf-8');
+    const css = readFileSync(join(RAIZ, ruta), 'utf-8').replace(/\r\n/g, "\n");
 
     expect(declaracionesSinCerrar(css)).toEqual([]);
   });

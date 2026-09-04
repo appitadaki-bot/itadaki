@@ -59,7 +59,7 @@ describe('los tres workers llevan la guarda', () => {
   // Se rompió en el del comensal, pero los tres tenían el mismo agujero: sin
   // esto, arreglar uno solo deja los otros dos esperando el mismo bug.
   it.each(['diner-pwa', 'kds-web', 'floor-web'])('%s', (app) => {
-    const sw = readFileSync(join(__dirname, `../../${app}/src/sw.js`), 'utf-8');
+    const sw = readFileSync(join(__dirname, `../../${app}/src/sw.js`), 'utf-8').replace(/\r\n/g, "\n");
 
     expect(sw).toContain('url.origin !== self.location.origin');
   });

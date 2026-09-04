@@ -14,7 +14,7 @@ import { join } from 'node:path';
  * rastro y parecía una carta que tarda mucho.
  */
 
-const PANEL = readFileSync(join(__dirname, 'admin.component.ts'), 'utf-8');
+const PANEL = readFileSync(join(__dirname, 'admin.component.ts'), 'utf-8').replace(/\r\n/g, "\n");
 
 describe('los tres estados de la carta', () => {
   it('están separados', () => {

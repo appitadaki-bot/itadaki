@@ -16,7 +16,7 @@ import { join } from 'node:path';
  * Y el salón y la cocina pedían mail y contraseña, que el personal no tiene.
  */
 
-const PANEL = readFileSync(join(__dirname, 'admin.component.ts'), 'utf-8');
+const PANEL = readFileSync(join(__dirname, 'admin.component.ts'), 'utf-8').replace(/\r\n/g, "\n");
 const LOGIN = readFileSync(
   join(__dirname, '../../../../libs/shared/ui-auth/src/lib/login.component.ts'),
   'utf-8',

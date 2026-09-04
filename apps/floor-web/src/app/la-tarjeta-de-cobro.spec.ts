@@ -14,8 +14,8 @@ import { join } from 'node:path';
  * larga dentro de un botón.
  */
 
-const PLANTILLA = readFileSync(join(__dirname, 'floor.component.ts'), 'utf-8');
-const ESTILOS = readFileSync(join(__dirname, 'floor.component.css'), 'utf-8');
+const PLANTILLA = readFileSync(join(__dirname, 'floor.component.ts'), 'utf-8').replace(/\r\n/g, "\n");
+const ESTILOS = readFileSync(join(__dirname, 'floor.component.css'), 'utf-8').replace(/\r\n/g, "\n");
 
 describe('el cobro no se mete en la columna angosta', () => {
   it('la elección del medio está fuera de la columna lateral', () => {

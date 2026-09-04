@@ -15,8 +15,8 @@ import { join } from 'node:path';
  * pantalla se quedaba con el cartel de mesa vacía.
  */
 
-const PAGINA = readFileSync(join(__dirname, 'bill.page.ts'), 'utf-8');
-const STORE = readFileSync(join(__dirname, 'bill.store.ts'), 'utf-8');
+const PAGINA = readFileSync(join(__dirname, 'bill.page.ts'), 'utf-8').replace(/\r\n/g, "\n");
+const STORE = readFileSync(join(__dirname, 'bill.store.ts'), 'utf-8').replace(/\r\n/g, "\n");
 
 /** Lo que decide el efecto, para poder probar la secuencia sin Angular. */
 function abrirCuando(

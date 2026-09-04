@@ -12,7 +12,7 @@ import { join } from 'node:path';
  * restaurante puede parecer suyo.
  */
 
-const PANTALLA = readFileSync(join(__dirname, 'welcome.page.ts'), 'utf-8');
+const PANTALLA = readFileSync(join(__dirname, 'welcome.page.ts'), 'utf-8').replace(/\r\n/g, "\n");
 
 describe('el saludo', () => {
   it('usa el nombre del restaurante', () => {
