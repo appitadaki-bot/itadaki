@@ -2505,6 +2505,32 @@
 }
 
 /*
+ * Los datos de acceso, dentro de la misma ventana del alta.
+ *
+ * Con un fondo suave y no una tarjeta con borde marcado: es la respuesta al
+ * formulario de arriba, no otra sección. Separado por una línea, que es lo que
+ * dice "esto salió de lo que acabás de hacer".
+ */
+.acceso-nuevo {
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--itadaki-border);
+}
+
+.acceso-titulo {
+  margin: 0 0 0.5rem;
+  font-family: var(--itadaki-font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--itadaki-ink-strong);
+}
+
+/* El botón de copiar ocupa el ancho, como el de dar de alta que tiene encima. */
+.acceso-nuevo .create {
+  width: 100%;
+}
+
+/*
  * El PIN aparte de los otros dos datos.
  *
  * El link y el usuario se pueden volver a ver cuando quieran; el PIN no. En
