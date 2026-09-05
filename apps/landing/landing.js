@@ -416,7 +416,7 @@
         );
         if (boton !== null) {
           boton.disabled = false;
-          boton.textContent = 'Quiero que me armen la carta';
+          boton.textContent = 'Crear cuenta';
         }
         return;
       }
@@ -445,7 +445,7 @@
       );
       if (boton !== null) {
         boton.disabled = false;
-        boton.textContent = 'Quiero que me armen la carta';
+        boton.textContent = 'Crear cuenta';
       }
     }
   });
