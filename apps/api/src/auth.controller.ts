@@ -731,7 +731,7 @@ export class AuthController {
     const found = await this.tenants.store.subscriptionFor(auth.tenantId);
     if (found.isErr()) {
       // Unknown state reads as active: never warn a paying customer by mistake.
-      return { status: 'ACTIVE', trialEndsAt: null, daysLeft: null };
+      return { status: 'ACTIVE', trialEndsAt: null, daysLeft: null, seDioDeBaja: false };
     }
 
     const described = describeSubscription(found.value, new Date());
@@ -739,6 +739,9 @@ export class AuthController {
       status: described.status,
       trialEndsAt: described.trialEndsAt?.toISOString() ?? null,
       daysLeft: described.daysLeft,
+      // Es lo que decide si el panel le ofrece volver o le pide que pague:
+      // los dos casos llegan como SUSPENDED y sin esto son indistinguibles.
+      seDioDeBaja: described.seDioDeBaja,
     };
   }
 

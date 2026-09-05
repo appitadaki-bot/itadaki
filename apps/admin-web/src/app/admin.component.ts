@@ -164,7 +164,22 @@ const ROLE_NAMES: Record<string, string> = {
     </nav>
 
     @if (trial(); as sub) {
-      @if (sub.status === 'EXPIRED') {
+      @if (sub.status === 'SUSPENDED' && sub.seDioDeBaja) {
+        <!-- Se dio de baja y ya se le terminó el mes pagado.
+             Antes caía en el cartel de "escribinos", igual que quien dejó de
+             pagar: se había ido desde el panel y no tenía forma de volver
+             desde el panel. La salida tiene que abrir para los dos lados. -->
+        <section class="trial expired" role="alert">
+          <strong>Tu suscripción terminó.</strong>
+          <span>
+            Diste de baja tu cuenta y ya terminó el mes que habías pagado. Tu
+            carta, tus mesas y tu historial siguen acá, tal como los dejaste.
+          </span>
+          <button type="button" class="volver" (click)="reactivar()">
+            Volver a suscribirme
+          </button>
+        </section>
+      } @else if (sub.status === 'EXPIRED') {
         <section class="trial expired" role="alert">
           <strong>Se terminó tu mes de prueba.</strong>
           <span>
@@ -197,10 +212,13 @@ const ROLE_NAMES: Record<string, string> = {
             } @else {
               El servicio sigue hasta que termine el mes que ya pagaste.
             }
-            <button type="button" class="link" (click)="reactivar()">
-              Seguir con Itadaki
-            </button>
           </span>
+          <!-- Afuera del párrafo y con forma de botón: como un link al final
+               de una frase larga se leía como parte de la explicación, y
+               quien quería volver terminaba preguntando dónde estaba. -->
+          <button type="button" class="volver" (click)="reactivar()">
+            Seguir con Itadaki
+          </button>
         </section>
       }
     }
@@ -1699,7 +1717,11 @@ export class AdminComponent {
 
     // El estado nuevo viene en la respuesta: sin esto habría que volver a
     // preguntarlo, y el aviso tardaría en aparecer.
-    this.trial.set((await response.json()) as { status: string; daysLeft: number | null });
+    this.trial.set((await response.json()) as {
+        status: string;
+        daysLeft: number | null;
+        seDioDeBaja?: boolean;
+      });
   }
 
   /** Vuelve a suscribirse: es el mismo restaurante, con todo lo que tenía. */
@@ -1716,12 +1738,18 @@ export class AdminComponent {
       return;
     }
 
-    this.trial.set((await response.json()) as { status: string; daysLeft: number | null });
+    this.trial.set((await response.json()) as {
+        status: string;
+        daysLeft: number | null;
+        seDioDeBaja?: boolean;
+      });
   }
 
   protected readonly trial = signal<{
     status: string;
     daysLeft: number | null;
+    /** Si llegó a este estado por haberse dado de baja, no por dejar de pagar. */
+    seDioDeBaja?: boolean;
   } | null>(null);
   protected readonly catError = signal<string | null>(null);
   /** Bumped after every upload to bust the browser's image cache. */
@@ -2280,7 +2308,11 @@ export class AdminComponent {
   private async loadTrial(): Promise<void> {
     const response = await this.auth.apiFetch(`${API}/auth/subscription`, { headers: this.auth.headers() });
     if (response.ok) {
-      this.trial.set((await response.json()) as { status: string; daysLeft: number | null });
+      this.trial.set((await response.json()) as {
+        status: string;
+        daysLeft: number | null;
+        seDioDeBaja?: boolean;
+      });
     }
   }
 

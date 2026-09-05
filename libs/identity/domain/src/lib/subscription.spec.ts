@@ -307,3 +307,73 @@ describe('darse de baja', () => {
     expect(estado.status).toBe('ACTIVE');
   });
 });
+
+/**
+ * Quién puede volver desde el panel, y quién no.
+ *
+ * `SUSPENDED` se llega por dos caminos que no se parecen en nada: el que se
+ * dio de baja y se le terminó el mes, y el que dejó de pagar. Al primero la
+ * puerta tiene que abrirle para los dos lados —se fue desde el panel, tiene
+ * que poder volver desde el panel—; al segundo no, porque nunca se fue.
+ *
+ * Antes los dos veían el mismo cartel de "escribinos y lo resolvemos", y
+ * quien se había dado de baja se quedaba sin forma de volver solo.
+ */
+describe('volver a suscribirse', () => {
+  const hace = (dias: number, desde: Date): Date =>
+    new Date(desde.getTime() + dias * 24 * 60 * 60 * 1000);
+
+  const ahora = new Date('2026-09-05T12:00:00Z');
+
+  it('quien se dio de baja y todavía tiene mes queda DADO_DE_BAJA', () => {
+    const sub = describeSubscription(
+      { trialEndsAt: null, paid: true, paidUntil: hace(10, ahora), cancelledAt: hace(-2, ahora) },
+      ahora,
+    );
+
+    expect(sub.status).toBe('DADO_DE_BAJA');
+    expect(sub.seDioDeBaja).toBe(true);
+  });
+
+  /** El caso que no tenía salida: se dio de baja y se le venció el mes. */
+  it('y sigue marcado como tal cuando se le termina el mes', () => {
+    const sub = describeSubscription(
+      { trialEndsAt: null, paid: true, paidUntil: hace(-3, ahora), cancelledAt: hace(-40, ahora) },
+      ahora,
+    );
+
+    expect(sub.status).toBe('SUSPENDED');
+    // Lo que hace que el panel le ofrezca volver en vez de "escribinos".
+    expect(sub.seDioDeBaja).toBe(true);
+  });
+
+  /** Quien dejó de pagar sin avisar no se dio de baja: le falta pagar. */
+  it('quien dejó de pagar no figura como dado de baja', () => {
+    const sub = describeSubscription(
+      { trialEndsAt: hace(-40, ahora), paid: false, paidUntil: null, cancelledAt: null },
+      ahora,
+    );
+
+    expect(sub.status).toBe('SUSPENDED');
+    expect(sub.seDioDeBaja).toBe(false);
+  });
+
+  it('ni el que está al día', () => {
+    const sub = describeSubscription(
+      { trialEndsAt: null, paid: true, paidUntil: hace(20, ahora), cancelledAt: null },
+      ahora,
+    );
+
+    expect(sub.status).toBe('ACTIVE');
+    expect(sub.seDioDeBaja).toBe(false);
+  });
+
+  it('ni el que está en el trial', () => {
+    const sub = describeSubscription(
+      { trialEndsAt: hace(5, ahora), paid: false, paidUntil: null, cancelledAt: null },
+      ahora,
+    );
+
+    expect(sub.seDioDeBaja).toBe(false);
+  });
+});

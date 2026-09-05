@@ -2930,3 +2930,34 @@
   }
 }
 
+
+/*
+ * Volver a suscribirse.
+ *
+ * Era un link al final de una frase larga sobre cuántos días quedaban, y se
+ * leía como parte de la explicación: quien quería volver terminaba
+ * preguntando dónde estaba el botón. Con fondo, borde y aire propio se ve
+ * como lo que es —la acción del cartel— sin gritar más que el aviso.
+ *
+ * `align-self` lo deja del ancho de su texto dentro de la columna del cartel,
+ * en vez de estirarse de lado a lado como una barra.
+ */
+.volver {
+  align-self: flex-start;
+  margin-top: 0.7rem;
+  padding: 0.5rem 1.1rem;
+  border: 1.5px solid currentColor;
+  border-radius: var(--itadaki-radius-action);
+  background: var(--itadaki-surface-raised);
+  color: inherit;
+  font-family: var(--itadaki-font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 38px;
+  transition: background var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.volver:hover {
+  background: var(--itadaki-surface);
+}
