@@ -1,5 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { ApiClient } from './api-client';
+import { esDeOtraVisita } from './cuenta-de-otra-visita';
 
 export interface MoneyDto {
   readonly amountInMinorUnits: number;
@@ -106,6 +107,11 @@ export class BillStore {
   readonly sirveReintentar = signal(true);
 
   async close(sessionId: string): Promise<void> {
+    if (esDeOtraVisita(this.bill()?.sessionId, sessionId)) {
+      this.bill.set(null);
+      this.split.set(null);
+    }
+
     this.busy.set(true);
     this.error.set(null);
     this.sirveReintentar.set(true);

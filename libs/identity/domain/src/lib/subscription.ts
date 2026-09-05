@@ -84,6 +84,23 @@ export function daysUntil(deadline: Date, now: Date): number {
   return Math.ceil((deadline.getTime() - now.getTime()) / DAY) || 0;
 }
 
+/**
+ * La última fecha que tiene esta cuenta, sea del trial o del mes pago.
+ *
+ * Al principio sólo existía el trial, así que todo se contaba contra
+ * `trialEndsAt`. Cuando un restaurante empieza a pagar, `paidUntil` pasa a ser
+ * la fecha real y `trialEndsAt` queda como un recuerdo de hace meses; y al
+ * revés, quien todavía está en prueba no tiene `paidUntil`. Mirar una sola
+ * dejaba afuera a la mitad de los casos.
+ */
+function ultimoVencimiento(input: TrialInput): Date | null {
+  return (
+    [input.trialEndsAt, input.paidUntil ?? null]
+      .filter((fecha): fecha is Date => fecha !== null)
+      .sort((a, b) => b.getTime() - a.getTime())[0] ?? null
+  );
+}
+
 export function trialEndFor(startedAt: Date): Date {
   return new Date(startedAt.getTime() + TRIAL_DAYS * DAY);
 }
@@ -102,13 +119,29 @@ export function describeSubscription(input: TrialInput, now: Date): Subscription
    * cuándo le queda.
    */
   if (input.cancelledAt != null) {
-    const hasta = input.paidUntil ?? null;
-    const leQueda = hasta !== null && hasta > now;
+    const hasta = ultimoVencimiento(input);
+
+    /*
+     * Sin fecha y con el servicio dado por nosotros, la baja no corta nada.
+     *
+     * Es una cortesía —una cuenta nuestra, un local al que le damos acceso—
+     * y no tiene vencimiento contra el cual esperar. Cortarla el día que
+     * piden la baja es justo lo que no hay que hacer: nadie pidió irse hoy,
+     * pidió no renovar. Sin fecha ni cortesía es una cuenta que nunca arrancó,
+     * y ahí no hay nada que respetar.
+     */
+    if (hasta === null) {
+      return {
+        status: input.paid ? 'DADO_DE_BAJA' : 'SUSPENDED',
+        trialEndsAt: null,
+        daysLeft: null,
+      };
+    }
 
     return {
-      status: leQueda ? 'DADO_DE_BAJA' : 'SUSPENDED',
+      status: hasta > now ? 'DADO_DE_BAJA' : 'SUSPENDED',
       trialEndsAt: hasta,
-      daysLeft: hasta === null ? null : daysUntil(hasta, now),
+      daysLeft: daysUntil(hasta, now),
     };
   }
 
@@ -116,19 +149,7 @@ export function describeSubscription(input: TrialInput, now: Date): Subscription
     return { status: 'ACTIVE', trialEndsAt: null, daysLeft: null };
   }
 
-  /*
-   * Qué fecha manda: la última que se venció.
-   *
-   * Al principio sólo existía el trial, así que la cuenta se hacía sobre
-   * `trialEndsAt`. Cuando un restaurante empezó a pagar, `paidUntil` pasó a
-   * ser la fecha real y `trialEndsAt` quedó como un recuerdo de hace meses:
-   * el día que un pago dejaba de entrar, la cuenta contra esa fecha vieja daba
-   * semanas de atraso y el local caía directo en SUSPENDED, salteándose la
-   * semana de gracia que existe justamente para ese caso.
-   */
-  const vence = [input.trialEndsAt, input.paidUntil ?? null]
-    .filter((fecha): fecha is Date => fecha !== null)
-    .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+  const vence = ultimoVencimiento(input);
 
   if (vence === null) {
     /*

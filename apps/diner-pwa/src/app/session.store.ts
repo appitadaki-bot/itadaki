@@ -52,6 +52,15 @@ export interface SessionDto {
 const STORAGE_KEY = 'itadaki.session';
 
 /**
+ * El apodo con el que se sentó, aparte de `itadaki.session`.
+ *
+ * `forget()` borra la sesión al terminar la comida, pero quien se queda a un
+ * café quiere volver a sentarse sin volver a escribir su nombre. Por eso vive
+ * en una clave que `forget()` no toca.
+ */
+const NICKNAME_KEY = 'itadaki.diner';
+
+/**
  * Holds the shared table session. Every change is re-fetched rather than
  * patched locally: a missed socket event must never leave one phone showing
  * a different cart from the rest of the table.
@@ -75,6 +84,9 @@ export class SessionStore {
   readonly inviting = signal(false);
 
   readonly isJoined = computed(() => this.session() !== null && this.myDinerId() !== null);
+
+  /** El apodo de la última vez que se sentó, para ofrecer "pedir algo más". */
+  readonly lastNickname = signal<string | null>(this.readNickname());
 
   /**
    * El número de la mesa como está impreso en el cartelito, o `null`.
@@ -112,6 +124,14 @@ export class SessionStore {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw === null) return null;
       return (JSON.parse(raw) as { dinerId?: string }).dinerId ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  private readNickname(): string | null {
+    try {
+      return localStorage.getItem(NICKNAME_KEY);
     } catch {
       return null;
     }
@@ -278,9 +298,28 @@ export class SessionStore {
       STORAGE_KEY,
       JSON.stringify({ sessionId: created.session.id, dinerId: created.dinerId }),
     );
+    localStorage.setItem(NICKNAME_KEY, nickname);
+    this.lastNickname.set(nickname);
 
     this.listen(created.session.id);
     return true;
+  }
+
+  /**
+   * Vuelve a sentarse en la misma mesa después de pagar, para seguir pidiendo.
+   *
+   * La sesión anterior quedó `CLOSED` y su cuenta `SETTLED` — no se reabre.
+   * Esto entra por el mismo `join()` que un QR recién escaneado: como no hay
+   * sesión abierta en la mesa, el servidor arma una sesión nueva, con carrito
+   * y cuenta propios. `forget()` primero corta cualquier resto de la sesión
+   * vieja (socket, `itadaki.session`) antes de pedir la nueva.
+   */
+  async resumeAtTable(): Promise<boolean> {
+    const nickname = this.lastNickname();
+    if (nickname === null) return false;
+
+    this.forget();
+    return this.join(nickname);
   }
 
   private listen(sessionId: string): void {

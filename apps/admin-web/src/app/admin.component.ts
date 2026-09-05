@@ -921,7 +921,7 @@ const ROLE_NAMES: Record<string, string> = {
     <!-- Los modales, al final del template para que queden por encima de
          todo sin depender del orden de la página. -->
     @if (modal() !== null) {
-      <div class="scrim" (click)="closeModal()" aria-hidden="true"></div>
+      <div class="scrim" (click)="cerrarPorElFondo()" aria-hidden="true"></div>
     }
 
     <!-- Lo que preguntaba el confirm del navegador, con la letra y los
@@ -1278,28 +1278,41 @@ const ROLE_NAMES: Record<string, string> = {
             <p class="error-note" role="alert">{{ message }}</p>
           }
 
-          <!-- Quien ya trabaja en otro restaurante que usa Itadaki entra con el
-               usuario que ya tiene: es la misma persona, y llevar dos cuentas
-               con dos PIN es lo que hace que termine anotándolos en un papel. -->
-          <details class="details">
-            <summary>Ya trabaja en otro restaurante con Itadaki</summary>
-            <form class="new-form staff-form" (submit)="sumarStaff($event)">
-              <label class="field">
-                <span>Su usuario</span>
-                <input name="usuario" required maxlength="30" placeholder="Ej: nico" />
-                <small class="hint">Se lo dicta esa persona. Entra con el PIN que ya usa.</small>
-              </label>
-              <label class="field">
-                <span>Puesto acá</span>
-                <select name="role" required>
-                  <option value="KITCHEN">Cocina — ve y avanza los pedidos</option>
-                  <option value="WAITER">Mozo — pedidos y cuentas</option>
-                  <option value="MANAGER">Encargado — todo menos el equipo</option>
-                </select>
-              </label>
-              <button type="submit" class="secondary">Sumar al equipo</button>
-            </form>
-          </details>
+          <!--
+            Los datos de acceso, acá abajo y no en otra ventana.
+
+            Dar de alta abría una segunda ventana encima de ésta con el link,
+            el usuario y el PIN. Dos ventanas apiladas para una sola tarea, y
+            la de atrás seguía viéndose por los costados.
+
+            Debajo del formulario que acaba de usar, en cambio, aparecen donde
+            el dueño ya está mirando.
+          -->
+          @if (accesoNuevo(); as acceso) {
+            <div class="acceso-nuevo" role="status">
+              <p class="acceso-titulo">
+                Listo. Estos son los datos de {{ primerNombre(acceso.nombre) }}
+              </p>
+              <p class="pin-aviso">Este PIN se ve una sola vez. Si se pierde, generás otro.</p>
+
+              <dl class="pin-datos">
+                <dt>Link</dt>
+                <dd>{{ linkPara(acceso.role) }}</dd>
+                <dt>Usuario</dt>
+                <dd>{{ acceso.usuario }}</dd>
+              </dl>
+
+              <!-- El PIN aparte: es el único de los tres que se pierde. -->
+              <div class="pin-caja">
+                <span class="pin-rotulo">PIN</span>
+                <span class="pin-numero">{{ acceso.pin }}</span>
+              </div>
+
+              <button type="button" class="create" (click)="copiarAcceso(acceso)">
+                {{ copiado() ? 'Copiado ✓' : 'Copiar los tres datos' }}
+              </button>
+            </div>
+          }
         </div>
       </div>
     }
@@ -1948,8 +1961,20 @@ export class AdminComponent {
     resolver?.(ok);
   }
 
+  /**
+   * El fondo no cierra el alta mientras el PIN esté a la vista.
+   *
+   * Se muestra una sola vez: un clic al costado se lo llevaba puesto y había
+   * que generar otro. Con la ✕ sí se cierra — ahí la decisión es explícita.
+   */
+  protected cerrarPorElFondo(): void {
+    if (this.accesoNuevo() !== null) return;
+    this.closeModal();
+  }
+
   protected closeModal(): void {
     this.modal.set(null);
+    this.accesoNuevo.set(null);
     this.staffError.set(null);
     this.editError.set(null);
     this.editSaved.set(false);
@@ -2369,9 +2394,8 @@ export class AdminComponent {
       return;
     }
 
-    // El PIN sale en claro una sola vez: se muestra hasta que el dueño lo
-    // cierra, porque después no se puede volver a ver.
-    this.entregado.set(false);
+    // El PIN sale en claro una sola vez: queda a la vista hasta que el dueño
+    // cierra la ventana del alta, porque después no se puede volver a ver.
     this.copiado.set(false);
     const alta = (await response.json()) as {
       displayName: string;
@@ -2379,9 +2403,7 @@ export class AdminComponent {
       pin: string;
       role: string;
     };
-    // La misma tarjeta que al regenerar un PIN: dice link, usuario y PIN, y
-    // queda hasta que el dueño la cierra porque el PIN no se puede volver a ver.
-    this.pinNuevo.set({
+    this.accesoNuevo.set({
       nombre: alta.displayName,
       usuario: alta.usuario,
       pin: alta.pin,
@@ -2391,45 +2413,6 @@ export class AdminComponent {
     form.reset();
     await this.loadStaff();
   }
-
-  /**
-   * Suma a alguien que ya trabaja en otro restaurante con Itadaki.
-   *
-   * No genera PIN: es la misma persona, y el que ya usa le sirve acá. Por eso
-   * tampoco hay nada que dictarle.
-   */
-  protected async sumarStaff(event: Event): Promise<void> {
-    event.preventDefault();
-    this.staffError.set(null);
-
-    const form = event.target as HTMLFormElement;
-    const data = new FormData(form);
-    const usuario = String(data.get('usuario') ?? '').trim();
-    if (usuario === '') return;
-
-    const response = await this.auth.apiFetch(`${API}/staff/sumar`, {
-      method: 'POST',
-      headers: { ...this.auth.headers(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario, role: String(data.get('role') ?? 'WAITER') }),
-    });
-
-    if (!response.ok) {
-      const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
-      this.staffError.set(
-        detail?.kind === 'USUARIO_NO_EXISTE'
-          ? 'No encontramos ese usuario. Pedile que te lo dicte de nuevo.'
-          : detail?.kind === 'YA_ESTA_EN_EL_EQUIPO'
-            ? 'Esa persona ya está en tu equipo'
-            : 'No pudimos sumar a esa persona',
-      );
-      return;
-    }
-
-    form.reset();
-    this.closeModal();
-    await this.loadStaff();
-  }
-
 
   /** Revoking access is reversible, so it confirms but does not alarm. */
   protected async toggleStaff(member: StaffMember): Promise<void> {
@@ -2834,6 +2817,19 @@ export class AdminComponent {
     usuario: string;
     pin: string;
     /** Su puesto: decide a qué app lo lleva el link. */
+    role: string;
+  } | null>(null);
+
+  /**
+   * Los datos del alta que acaba de hacerse, para mostrarlos ahí mismo.
+   *
+   * Aparte de `pinNuevo`, que es la ventana de cuando se regenera un PIN desde
+   * la lista del equipo: ahí no hay ningún modal abierto donde ponerlos.
+   */
+  protected readonly accesoNuevo = signal<{
+    nombre: string;
+    usuario: string;
+    pin: string;
     role: string;
   } | null>(null);
 

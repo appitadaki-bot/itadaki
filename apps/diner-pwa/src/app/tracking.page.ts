@@ -2,22 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   type ElementRef,
-  DestroyRef,
   computed,
   inject,
-  signal,
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import {
-  TRACKING_STEPS,
-  type EstadoDeLaEspera,
-  estadoDeLaEspera,
-  minutosEsperando,
-  redondearEspera,
-  trackingStepOf,
-  type OrderStatus,
-} from '@itadaki/ordering/domain';
+import { TRACKING_STEPS, trackingStepOf, type OrderStatus } from '@itadaki/ordering/domain';
 import { ApiClient } from './api-client';
 import { BackLinkComponent } from './back-link.component';
 import { CallStore } from './call.store';
@@ -89,29 +79,6 @@ const STEP_LABELS: Record<string, { title: string; hint: string }> = {
             }
           </ol>
 
-          <!-- Cuánto suele tardar acá.
-               Sale de lo que este local tardó de verdad las últimas dos
-               semanas, no de un número configurado: el dueño pondría el que
-               le gustaría tener, y la mesa lo leería como una promesa rota
-               cada noche ocupada. Sin historial suficiente no se dice nada. -->
-          @if (espera(); as e) {
-            @if (e.kind === 'EN_HORA') {
-              <p class="espera" role="status">
-                Acá suelen tardar unos {{ redondear(e.habitualMinutos) }} minutos
-              </p>
-            }
-            <!--
-              Pasada la espera habitual no se dice nada.
-              Estaba el aviso de "está tardando" con un botón para llamar al
-              mozo, y eso es empujar a quejarse a alguien que todavía no se
-              quejó: la mesa que espera tranquila leía que le estaban tardando
-              y levantaba la mano por eso.
-              El estado se sigue calculando, y sirve para callar: decir "acá
-              suelen tardar doce minutos" cuando van veinticinco es peor que
-              no decir nada. El timbre está a mano para quien quiera usarlo.
-            -->
-          }
-
           @if (readyCount() > 0 && readyCount() < cuantosPlatos()) {
             <p class="partial" role="status">
               {{ readyCount() }} de {{ cuantosPlatos() }} ya salieron
@@ -173,82 +140,12 @@ export class TrackingPage {
     // del segundo.
     medirElPie(this.pie);
 
-    void this.cargarHabitual();
-
-    // Cada minuto: es la resolución de lo que se muestra, y más seguido sería
-    // despertar la pantalla para recalcular el mismo texto.
-    const reloj = setInterval(() => this.ahora.set(new Date()), 60_000);
-    inject(DestroyRef).onDestroy(() => clearInterval(reloj));
   }
 
   protected readonly steps = TRACKING_STEPS;
 
   private readonly api = inject(ApiClient);
   private readonly calls = inject(CallStore);
-
-  /** Cuánto tarda este local y sobre cuántos pedidos se midió. */
-  private readonly habitual = signal<{ minutos: number | null; medidos: number }>({
-    minutos: null,
-    medidos: 0,
-  });
-
-  /**
-   * Un reloj propio para que el texto cambie solo.
-   *
-   * Sin esto, la mesa que deja la pantalla abierta sigue viendo "en hora"
-   * media hora después de que dejó de estarlo: los datos del pedido no
-   * cambian mientras la cocina no lo toque, así que nada volvería a
-   * calcular la espera.
-   */
-  private readonly ahora = signal(new Date());
-
-  /**
-   * En qué estado está la espera de la mesa.
-   *
-   * Se mide desde el plato que se pidió primero y sigue sin llegar: es el que
-   * lleva esperando más, y el que hace que la mesa mire el reloj.
-   */
-  protected readonly espera = computed<EstadoDeLaEspera | null>(() => {
-    const pendientes = this.dishes().filter((dish) => dish.status !== 'DELIVERED');
-    if (pendientes.length === 0) return null;
-
-    const masViejo = pendientes
-      .map((dish) => dish.pedidoEn)
-      .filter((fecha): fecha is Date => fecha !== null)
-      .sort((a, b) => a.getTime() - b.getTime())[0];
-    if (masViejo === undefined) return null;
-
-    const { minutos, medidos } = this.habitual();
-    return estadoDeLaEspera({
-      habitualMinutos: minutos,
-      pedidosMedidos: medidos,
-      esperandoMinutos: minutosEsperando(masViejo, this.ahora()),
-    });
-  });
-
-  protected readonly redondear = redondearEspera;
-
-  /**
-   * Cuánto tarda la cocina de este local.
-   *
-   * Un fallo lo deja en nulo y la pantalla no dice nada, que es lo mismo que
-   * hace un local sin historial: no decir nada es mejor que estimar mal algo
-   * que la mesa va a usar para decidir si sigue esperando.
-   */
-  private async cargarHabitual(): Promise<void> {
-    try {
-      const respuesta = await this.api.fetch('/ajustes/publicos');
-      if (!respuesta.ok) return;
-
-      const ajustes = (await respuesta.json()) as {
-        habitualMinutos: number | null;
-        pedidosMedidos: number;
-      };
-      this.habitual.set({ minutos: ajustes.habitualMinutos, medidos: ajustes.pedidosMedidos });
-    } catch {
-      // Queda en nulo y no se muestra estimación.
-    }
-  }
 
   // Cargar y seguir el socket es cosa del store, que lo hace para toda la
   // mesa: si dependiera de esta pantalla, sólo sabría del pedido quien la

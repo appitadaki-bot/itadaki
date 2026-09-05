@@ -75,3 +75,8 @@ export {
   type CorreoDeVencimiento,
   type RestauranteVencido,
 } from './lib/aviso-de-vencimiento';
+export {
+  correoDeInteresado,
+  destinatariosDelAviso,
+  type CorreoDeInteresado,
+} from './lib/aviso-de-interesado';

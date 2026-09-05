@@ -71,6 +71,15 @@ services:
       - key: MAIL_FROM
         sync: false
 
+      # A quiénes avisamos cuando alguien deja sus datos en la landing.
+      # Varias direcciones separadas por coma: el alta la atiende quien esté,
+      # y una sola casilla hace que un fin de semana se pierda.
+      #
+      # Sin esto el interesado se guarda igual, pero nadie se entera de que
+      # está esperando el WhatsApp que le prometimos en la pantalla.
+      - key: INTERESADOS_EMAIL
+        sync: false
+
       # Dónde viven los bytes de las fotos. Sin las cuatro, la API cae al disco
       # del contenedor, que Render borra cada vez que el servicio se duerme o
       # se redespliega: la fila en la base queda y la imagen da 404. Sirve

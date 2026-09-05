@@ -243,8 +243,55 @@ describe('darse de baja', () => {
     expect(canTakeOrders(estado)).toBe(false);
   });
 
-  it('sin fecha de pago, la baja corta enseguida', () => {
-    // Es quien estaba en prueba: no hay mes pagado que respetar.
+  it('quien está en prueba conserva los días que le quedaban', () => {
+    // Se cortaba en el acto: la baja miraba sólo `paidUntil`, que en una
+    // prueba es null. Pedir no renovar no es pedir que te corten hoy.
+    const estado = describeSubscription(
+      { trialEndsAt: enQuinceDias, paid: false, cancelledAt: AHORA, paidUntil: null },
+      AHORA,
+    );
+
+    expect(estado.status).toBe('DADO_DE_BAJA');
+    expect(estado.daysLeft).toBe(15);
+    expect(canTakeOrders(estado)).toBe(true);
+  });
+
+  it('y cuando termina la prueba, ahí sí se corta', () => {
+    const estado = describeSubscription(
+      { trialEndsAt: ayer, paid: false, cancelledAt: ayer, paidUntil: null },
+      AHORA,
+    );
+
+    expect(estado.status).toBe('SUSPENDED');
+  });
+
+  it('una cuenta de cortesía sigue andando después de la baja', () => {
+    // `paid` a secas es el servicio que damos nosotros: no tiene vencimiento
+    // contra el cual esperar, así que tampoco tiene por qué cortarse hoy.
+    const estado = describeSubscription(
+      { trialEndsAt: null, paid: true, cancelledAt: AHORA, paidUntil: null },
+      AHORA,
+    );
+
+    expect(estado.status).toBe('DADO_DE_BAJA');
+    expect(canTakeOrders(estado)).toBe(true);
+  });
+
+  it('manda la fecha más lejana de las dos', () => {
+    // Quien pagó después de la prueba tiene las dos fechas; vale la del mes
+    // pago, que es la que todavía no venció.
+    const estado = describeSubscription(
+      { trialEndsAt: ayer, paid: false, cancelledAt: AHORA, paidUntil: enQuinceDias },
+      AHORA,
+    );
+
+    expect(estado.status).toBe('DADO_DE_BAJA');
+    expect(estado.daysLeft).toBe(15);
+  });
+
+  it('sin nada que respetar, la baja corta enseguida', () => {
+    // Una cuenta que nunca arrancó: sin prueba corriendo ni mes pagado, no
+    // hay nada que esperar.
     const estado = describeSubscription(
       { trialEndsAt: null, paid: false, cancelledAt: AHORA, paidUntil: null },
       AHORA,
