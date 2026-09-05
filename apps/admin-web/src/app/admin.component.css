@@ -1906,6 +1906,11 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  /* Centrado y no estirado, que es lo que hace un flex por defecto: el botón
+     de la baja mide 44px para poder tocarse con el dedo y los links miden lo
+     que mide su texto. Estirados, los links quedaban con el texto arriba y el
+     botón con el suyo al medio — el renglón salía escalonado. */
+  align-items: center;
   gap: 0.4rem 1.5rem;
   max-width: 1180px;
   margin: 3rem auto 0;
