@@ -819,7 +819,22 @@
   color: var(--itadaki-ink);
 }
 
+/*
+ * El estado de la cuenta queda a la vista, no arriba de todo.
+ *
+ * El botón de darse de baja está al final del footer y el aviso se dibuja
+ * antes del contenido: quien lo tocaba se quedaba mirando el pie de página
+ * mientras la confirmación aparecía a dos pantallas de scroll, y parecía que
+ * no había pasado nada. Pegado al borde superior, el estado se lee esté donde
+ * esté el dueño en la página.
+ *
+ * Por debajo de los modales (60 y 61): una pregunta abierta tiene que tapar
+ * todo, incluido esto.
+ */
 .trial {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -827,6 +842,7 @@
   margin: 0 auto 1rem;
   padding: 0.9rem 1.25rem;
   border-radius: var(--itadaki-radius-card);
+  box-shadow: 0 6px 18px oklch(0% 0 0 / 0.08);
   font-size: 0.875rem;
 }
 
