@@ -50,6 +50,19 @@ export interface Subscription {
   readonly trialEndsAt: Date | null;
   /** Negative once past due; null when paid. */
   readonly daysLeft: number | null;
+  /**
+   * Si el local está así porque pidió la baja.
+   *
+   * `SUSPENDED` se llega por dos caminos que no se parecen: el que se dio de
+   * baja y se le terminó el mes, y el que dejó de pagar sin decir nada. Al
+   * primero hay que ofrecerle volver con un botón —se fue por la puerta, y la
+   * puerta tiene que abrir para los dos lados—; al segundo, no: nunca se fue,
+   * le falta pagar.
+   *
+   * Sin esto los dos veían el mismo cartel de "escribinos", y quien se había
+   * dado de baja desde el panel no tenía forma de volver desde el panel.
+   */
+  readonly seDioDeBaja: boolean;
 }
 
 export interface TrialInput {
@@ -135,6 +148,8 @@ export function describeSubscription(input: TrialInput, now: Date): Subscription
         status: input.paid ? 'DADO_DE_BAJA' : 'SUSPENDED',
         trialEndsAt: null,
         daysLeft: null,
+        // Pidió la baja, aunque no haya fecha contra la cual esperar.
+        seDioDeBaja: true,
       };
     }
 
@@ -142,11 +157,13 @@ export function describeSubscription(input: TrialInput, now: Date): Subscription
       status: hasta > now ? 'DADO_DE_BAJA' : 'SUSPENDED',
       trialEndsAt: hasta,
       daysLeft: daysUntil(hasta, now),
+      // Se fue por su cuenta: se le puede ofrecer volver.
+      seDioDeBaja: true,
     };
   }
 
   if (input.paid) {
-    return { status: 'ACTIVE', trialEndsAt: null, daysLeft: null };
+    return { status: 'ACTIVE', trialEndsAt: null, daysLeft: null, seDioDeBaja: false };
   }
 
   const vence = ultimoVencimiento(input);
@@ -168,6 +185,7 @@ export function describeSubscription(input: TrialInput, now: Date): Subscription
       status: input.estrenado === false ? 'SIN_ESTRENAR' : 'ACTIVE',
       trialEndsAt: null,
       daysLeft: null,
+      seDioDeBaja: false,
     };
   }
 
@@ -184,7 +202,9 @@ export function describeSubscription(input: TrialInput, now: Date): Subscription
           ? 'TRIAL_ENDING'
           : 'TRIAL';
 
-  return { status, trialEndsAt: vence, daysLeft };
+  // Acá se llega sin `cancelledAt`: es el que dejó de pagar, no el que se
+  // dio de baja. A ese no se le ofrece volver, se le pide que pague.
+  return { status, trialEndsAt: vence, daysLeft, seDioDeBaja: false };
 }
 
 /**

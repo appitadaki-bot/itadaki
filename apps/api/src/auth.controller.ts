@@ -4,6 +4,7 @@ import {
   type Role,
   describeSubscription,
   normaliseEmail,
+  entraConMail,
   permissionsOf,
   prepareTenant,
   uniqueSlug,
@@ -71,6 +72,26 @@ export class AuthController {
 
     const matches = await verifyPassword(checked.value.password, found.value.passwordHash);
     if (!matches) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    /*
+     * El salón y la cocina entran con usuario y PIN, no por acá.
+     *
+     * Se verifica la contraseña primero y se rechaza después, a propósito: al
+     * revés, responder distinto antes de comprobarla diría qué mails existen
+     * y con qué rol, que es justo lo que el resto del endpoint cuida.
+     *
+     * Y se contesta lo mismo que un dato equivocado. Decir "entrá con tu PIN"
+     * sería más amable, pero le confirmaría a cualquiera que ese mail tiene
+     * cuenta. Quien es del personal ya tiene su usuario y su PIN anotados del
+     * alta; quien no, no tiene por qué enterarse de nada.
+     */
+    if (!entraConMail(found.value.role)) {
+      log.warn('intento de entrar con mail desde un rol que usa PIN', {
+        tenantId: found.value.tenantId,
+        role: found.value.role,
+      });
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
     }
 
@@ -731,7 +752,7 @@ export class AuthController {
     const found = await this.tenants.store.subscriptionFor(auth.tenantId);
     if (found.isErr()) {
       // Unknown state reads as active: never warn a paying customer by mistake.
-      return { status: 'ACTIVE', trialEndsAt: null, daysLeft: null };
+      return { status: 'ACTIVE', trialEndsAt: null, daysLeft: null, seDioDeBaja: false };
     }
 
     const described = describeSubscription(found.value, new Date());
@@ -739,6 +760,9 @@ export class AuthController {
       status: described.status,
       trialEndsAt: described.trialEndsAt?.toISOString() ?? null,
       daysLeft: described.daysLeft,
+      // Es lo que decide si el panel le ofrece volver o le pide que pague:
+      // los dos casos llegan como SUSPENDED y sin esto son indistinguibles.
+      seDioDeBaja: described.seDioDeBaja,
     };
   }
 
