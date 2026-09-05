@@ -122,7 +122,16 @@ import { SessionStore } from './session.store';
               ⭐ Dejanos tu opinión en Google
             </a>
             <p class="resena-nota">Nos ayuda muchísimo · tarda menos de un minuto</p>
-            <button type="button" class="despues" (click)="startOver()">Empezar de nuevo</button>
+          }
+
+          <!-- Quien se queda a un café vuelve a sentarse en un toque: la mesa
+               sigue siendo la misma, sólo cambió de visita. La sesión anterior
+               —y su cuenta ya cobrada— no se toca; se arma una nueva y vacía. -->
+          @if (session.lastNickname(); as nombre) {
+            <button type="button" class="cta" (click)="seguirPidiendo()" [disabled]="volviendo()">
+              {{ volviendo() ? 'Un momento…' : 'Pedir algo más, ' + nombre }}
+            </button>
+            <button type="button" class="despues" (click)="startOver()">Listo, gracias</button>
           } @else {
             <button type="button" class="cta" (click)="startOver()">
               Empezar de nuevo
@@ -145,12 +154,15 @@ import { SessionStore } from './session.store';
 })
 export class TableBlockedComponent {
   protected readonly api = inject(ApiClient);
-  private readonly session = inject(SessionStore);
+  protected readonly session = inject(SessionStore);
   private readonly router = inject(Router);
 
   /** Dónde deja la reseña, o null si el local no las pide. */
   protected readonly resenaUrl = signal<string | null>(null);
   private yaPreguntado = false;
+
+  /** Mientras se arma la sesión nueva, para no tocar el botón dos veces. */
+  protected readonly volviendo = signal(false);
 
   /*
    * Se pide recién cuando la mesa se cerró.
@@ -196,5 +208,24 @@ export class TableBlockedComponent {
   protected startOver(): void {
     this.session.forget();
     void this.router.navigate(['/bienvenida']);
+  }
+
+  /**
+   * Vuelve a sentarse en la misma mesa con el mismo nombre, para pedir algo
+   * más después de haber pagado.
+   *
+   * Si falla —el token de la mesa venció mientras tanto, por ejemplo— cae al
+   * camino de siempre en vez de dejar el botón sin efecto.
+   */
+  protected async seguirPidiendo(): Promise<void> {
+    this.volviendo.set(true);
+    const entro = await this.session.resumeAtTable();
+    this.volviendo.set(false);
+
+    if (entro) {
+      void this.router.navigate(['/carta']);
+    } else {
+      this.startOver();
+    }
   }
 }
