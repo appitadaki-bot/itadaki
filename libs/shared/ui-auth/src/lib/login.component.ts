@@ -144,11 +144,20 @@ import { AuthStore } from './auth.store';
           ¿Perdiste el PIN? Pedile uno nuevo a tu encargado.
         </p>
 
-        <p class="switch">
-          <button type="button" class="link" (click)="conPin.set(false)">
-            Entrar con mail y contraseña
-          </button>
-        </p>
+        <!-- Sólo donde el mail sigue siendo una opción.
+             En el salón y la cocina no lo es: el mozo entra con usuario y
+             PIN, y ofrecerle una contraseña que nadie le dictó —para un mail
+             que muchas veces es inventado— lo mandaba a probar algo que no
+             existe. El servidor tampoco se lo aceptaría.
+             En el panel se conserva: ahí el PIN se enciende por el tramo de
+             la URL, y el dueño tiene que poder volver a su mail. -->
+        @if (allowSignUp()) {
+          <p class="switch">
+            <button type="button" class="link" (click)="conPin.set(false)">
+              Entrar con mail y contraseña
+            </button>
+          </p>
+        }
       </form>
       } @else if (mailMandado()) {
       <!-- El alta salió y lo que falta está en la casilla.

@@ -6,6 +6,8 @@ export {
   can,
   permissionsOf,
   isRole,
+  entraConPin,
+  entraConMail,
 } from './lib/role';
 export {
   type StaffUser,

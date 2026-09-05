@@ -4,6 +4,7 @@ import {
   type Role,
   describeSubscription,
   normaliseEmail,
+  entraConMail,
   permissionsOf,
   prepareTenant,
   uniqueSlug,
@@ -71,6 +72,26 @@ export class AuthController {
 
     const matches = await verifyPassword(checked.value.password, found.value.passwordHash);
     if (!matches) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    /*
+     * El salón y la cocina entran con usuario y PIN, no por acá.
+     *
+     * Se verifica la contraseña primero y se rechaza después, a propósito: al
+     * revés, responder distinto antes de comprobarla diría qué mails existen
+     * y con qué rol, que es justo lo que el resto del endpoint cuida.
+     *
+     * Y se contesta lo mismo que un dato equivocado. Decir "entrá con tu PIN"
+     * sería más amable, pero le confirmaría a cualquiera que ese mail tiene
+     * cuenta. Quien es del personal ya tiene su usuario y su PIN anotados del
+     * alta; quien no, no tiene por qué enterarse de nada.
+     */
+    if (!entraConMail(found.value.role)) {
+      log.warn('intento de entrar con mail desde un rol que usa PIN', {
+        tenantId: found.value.tenantId,
+        role: found.value.role,
+      });
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
     }
 
