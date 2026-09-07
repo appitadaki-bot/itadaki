@@ -73,12 +73,12 @@
     "@nestjs/platform-express": "^11.2.3",
     "@nestjs/platform-socket.io": "^11.2.3",
     "@nestjs/websockets": "^11.2.3",
-    "@sentry/node": "^10.72.0",
+    "@sentry/node": "^10.73.0",
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "sharp": "^0.35.4",
     "socket.io": "^4.8.3",
-    "zod": "^4.5.2"
+    "zod": "^4.5.4"
   }
 }
