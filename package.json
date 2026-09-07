@@ -42,8 +42,8 @@
     "salon-lleno": "node scripts/salon-lleno.mjs"
   },
   "devDependencies": {
-    "@angular/build": "^21.2.22",
-    "@angular/cli": "^21.2.22",
+    "@angular/build": "^21.2.23",
+    "@angular/cli": "^21.2.23",
     "@angular/common": "^21.2.22",
     "@angular/compiler": "^21.2.22",
     "@angular/compiler-cli": "^21.2.22",
@@ -53,18 +53,18 @@
     "@eslint/js": "^10.0.1",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
-    "@types/node": "^26.4.0",
+    "@types/node": "^26.4.1",
     "@types/pg": "^8.23.1",
     "eslint": "^10.9.1",
     "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-boundaries": "^7.2.0",
     "express": "^5.2.1",
-    "jest": "^30.5.0",
+    "jest": "^30.5.1",
     "socket.io-client": "^4.8.3",
     "ts-jest": "^29.2.5",
-    "tsc-alias": "^1.9.2",
+    "tsc-alias": "^1.9.4",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.68.0",
+    "typescript-eslint": "^8.69.0",
     "zone.js": "^0.15.1"
   },
   "dependencies": {
