@@ -164,42 +164,32 @@ const ROLE_NAMES: Record<string, string> = {
     </nav>
 
     @if (trial(); as sub) {
-      @if (sub.status === 'SUSPENDED' && sub.seDioDeBaja) {
-        <!-- Se dio de baja y ya no le queda servicio.
-             Antes caía en el cartel de "escribinos", igual que quien dejó de
-             pagar: se había ido desde el panel y no tenía forma de volver
-             desde el panel. La salida tiene que abrir para los dos lados. -->
+      @if (sub.status === 'SUSPENDED') {
+        <!--
+          Sin servicio, sin botón que lo devuelva.
+
+          Había uno de "volver a suscribirme" que sólo borraba la fecha de la
+          baja: con los días ya vencidos, el estado se recalculaba igual y la
+          cuenta seguía suspendida. El dueño lo tocaba, no pasaba nada, y lo
+          tocaba de nuevo. Acá hay un cobro que arreglar y eso no se resuelve
+          con un click, así que lo único útil es decir a dónde escribir.
+
+          El botón sigue existiendo mientras le queden días, que es cuando de
+          verdad alcanza con cancelar la baja.
+        -->
         <section class="trial expired" role="alert">
-          @if (sub.daysLeft === null) {
-            <!-- Sin fecha contra la cual esperar: se dio de baja antes de
-                 estrenar el sistema, así que no había mes que terminar.
-                 Decirle que "terminó el mes que habías pagado" es contarle
-                 algo que no pasó, y lo manda a buscar un cobro que no existe. -->
+          @if (!sub.seDioDeBaja) {
+            <strong>Dimos de baja tu cuenta.</strong>
+          } @else if (sub.daysLeft === null) {
+            <!-- Se dio de baja antes de estrenar el sistema: no había mes que
+                 terminar, y decirle que terminó lo manda a buscar un cobro
+                 que no existe. -->
             <strong>Diste de baja tu cuenta.</strong>
-            <span>
-              Tu carta, tus mesas y tu historial siguen acá, tal como los
-              dejaste. Volver es un click.
-            </span>
           } @else {
             <strong>Tu suscripción terminó.</strong>
-            <span>
-              Diste de baja tu cuenta y ya terminó el mes que habías pagado. Tu
-              carta, tus mesas y tu historial siguen acá, tal como los dejaste.
-            </span>
           }
-          <button type="button" class="volver" (click)="reactivar()">
-            Volver a suscribirme
-          </button>
-        </section>
-      } @else if (sub.status === 'SUSPENDED') {
-        <!-- Se le terminó el servicio sin haber pedido la baja: dejó de
-             entrar el pago, o pasó la semana de gracia del vencimiento. No
-             hay un botón que lo resuelva solo —hay que arreglar el cobro—,
-             así que lo único útil es decir a dónde escribir. -->
-        <section class="trial expired" role="alert">
-          <strong>Dimos de baja tu cuenta.</strong>
           <span>
-            Para retomar la suscripción, escribinos a
+            Para retomarla, escribinos a
             <a href="mailto:appitadaki@gmail.com">appitadaki@gmail.com</a>. Tu
             carta, tus mesas y tu historial siguen acá, tal como los dejaste.
           </span>
@@ -246,7 +236,7 @@ const ROLE_NAMES: Record<string, string> = {
                de una frase larga se leía como parte de la explicación, y
                quien quería volver terminaba preguntando dónde estaba. -->
           <button type="button" class="volver" (click)="reactivar()">
-            Seguir con Itadaki
+            Reactivar suscripción
           </button>
         </section>
       }
@@ -1799,7 +1789,7 @@ export class AdminComponent {
         seDioDeBaja?: boolean;
       });
 
-    this.avisar('Listo, tu suscripción sigue activa.');
+    this.avisar('Listo, reactivaste tu suscripción.');
   }
 
   protected readonly trial = signal<{
