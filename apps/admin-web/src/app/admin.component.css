@@ -846,6 +846,12 @@
   font-size: 0.875rem;
 }
 
+/* El mail se tiene que ver como un mail: es lo único accionable del cartel. */
+.trial a {
+  color: inherit;
+  font-weight: 700;
+}
+
 .trial strong {
   font-family: var(--itadaki-font-display);
   font-size: 0.95rem;
@@ -1964,6 +1970,48 @@
 .legal-baja:hover {
   color: var(--itadaki-status-late);
   text-decoration: underline;
+}
+
+/*
+ * Confirma que la acción salió, y se va solo.
+ *
+ * Abajo y flotando: es lo último que pasó y no tiene que empujar la página.
+ * Por encima del contenido pero por debajo de los modales (60 y 61), que si
+ * hay una pregunta abierta ésa es la que importa.
+ */
+.aviso {
+  position: fixed;
+  left: 50%;
+  bottom: 1.5rem;
+  transform: translateX(-50%);
+  z-index: 40;
+  max-width: min(560px, calc(100vw - 2rem));
+  margin: 0;
+  padding: 0.8rem 1.25rem;
+  border-radius: var(--itadaki-radius-pill);
+  background: var(--itadaki-ink);
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-align: center;
+  box-shadow: 0 10px 30px oklch(0% 0 0 / 0.22);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .aviso {
+    animation: aviso-in 0.2s ease both;
+  }
+}
+
+@keyframes aviso-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 
 /* Si algo falla, se dice bajo el pie y no adentro de una tarjeta que ya no
