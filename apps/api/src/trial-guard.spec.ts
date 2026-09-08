@@ -20,9 +20,10 @@ const contextFor = (request: AuthedRequest): ExecutionContext =>
     switchToHttp: () => ({ getRequest: () => request }),
   }) as unknown as ExecutionContext;
 
-const signedIn = (): AuthedRequest =>
+const signedIn = (method = 'POST'): AuthedRequest =>
   ({
     headers: {},
+    method,
     auth: { userId: 'u1', tenantId: 't1', role: 'OWNER', displayName: 'Ana' },
   }) as unknown as AuthedRequest;
 
@@ -40,6 +41,41 @@ describe('TrialGuard', () => {
   it('blocks team changes once the trial is over', async () => {
     const guard = new TestableGuard('staff:manage', expired);
     await expect(guard.canActivate(contextFor(signedIn()))).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  /*
+   * `GET /staff` pide `staff:manage`, el mismo permiso que dar de alta: el
+   * guard lo bloqueaba junto con las escrituras. El panel de un local vencido
+   * recibía la lista vacía y avisaba que las mesas habían quedado sin mozo
+   * "porque ya no trabaja acá" — no se había borrado a nadie, no se los pudo
+   * leer.
+   */
+  it('deja leer al equipo aunque la cuenta esté vencida', async () => {
+    const guard = new TestableGuard('staff:manage', expired);
+    await expect(guard.canActivate(contextFor(signedIn('GET')))).resolves.toBe(true);
+  });
+
+  it('deja leer la carta aunque la cuenta esté vencida', async () => {
+    const guard = new TestableGuard('menu:write', expired);
+    await expect(guard.canActivate(contextFor(signedIn('GET')))).resolves.toBe(true);
+  });
+
+  it('sigue bloqueando todo lo que cambia algo', async () => {
+    for (const metodo of ['POST', 'PATCH', 'PUT', 'DELETE']) {
+      const guard = new TestableGuard('staff:manage', expired);
+      await expect(guard.canActivate(contextFor(signedIn(metodo)))).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+    }
+  });
+
+  it('sin método declarado, se trata como escritura', async () => {
+    // El lado seguro de equivocarse: dejar pasar una escritura sería peor.
+    const guard = new TestableGuard('staff:manage', expired);
+    const sinMetodo = { headers: {}, auth: { tenantId: 't1' } } as unknown as AuthedRequest;
+    await expect(guard.canActivate(contextFor(sinMetodo))).rejects.toBeInstanceOf(
       ForbiddenException,
     );
   });

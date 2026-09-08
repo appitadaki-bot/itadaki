@@ -164,20 +164,35 @@ const ROLE_NAMES: Record<string, string> = {
     </nav>
 
     @if (trial(); as sub) {
-      @if (sub.status === 'SUSPENDED' && sub.seDioDeBaja) {
-        <!-- Se dio de baja y ya se le terminó el mes pagado.
-             Antes caía en el cartel de "escribinos", igual que quien dejó de
-             pagar: se había ido desde el panel y no tenía forma de volver
-             desde el panel. La salida tiene que abrir para los dos lados. -->
+      @if (sub.status === 'SUSPENDED') {
+        <!--
+          Sin servicio, sin botón que lo devuelva.
+
+          Había uno de "volver a suscribirme" que sólo borraba la fecha de la
+          baja: con los días ya vencidos, el estado se recalculaba igual y la
+          cuenta seguía suspendida. El dueño lo tocaba, no pasaba nada, y lo
+          tocaba de nuevo. Acá hay un cobro que arreglar y eso no se resuelve
+          con un click, así que lo único útil es decir a dónde escribir.
+
+          El botón sigue existiendo mientras le queden días, que es cuando de
+          verdad alcanza con cancelar la baja.
+        -->
         <section class="trial expired" role="alert">
-          <strong>Tu suscripción terminó.</strong>
+          @if (!sub.seDioDeBaja) {
+            <strong>Dimos de baja tu cuenta.</strong>
+          } @else if (sub.daysLeft === null) {
+            <!-- Se dio de baja antes de estrenar el sistema: no había mes que
+                 terminar, y decirle que terminó lo manda a buscar un cobro
+                 que no existe. -->
+            <strong>Diste de baja tu cuenta.</strong>
+          } @else {
+            <strong>Tu suscripción terminó.</strong>
+          }
           <span>
-            Diste de baja tu cuenta y ya terminó el mes que habías pagado. Tu
+            Para retomarla, escribinos a
+            <a href="mailto:appitadaki@gmail.com">appitadaki@gmail.com</a>. Tu
             carta, tus mesas y tu historial siguen acá, tal como los dejaste.
           </span>
-          <button type="button" class="volver" (click)="reactivar()">
-            Volver a suscribirme
-          </button>
         </section>
       } @else if (sub.status === 'EXPIRED') {
         <section class="trial expired" role="alert">
@@ -185,7 +200,8 @@ const ROLE_NAMES: Record<string, string> = {
           <span>
             Los comensales siguen pidiendo y la cocina sigue recibiendo, pero no
             podés cambiar la carta ni las mesas hasta que activemos tu cuenta.
-            Escribinos y lo resolvemos.
+            Escribinos a <a href="mailto:appitadaki@gmail.com">appitadaki@gmail.com</a>
+            y lo resolvemos.
           </span>
         </section>
       } @else if (sub.status === 'TRIAL_ENDING') {
@@ -194,7 +210,10 @@ const ROLE_NAMES: Record<string, string> = {
             Te {{ sub.daysLeft === 1 ? 'queda' : 'quedan' }} {{ sub.daysLeft }}
             {{ sub.daysLeft === 1 ? 'día' : 'días' }} de prueba.
           </strong>
-          <span>Escribinos para seguir usándolo sin interrupciones.</span>
+          <span>
+            Escribinos a <a href="mailto:appitadaki@gmail.com">appitadaki@gmail.com</a>
+            para seguir usándolo sin interrupciones.
+          </span>
         </section>
       } @else if (sub.status === 'DADO_DE_BAJA') {
         <!-- Dado de baja no es cortado: el mes está pagado y el sistema sigue
@@ -217,7 +236,7 @@ const ROLE_NAMES: Record<string, string> = {
                de una frase larga se leía como parte de la explicación, y
                quien quería volver terminaba preguntando dónde estaba. -->
           <button type="button" class="volver" (click)="reactivar()">
-            Seguir con Itadaki
+            Reactivar suscripción
           </button>
         </section>
       }
@@ -934,6 +953,13 @@ const ROLE_NAMES: Record<string, string> = {
 
     @if (bajaError(); as error) {
       <p class="baja-error" role="alert">{{ error }}</p>
+    }
+
+    <!-- Confirma que la acción salió, y se va solo.
+         El estado de la cuenta lo cuenta el cartel de arriba, que queda; esto
+         dice que lo que acabás de tocar funcionó, que es otra pregunta. -->
+    @if (aviso(); as texto) {
+      <p class="aviso" role="status">{{ texto }}</p>
     }
 
     <!-- Los modales, al final del template para que queden por encima de
@@ -1668,6 +1694,23 @@ export class AdminComponent {
 
   protected readonly bajaError = signal<string | null>(null);
 
+  /** Lo que se confirma abajo y se va solo. */
+  protected readonly aviso = signal<string | null>(null);
+  private avisoTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /**
+   * Avisa que algo salió bien, sin pedir que lo cierren.
+   *
+   * Cuatro segundos: lo que tarda en leerse una línea. Se pisa el anterior en
+   * vez de encolarse — dos avisos apilados tapan el panel y el que importa es
+   * siempre el último.
+   */
+  protected avisar(texto: string): void {
+    if (this.avisoTimer !== null) clearTimeout(this.avisoTimer);
+    this.aviso.set(texto);
+    this.avisoTimer = setTimeout(() => this.aviso.set(null), 4000);
+  }
+
   /**
    * Pregunta con el mismo diálogo que el resto del panel.
    *
@@ -1722,6 +1765,8 @@ export class AdminComponent {
         daysLeft: number | null;
         seDioDeBaja?: boolean;
       });
+
+    this.avisar('Listo, diste de baja tu suscripción.');
   }
 
   /** Vuelve a suscribirse: es el mismo restaurante, con todo lo que tenía. */
@@ -1743,6 +1788,8 @@ export class AdminComponent {
         daysLeft: number | null;
         seDioDeBaja?: boolean;
       });
+
+    this.avisar('Listo, reactivaste tu suscripción.');
   }
 
   protected readonly trial = signal<{

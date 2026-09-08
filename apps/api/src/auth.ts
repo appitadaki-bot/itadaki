@@ -341,6 +341,9 @@ export class TableScopeGuard implements CanActivate {
  * expired trial must never stop a table from ordering or a cook from seeing
  * the ticket: a restaurant burned mid-service does not become a customer.
  */
+/** Los métodos que no cambian nada. */
+const SOLO_LEEN = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 @Injectable()
 export class TrialGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
@@ -361,6 +364,23 @@ export class TrialGuard implements CanActivate {
     if (needed !== 'menu:write' && needed !== 'staff:manage') return true;
 
     const request = context.switchToHttp().getRequest<AuthedRequest>();
+
+    /*
+     * El permiso no alcanza para saber si esto lee o escribe.
+     *
+     * `GET /staff` pide `staff:manage`, el mismo permiso que dar de alta a
+     * alguien: quien es dueño ve a su equipo, quien no, no. Así que este guard
+     * lo bloqueaba junto con las escrituras, y el panel de un local vencido
+     * recibía 403 al pedir la lista. Quedaba vacía, y como una mesa se
+     * considera huérfana cuando su mozo no está entre el personal activo, el
+     * panel avisaba que veinte mesas habían quedado sin mozo "porque ya no
+     * trabaja acá". No se había borrado a nadie: no se los pudo leer.
+     *
+     * El método sí lo sabe. Lo que no viene declarado se trata como escritura,
+     * que es el lado seguro de equivocarse.
+     */
+    if (SOLO_LEEN.has(request.method ?? '')) return true;
+
     const tenantId = request.auth?.tenantId;
     if (tenantId === undefined) return true;
 
