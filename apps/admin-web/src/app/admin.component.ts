@@ -165,16 +165,28 @@ const ROLE_NAMES: Record<string, string> = {
 
     @if (trial(); as sub) {
       @if (sub.status === 'SUSPENDED' && sub.seDioDeBaja) {
-        <!-- Se dio de baja y ya se le terminó el mes pagado.
+        <!-- Se dio de baja y ya no le queda servicio.
              Antes caía en el cartel de "escribinos", igual que quien dejó de
              pagar: se había ido desde el panel y no tenía forma de volver
              desde el panel. La salida tiene que abrir para los dos lados. -->
         <section class="trial expired" role="alert">
-          <strong>Tu suscripción terminó.</strong>
-          <span>
-            Diste de baja tu cuenta y ya terminó el mes que habías pagado. Tu
-            carta, tus mesas y tu historial siguen acá, tal como los dejaste.
-          </span>
+          @if (sub.daysLeft === null) {
+            <!-- Sin fecha contra la cual esperar: se dio de baja antes de
+                 estrenar el sistema, así que no había mes que terminar.
+                 Decirle que "terminó el mes que habías pagado" es contarle
+                 algo que no pasó, y lo manda a buscar un cobro que no existe. -->
+            <strong>Diste de baja tu cuenta.</strong>
+            <span>
+              Tu carta, tus mesas y tu historial siguen acá, tal como los
+              dejaste. Volver es un click.
+            </span>
+          } @else {
+            <strong>Tu suscripción terminó.</strong>
+            <span>
+              Diste de baja tu cuenta y ya terminó el mes que habías pagado. Tu
+              carta, tus mesas y tu historial siguen acá, tal como los dejaste.
+            </span>
+          }
           <button type="button" class="volver" (click)="reactivar()">
             Volver a suscribirme
           </button>
