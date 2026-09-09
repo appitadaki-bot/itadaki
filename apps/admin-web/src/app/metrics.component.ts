@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { MEDIOS_QUE_ELIGE_EL_MOZO, nombreDelMedio } from '@itadaki/billing/domain';
 import { AuthStore } from '@itadaki/shared/ui-auth';
-import { conciliar, laPlataQueEntro } from './conciliar-lo-facturado';
+import { conciliar, elTicketPromedio, laPlataQueEntro } from './conciliar-lo-facturado';
 
 interface MoneyDto {
   readonly amountInMinorUnits: number;
@@ -114,7 +114,14 @@ const WINDOWS: ReadonlyArray<{ days: number | 'hoy'; label: string }> = [
             </div>
             <div class="tile">
               <span class="tile-label">Ticket promedio</span>
-              <span class="tile-value">{{ money(m.averageTicket) }}</span>
+              @if (ticketPromedio(); as ticket) {
+                <span class="tile-value">{{ money(ticket) }}</span>
+              } @else {
+                <!-- Sin cuentas cobradas no hay promedio. Un cero diría que
+                     las mesas dejan cero, y lo que pasa es que todavía no
+                     cerró ninguna. -->
+                <span class="tile-value">—</span>
+              }
             </div>
             <div class="tile">
               <span class="tile-label">Facturado</span>
@@ -373,6 +380,27 @@ export class MetricsComponent {
       0,
     );
     return { amountInMinorUnits: total, currency: current.averageTicket?.currency ?? 'ARS' };
+  });
+
+  /**
+   * Cuánto dejó cada cuenta cobrada.
+   *
+   * Sobre lo cobrado, igual que "Facturado": al lado uno del otro tienen que
+   * hablar de la misma plata. Antes salía de dividir lo que valían los platos
+   * por la cantidad de pedidos, así que una mesa con descuento mostraba un
+   * ticket que nadie pagó.
+   */
+  protected readonly ticketPromedio = computed<MoneyDto | null>(() => {
+    const current = this.data();
+    if (current === null) return null;
+
+    const promedio = elTicketPromedio(current.cobros ?? []);
+    if (promedio === null) return null;
+
+    return {
+      amountInMinorUnits: promedio,
+      currency: current.averageTicket?.currency ?? 'ARS',
+    };
   });
 
   /**
