@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   type OnDestroy,
+  computed,
   effect,
   inject,
   signal,
@@ -169,23 +170,41 @@ const CALL_LABELS: Record<string, string> = {
         }
       </section>
 
-      <!-- Mesas que ya comieron todo y no pagaron. Sólo aparece cuando hay:
-           es una alerta, no una vista. Sin esto la mesa salía del tablero al
-           entregarse el último plato y el mozo no tenía dónde verla. -->
+      <!--
+        Mesas que ya comieron todo y no pagaron.
+
+        Sin esto la mesa salía del tablero al entregarse el último plato y el
+        mozo no tenía dónde verla. Pero deber plata no es pedir la cuenta: una
+        mesa que acaba de comer debe y sigue sentada. Todo el bloque se pintaba
+        de rojo al entregar el último plato, y parecía que estaban esperando
+        para pagar. El color se guarda para cuando de verdad piden.
+      -->
       @if (store.misImpagas().length > 0) {
-        <section class="block owing" aria-labelledby="owing-title">
+        <section
+          class="block owing"
+          [class.piden]="algunaPideLaCuenta()"
+          aria-labelledby="owing-title"
+        >
           <h2 class="block-title" id="owing-title">
             Pendiente de cobro
             <span class="count owed">{{ store.misImpagas().length }}</span>
           </h2>
 
           @for (mesa of store.misImpagas(); track mesa.sessionId) {
-            <article class="card owing-card">
+            <article
+              class="card owing-card"
+              [class.piden]="store.pidieronLaCuenta().has(mesa.sessionId)"
+            >
               <div class="card-fila">
                 <div class="card-main">
                   <span class="table">Mesa {{ tableNumber(mesa.tableId) }}</span>
-                  <span class="amount">{{ money(mesa.owed) }}</span>
+                  <!-- El monto está una sola vez, en el botón: es lo que se
+                       confirma al tocarlo, y repetirlo al lado no agregaba
+                       nada. -->
                   <span class="note">{{ mesa.diners }} en la mesa</span>
+                  @if (store.pidieronLaCuenta().has(mesa.sessionId)) {
+                    <span class="piden-aviso">Pidieron la cuenta</span>
+                  }
                   @if (store.payingAtCounter().has(mesa.sessionId)) {
                     <!-- Acá se decide liberar, así que el aviso tiene que estar
                          acá: en la lista de llamados se pierde entre los otros. -->
@@ -503,6 +522,11 @@ export class FloorComponent implements OnDestroy {
 
   /** Un solo toque: cobrar es lo que pasa en casi todas las mesas. */
   /** Qué mesa está eligiendo con qué se cobró. */
+  /** Si alguna de mis mesas pidió la cuenta, para que el bloque avise. */
+  protected readonly algunaPideLaCuenta = computed(() =>
+    this.store.misImpagas().some((mesa) => this.store.pidieronLaCuenta().has(mesa.sessionId)),
+  );
+
   protected readonly cobrando = signal<string | null>(null);
 
   /** Los medios entre los que elige el mozo, efectivo primero. */
