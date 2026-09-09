@@ -47,6 +47,63 @@ body {
   overflow-x: hidden;
 }
 
+/*
+ * Se selecciona lo que se lee, no lo que se dibuja.
+ *
+ * Arrastrar para leer —o tocar dos veces en un teléfono— pintaba de azul los
+ * botones, la numeración de las secciones y los mock-ups de las cuatro
+ * pantallas, que son cajas vacías con dos palabras adentro. Queda seleccionable
+ * lo que alguien podría querer copiar: los títulos, los textos, las preguntas
+ * frecuentes, los precios de los planes y lo que escribió en el formulario.
+ *
+ * Se apaga en `body` y se vuelve a prender por pieza porque la lista de lo
+ * decorativo es más larga y cambia más seguido que la de lo que se lee.
+ */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+p,
+li,
+summary,
+blockquote,
+figcaption,
+input,
+textarea,
+select,
+[contenteditable],
+a[href^='mailto:'],
+a[href^='tel:'] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/*
+ * Lo dibujado no se lee, aunque tenga letras adentro.
+ *
+ * Los mock-ups ya se marcan `aria-hidden` para que un lector de pantalla no
+ * los cuente: es la misma frontera. Y los botones, que se tocan y no se leen —
+ * en un teléfono, mantener el dedo sobre uno lo pintaba en vez de activarlo.
+ *
+ * El panel de números tampoco: son de un servicio inventado y se mueven solos
+ * mientras se los mira, así que copiarlos no sirve de nada.
+ */
+[aria-hidden='true'],
+[aria-hidden='true'] *,
+.btn,
+button,
+.numero,
+.numeros,
+.numeros * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 /* Primer tabulador: derecho al formulario. */
 .saltar {
   position: absolute;
