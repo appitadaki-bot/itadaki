@@ -313,12 +313,36 @@
 }
 
 /* Plata que se puede ir caminando: se lee de un vistazo desde lejos. */
+/* Deber plata no es pedir la cuenta: el contador sólo se enciende cuando
+   alguna de esas mesas de verdad está esperando para pagar. */
 .count.owed {
+  background: var(--itadaki-ink-soft);
+}
+
+.block.owing.piden .count.owed {
   background: var(--itadaki-status-late);
 }
 
+/*
+ * La franja roja, sólo en la mesa que la pidió.
+ *
+ * La llevaban todas: al entregar el último plato la mesa aparecía marcada
+ * igual que una que llamó, y el mozo iba a cobrarle a gente que estaba con el
+ * postre. Sin pedirla, la tarjeta es un recordatorio de que esa mesa sigue
+ * abierta, no una alerta.
+ */
 .card.owing-card {
-  border-left: 5px solid var(--itadaki-status-late);
+  border-left: 5px solid var(--itadaki-border);
+}
+
+.card.owing-card.piden {
+  border-left-color: var(--itadaki-status-late);
+}
+
+.owing-card .piden-aviso {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--itadaki-status-late);
 }
 
 /* Dos acciones apiladas y el monto largo: la columna necesita más aire que
@@ -875,7 +899,7 @@ button {
 
 /* Alguien esperando: la marca en el color de la marca. */
 .block:has(.card.call) .block-title::before,
-.block.owing .block-title::before {
+.block.owing.piden .block-title::before {
   background: var(--itadaki-accent);
 }
 
@@ -907,7 +931,7 @@ button {
   border-color: var(--itadaki-accent-line);
 }
 
-.urgente > .block.owing {
+.urgente > .block.owing.piden {
   background: var(--itadaki-accent-tint);
 }
 

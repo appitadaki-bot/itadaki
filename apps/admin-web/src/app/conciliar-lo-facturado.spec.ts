@@ -1,4 +1,4 @@
-import { conciliar } from './conciliar-lo-facturado';
+import { conciliar, elTicketPromedio, laPlataQueEntro } from './conciliar-lo-facturado';
 
 const cobro = (cobrado: number, descuento = 0) => ({
   cobrado: { amountInMinorUnits: cobrado },
@@ -45,5 +45,69 @@ describe('conciliar lo facturado con lo cobrado', () => {
 
     expect(resultado.sinCerrar).toBe(7_500);
     expect(resultado.cobrado).toBe(0);
+  });
+});
+
+/**
+ * Lo facturado es la plata que entró, no lo que suman los platos.
+ *
+ * Una mesa de $146.000 que pagó $131.400 en efectivo con descuento aparecía
+ * como $146.000 facturados: el número no coincidía con la caja que el dueño
+ * cruza contra esto.
+ */
+describe('la plata que entró', () => {
+  const cobro = (cobrado: number, descuento = 0) => ({
+    cobrado: { amountInMinorUnits: cobrado },
+    descuento: { amountInMinorUnits: descuento },
+  });
+
+  it('suma lo cobrado y no lo que valían los platos', () => {
+    expect(laPlataQueEntro([cobro(13_140_000, 1_460_000)])).toBe(13_140_000);
+  });
+
+  it('junta todos los medios', () => {
+    expect(laPlataQueEntro([cobro(10_000), cobro(5_000), cobro(2_500)])).toBe(17_500);
+  });
+
+  it('cuenta lo cobrado sin declarar con qué', () => {
+    // Es plata que entró igual; dejarla afuera haría que el total diga de menos.
+    expect(laPlataQueEntro([cobro(10_000), cobro(3_000)])).toBe(13_000);
+  });
+
+  it('sin cobros todavía, es cero', () => {
+    expect(laPlataQueEntro([])).toBe(0);
+  });
+});
+
+/**
+ * El ticket promedio, al lado de "Facturado", tiene que hablar de la misma
+ * plata. Salía de dividir lo que valían los platos por la cantidad de pedidos,
+ * así que una mesa con descuento mostraba un ticket que nadie pagó.
+ */
+describe('el ticket promedio', () => {
+  const cobro = (cobrado: number, cuentas: number) => ({
+    cobrado: { amountInMinorUnits: cobrado },
+    descuento: { amountInMinorUnits: 0 },
+    cuentas,
+  });
+
+  it('divide lo cobrado por las cuentas que se cerraron', () => {
+    expect(elTicketPromedio([cobro(30_000, 3)])).toBe(10_000);
+  });
+
+  it('junta los medios antes de dividir', () => {
+    // Dos cuentas en efectivo y una con débito son tres cuentas, no dos
+    // promedios distintos.
+    expect(elTicketPromedio([cobro(20_000, 2), cobro(10_000, 1)])).toBe(10_000);
+  });
+
+  it('sin cuentas cobradas no hay promedio', () => {
+    // Cero diría que las mesas dejan cero; lo que pasa es que no cerró ninguna.
+    expect(elTicketPromedio([])).toBeNull();
+    expect(elTicketPromedio([cobro(0, 0)])).toBeNull();
+  });
+
+  it('redondea a la unidad más chica en vez de arrastrar decimales', () => {
+    expect(elTicketPromedio([cobro(10_000, 3)])).toBe(3_333);
   });
 });

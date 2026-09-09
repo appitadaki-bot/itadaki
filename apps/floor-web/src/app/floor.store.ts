@@ -197,6 +197,22 @@ export class FloorStore {
    * esa mesa ya está pagando en la caja y libera una que sí pagó — o espera
    * un cobro en la mesa que nunca va a llegar.
    */
+  /**
+   * Las mesas que pidieron la cuenta.
+   *
+   * Distinto de deber plata: una mesa que acaba de comer debe y no pidió nada.
+   * El tablero las mostraba iguales, en rojo, y el mozo iba a cobrarle a gente
+   * que todavía estaba con el postre.
+   */
+  readonly pidieronLaCuenta = computed(
+    () =>
+      new Set(
+        this.calls()
+          .filter((call) => call.reason === 'BILL')
+          .map((call) => call.sessionId),
+      ),
+  );
+
   readonly payingAtCounter = computed(
     () =>
       new Set(

@@ -11,6 +11,11 @@ export interface CobroMinimo {
   readonly descuento: { readonly amountInMinorUnits: number };
 }
 
+/** Lo mismo, contando cuentas: es lo que hace falta para un promedio. */
+export interface CobroConCuentas extends CobroMinimo {
+  readonly cuentas: number;
+}
+
 export interface Conciliacion {
   /** Lo que entró, ya con el descuento restado. */
   readonly cobrado: number;
@@ -20,6 +25,38 @@ export interface Conciliacion {
   readonly sinCerrar: number;
   /** Si los tres pedazos explican el total. */
   readonly cierra: boolean;
+}
+
+/**
+ * Lo facturado: la plata que entró, ya con el descuento restado.
+ *
+ * Antes se calculaba sumando lo que salió de la cocina. Una mesa de $146.000
+ * que pagó $131.400 en efectivo aparecía como $146.000 facturados, y el número
+ * no coincidía con la caja que el dueño cruza contra esto.
+ *
+ * Entra también lo cobrado sin declarar con qué medio: es plata que entró
+ * igual, y dejarla afuera haría que el total dijera de menos.
+ */
+export function laPlataQueEntro(cobros: readonly CobroMinimo[]): number {
+  return cobros.reduce((suma, cobro) => suma + cobro.cobrado.amountInMinorUnits, 0);
+}
+
+/**
+ * Cuánto dejó cada cuenta que se cobró.
+ *
+ * Sobre lo cobrado y sobre las cuentas cerradas, no sobre lo que salió de la
+ * cocina: al lado de "Facturado" tienen que hablar de la misma plata. Con una
+ * mesa de $146.000 que pagó $131.400, un ticket promedio de $146.000 no
+ * coincide con nada que el dueño pueda cruzar.
+ *
+ * Null mientras no se cobró ninguna cuenta. Cero sería decir que las mesas
+ * dejan cero, y lo que pasa es que todavía no cerró ninguna.
+ */
+export function elTicketPromedio(cobros: readonly CobroConCuentas[]): number | null {
+  const cuentas = cobros.reduce((suma, cobro) => suma + cobro.cuentas, 0);
+  if (cuentas === 0) return null;
+
+  return Math.round(laPlataQueEntro(cobros) / cuentas);
 }
 
 export function conciliar(

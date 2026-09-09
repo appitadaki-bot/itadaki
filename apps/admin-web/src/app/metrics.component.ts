@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { MEDIOS_QUE_ELIGE_EL_MOZO, nombreDelMedio } from '@itadaki/billing/domain';
 import { AuthStore } from '@itadaki/shared/ui-auth';
-import { conciliar } from './conciliar-lo-facturado';
+import { conciliar, elTicketPromedio, laPlataQueEntro } from './conciliar-lo-facturado';
 
 interface MoneyDto {
   readonly amountInMinorUnits: number;
@@ -114,7 +114,14 @@ const WINDOWS: ReadonlyArray<{ days: number | 'hoy'; label: string }> = [
             </div>
             <div class="tile">
               <span class="tile-label">Ticket promedio</span>
-              <span class="tile-value">{{ money(m.averageTicket) }}</span>
+              @if (ticketPromedio(); as ticket) {
+                <span class="tile-value">{{ money(ticket) }}</span>
+              } @else {
+                <!-- Sin cuentas cobradas no hay promedio. Un cero diría que
+                     las mesas dejan cero, y lo que pasa es que todavía no
+                     cerró ninguna. -->
+                <span class="tile-value">—</span>
+              }
             </div>
             <div class="tile">
               <span class="tile-label">Facturado</span>
@@ -150,32 +157,26 @@ const WINDOWS: ReadonlyArray<{ days: number | 'hoy'; label: string }> = [
                   <span class="cobro-monto">{{ money(cobro.cobrado) }}</span>
                   <span class="cobro-cuentas">
                     {{ cobro.cuentas }} cuenta{{ cobro.cuentas > 1 ? 's' : '' }}
-                    @if (cobro.descuento.amountInMinorUnits > 0) {
-                      · {{ money(cobro.descuento) }} de descuento
-                    }
                   </span>
                 </li>
               }
             </ul>
-            <!-- La cuenta completa, a la vista.
-                 Facturado y cobrado miden cosas distintas y nunca dan igual;
-                 mostrarlos uno al lado del otro sin explicar el hueco se lee
-                 como plata que desapareció, y quien mira esto lo cruza con su
-                 caja. -->
+            <!-- Lo que se comió y todavía no se pagó.
+                 Facturado ya es la plata que entró, así que lo único que falta
+                 explicar es lo que está servido y sigue en una mesa abierta:
+                 sin decirlo, el dueño cruza el total con su caja y le sobra
+                 consumo sin cobrar. -->
             @if (conciliacion(); as detalle) {
-              <p class="cobros-cuenta">
-                De {{ money(detalle.facturado) }} facturados:
-                <strong>{{ money(detalle.cobrado) }}</strong> cobrados
-                @if (detalle.descuento.amountInMinorUnits > 0) {
-                  · {{ money(detalle.descuento) }} de descuento
-                }
-                @if (detalle.sinCerrar.amountInMinorUnits > 0) {
-                  · {{ money(detalle.sinCerrar) }} en mesas sin cerrar
-                }
-                @if (!detalle.cierra) {
-                  · incluye mesas de días anteriores cobradas en este período
-                }
-              </p>
+              @if (detalle.sinCerrar.amountInMinorUnits > 0) {
+                <p class="cobros-cuenta">
+                  Además hay <strong>{{ money(detalle.sinCerrar) }}</strong> servidos en mesas
+                  que todavía no cerraron.
+                </p>
+              } @else if (!detalle.cierra) {
+                <p class="cobros-cuenta">
+                  Incluye mesas de días anteriores cobradas en este período.
+                </p>
+              }
             }
 
             @if (sinDeclarar() > 0) {
@@ -341,19 +342,14 @@ export class MetricsComponent {
    * Null cuando todavía no hay datos, para no dibujar una cuenta de ceros.
    */
   protected readonly conciliacion = computed(() => {
-    const facturado = this.totalRevenue();
+    const consumido = this.consumido();
     const cobros = this.data()?.cobros;
-    if (facturado === null || cobros === undefined || cobros.length === 0) return null;
+    if (consumido === null || cobros === undefined || cobros.length === 0) return null;
 
-    const moneda = facturado.currency;
-    const detalle = conciliar(facturado.amountInMinorUnits, cobros);
-    const enPlata = (minor: number): MoneyDto => ({ amountInMinorUnits: minor, currency: moneda });
+    const detalle = conciliar(consumido.amountInMinorUnits, cobros);
 
     return {
-      facturado,
-      cobrado: enPlata(detalle.cobrado),
-      descuento: enPlata(detalle.descuento),
-      sinCerrar: enPlata(detalle.sinCerrar),
+      sinCerrar: { amountInMinorUnits: detalle.sinCerrar, currency: consumido.currency },
       cierra: detalle.cierra,
     };
   });
@@ -366,7 +362,13 @@ export class MetricsComponent {
   /** El mismo nombre que ve el mozo en el salón. */
   protected readonly nombreDelMedio = nombreDelMedio;
 
-  protected readonly totalRevenue = computed<MoneyDto | null>(() => {
+  /**
+   * Lo que suman los platos servidos, antes de cualquier descuento.
+   *
+   * No es lo facturado: es el consumo. Sirve para una sola cosa, saber cuánto
+   * quedó en mesas que todavía no cerraron.
+   */
+  private readonly consumido = computed<MoneyDto | null>(() => {
     const current = this.data();
     if (current === null) return null;
 
@@ -378,6 +380,47 @@ export class MetricsComponent {
       0,
     );
     return { amountInMinorUnits: total, currency: current.averageTicket?.currency ?? 'ARS' };
+  });
+
+  /**
+   * Cuánto dejó cada cuenta cobrada.
+   *
+   * Sobre lo cobrado, igual que "Facturado": al lado uno del otro tienen que
+   * hablar de la misma plata. Antes salía de dividir lo que valían los platos
+   * por la cantidad de pedidos, así que una mesa con descuento mostraba un
+   * ticket que nadie pagó.
+   */
+  protected readonly ticketPromedio = computed<MoneyDto | null>(() => {
+    const current = this.data();
+    if (current === null) return null;
+
+    const promedio = elTicketPromedio(current.cobros ?? []);
+    if (promedio === null) return null;
+
+    return {
+      amountInMinorUnits: promedio,
+      currency: current.averageTicket?.currency ?? 'ARS',
+    };
+  });
+
+  /**
+   * Lo facturado: la plata que entró.
+   *
+   * Antes era la suma de lo que salió de la cocina, sin restar el descuento
+   * por pagar en efectivo. Una mesa de $146.000 que pagó $131.400 aparecía
+   * como $146.000 facturados, y el número no coincidía con la caja.
+   *
+   * Incluye lo cobrado sin declarar con qué medio: es plata que entró igual, y
+   * dejarla afuera haría que el total dijera de menos.
+   */
+  protected readonly totalRevenue = computed<MoneyDto | null>(() => {
+    const current = this.data();
+    if (current === null) return null;
+
+    return {
+      amountInMinorUnits: laPlataQueEntro(current.cobros ?? []),
+      currency: current.averageTicket?.currency ?? 'ARS',
+    };
   });
 
   protected readonly allProducts = computed<readonly ProductStat[]>(() => {
