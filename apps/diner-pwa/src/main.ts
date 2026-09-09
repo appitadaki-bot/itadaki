@@ -17,6 +17,7 @@ import { OfflineStore } from './app/offline.store';
 // Imported for its module side effect: it grabs `?t=` from the URL before the
 // router redirects '' to bienvenida and drops the query string.
 import './app/table-token.store';
+import { tenantDelToken } from './app/tenant-del-token';
 import { MARCA, hayQueRecargar } from './app/version-nueva';
 
 /**
@@ -60,9 +61,28 @@ class RecargarSiCambioLaVersion implements ErrorHandler {
 }
 
 const API_URL = apiUrl();
-// Tenant is app configuration, not server infrastructure: importing it from
-// catalog/infra would drag sharp and node builtins into the browser bundle.
-const TENANT_ID = 'itadaki';
+
+/**
+ * De qué restaurante es esta mesa: lo dice el QR que se escaneó.
+ *
+ * Estaba escrito fijo —`itadaki`, el demo— y la carta salía siempre de ahí:
+ * el comensal de un local veía los platos de otro. Andaba de casualidad
+ * mientras hubo un solo restaurante.
+ *
+ * Se lee del token guardado y no de un servicio inyectado porque hace falta
+ * antes de que Angular arranque, para armar el lector del catálogo.
+ */
+const tokenDeLaMesa = (): string | null => {
+  try {
+    return localStorage.getItem('itadaki.table-token');
+  } catch {
+    // Ventana privada o almacenamiento bloqueado: se pide la carta sin token
+    // y el servidor contesta la del restaurante por defecto.
+    return null;
+  }
+};
+
+const TENANT_ID = tenantDelToken(tokenDeLaMesa()) ?? 'itadaki';
 
 /**
  * Composition root: the only place that knows the catalog comes over HTTP.
@@ -77,7 +97,8 @@ void bootstrapApplication(AppComponent, {
     { provide: WS_URL, useValue: socketUrl() },
     {
       provide: PRODUCT_READER,
-      useFactory: (offline: OfflineStore) => new HttpCatalog(API_URL, offline),
+      useFactory: (offline: OfflineStore) =>
+        new HttpCatalog(API_URL, offline, tokenDeLaMesa),
       deps: [OfflineStore],
     },
     {
