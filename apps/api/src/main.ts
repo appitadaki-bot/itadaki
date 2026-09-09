@@ -6,6 +6,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { USING_DEV_SECRET } from './auth';
 import { databaseAvailable } from './database';
+import { comoTratarLoSinAislar, tablasSinAislar } from './aislamiento-activo';
 import { comoTratarLasPendientes, migracionesQueFaltan } from './migraciones-al-dia';
 import { axiomEnabled, log } from './logger';
 import { ErrorFilter } from './error.filter';
@@ -123,6 +124,22 @@ async function bootstrap(): Promise<void> {
     if (queHacer !== null) {
       if (queHacer.rompe) throw new Error(queHacer.mensaje);
       log.warn(queHacer.mensaje);
+    }
+
+    /*
+     * Y que el aislamiento entre restaurantes esté puesto.
+     *
+     * Las consultas de cada local no llevan `WHERE tenant_id`: filtra la
+     * política de row level security. Cuando falta no falla nada, devuelve de
+     * más — un panel llegó a mostrar los mozos de otro restaurante y el resto
+     * parecía andar bien. Un deploy que no puede aislar no debe atender.
+     */
+    const sinAislar = await tablasSinAislar();
+    const sobreEso = comoTratarLoSinAislar(sinAislar, process.env['NODE_ENV']);
+
+    if (sobreEso !== null) {
+      if (sobreEso.rompe) throw new Error(sobreEso.mensaje);
+      log.warn(sobreEso.mensaje);
     }
   }
 
