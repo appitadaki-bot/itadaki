@@ -22,6 +22,20 @@ export interface Conciliacion {
   readonly cierra: boolean;
 }
 
+/**
+ * Lo facturado: la plata que entró, ya con el descuento restado.
+ *
+ * Antes se calculaba sumando lo que salió de la cocina. Una mesa de $146.000
+ * que pagó $131.400 en efectivo aparecía como $146.000 facturados, y el número
+ * no coincidía con la caja que el dueño cruza contra esto.
+ *
+ * Entra también lo cobrado sin declarar con qué medio: es plata que entró
+ * igual, y dejarla afuera haría que el total dijera de menos.
+ */
+export function laPlataQueEntro(cobros: readonly CobroMinimo[]): number {
+  return cobros.reduce((suma, cobro) => suma + cobro.cobrado.amountInMinorUnits, 0);
+}
+
 export function conciliar(
   facturadoMinor: number,
   cobros: readonly CobroMinimo[],
