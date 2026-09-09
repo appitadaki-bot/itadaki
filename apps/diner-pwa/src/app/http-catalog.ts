@@ -1,3 +1,4 @@
+import { tenantDelToken } from './tenant-del-token';
 import {
   type CategoryReader,
   type ProductReader,
@@ -58,17 +59,25 @@ function toMoney(dto: MoneyDto): Money {
  * Filtering stays local so typing in the search box costs no round trips.
  */
 export interface MenuCache {
-  cacheMenu(menu: unknown): Promise<void>;
-  cachedMenu<T>(): Promise<T | null>;
+  cacheMenu(menu: unknown, tenantId: string): Promise<void>;
+  cachedMenu<T>(tenantId: string): Promise<T | null>;
 }
 
 export class HttpCatalog implements ProductReader {
   private menu: MenuDto | null = null;
   private inflight: Promise<void> | null = null;
 
+  /**
+   * El token del QR viaja con el pedido de la carta.
+   *
+   * Dice de qué restaurante es la mesa. Sin él, el servidor no tiene con qué
+   * decidir y cae en el restaurante por defecto: cualquier comensal, de
+   * cualquier local, veía la carta del demo.
+   */
   constructor(
     private readonly baseUrl: string,
     private readonly cache?: MenuCache,
+    private readonly tableToken: () => string | null = () => null,
   ) {}
 
   /**
@@ -79,14 +88,21 @@ export class HttpCatalog implements ProductReader {
     if (this.menu !== null) return;
 
     this.inflight ??= (async () => {
+      const token = this.tableToken();
+      // Guardada por restaurante: un teléfono que estuvo en dos locales tenía
+      // una sola carta guardada, y sin señal mostraba la del anterior.
+      const deQuien = tenantDelToken(token) ?? 'sin-mesa';
+
       try {
-        const response = await fetch(`${this.baseUrl}/menu`);
+        const response = await fetch(`${this.baseUrl}/menu`, {
+          headers: token === null ? {} : { 'X-Table-Token': token },
+        });
         if (!response.ok) throw new Error(`menu request failed: ${response.status}`);
 
         this.menu = (await response.json()) as MenuDto;
-        await this.cache?.cacheMenu(this.menu);
+        await this.cache?.cacheMenu(this.menu, deQuien);
       } catch (error) {
-        const cached = await this.cache?.cachedMenu<MenuDto>();
+        const cached = await this.cache?.cachedMenu<MenuDto>(deQuien);
         if (cached === null || cached === undefined) throw error;
         this.menu = cached;
       }

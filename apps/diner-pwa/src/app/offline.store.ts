@@ -70,12 +70,21 @@ export class OfflineStore {
   }
 
   /** Caches the menu so the carte renders instantly, and at all, without signal. */
-  async cacheMenu(menu: unknown): Promise<void> {
-    await this.tx(CACHE, 'readwrite', (store) => store.put(menu, 'menu'));
+  /*
+   * Una carta guardada por restaurante.
+   *
+   * Con una sola clave, un teléfono que estuvo en dos locales guardaba la
+   * última y sin señal mostraba la del anterior. La clave vieja —"menu" a
+   * secas— se abandona sola: nadie la vuelve a leer.
+   */
+  async cacheMenu(menu: unknown, tenantId: string): Promise<void> {
+    await this.tx(CACHE, 'readwrite', (store) => store.put(menu, `menu:${tenantId}`));
   }
 
-  async cachedMenu<T>(): Promise<T | null> {
-    const found = await this.tx<T | undefined>(CACHE, 'readonly', (store) => store.get('menu'));
+  async cachedMenu<T>(tenantId: string): Promise<T | null> {
+    const found = await this.tx<T | undefined>(CACHE, 'readonly', (store) =>
+      store.get(`menu:${tenantId}`),
+    );
     return found ?? null;
   }
 

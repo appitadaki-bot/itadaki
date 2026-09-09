@@ -510,6 +510,25 @@ export const TenantId = createParamDecorator(
       throw new UnauthorizedException({ kind: 'TENANT_UNRESOLVED' });
     }
 
+    /*
+     * El QR de la mesa dice de qué restaurante es.
+     *
+     * Sin esto, la carta pública caía siempre en `DEFAULT_TENANT`: cualquier
+     * comensal, de cualquier local, veía la carta del restaurante demo. Andaba
+     * de casualidad mientras hubo uno solo.
+     *
+     * Se lee el cuerpo del token sin comprobar la firma, que necesita el
+     * secreto de la mesa y una consulta a la base. Para elegir qué carta
+     * mostrar alcanza: la carta es pública, y fabricarse un token sólo sirve
+     * para ver una carta que ya se puede ver escaneando ese local. Cualquier
+     * cosa que no sea leer la valida `TableScoped` contra la firma real.
+     */
+    const tableToken = request.headers['x-table-token'];
+    if (typeof tableToken === 'string' && tableToken !== '') {
+      const spied = peekTableToken(tableToken);
+      if (spied !== null) return spied.tenantId;
+    }
+
     const fromQuery = request.query['tenant'];
     return typeof fromQuery === 'string' && fromQuery !== '' ? fromQuery : DEFAULT_TENANT;
   },
