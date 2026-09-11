@@ -266,6 +266,20 @@ export class SessionsController {
           enEfectivo === 0
             ? null
             : { amountInMinorUnits: enEfectivo, currency: table.owed.currency },
+        /*
+         * Para el salón que quedó abierto desde antes de un despliegue.
+         *
+         * La API y las apps se despliegan por separado, y un celular abierto
+         * desde la noche anterior sigue corriendo la versión vieja, que lee
+         * este campo. Cuando se sacó, esa pantalla mostró "Cobré $ NaN" en
+         * medio del servicio. La versión nueva calcula el monto por medio y no
+         * lo usa; se va cuando ya no quede ninguna vieja dando vueltas.
+         *
+         * El total y no el precio en efectivo: la pantalla vieja lo pone en el
+         * botón y abajo aclara "menos el descuento en efectivo", y el cobro
+         * aplica el descuento según el medio que toquen.
+         */
+        aCobrar: table.owed.amountInMinorUnits,
         since: table.since?.toISOString() ?? null,
         diners: table.diners,
       };

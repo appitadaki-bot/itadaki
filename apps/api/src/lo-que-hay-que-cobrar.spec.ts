@@ -43,3 +43,16 @@ describe('lo que el salón tiene que cobrar', () => {
     expect(cuenta.slice(0, 500)).toContain("medio === 'CASH' && mesa.descuento !== null");
   });
 });
+
+/**
+ * La API y las apps se despliegan por separado.
+ *
+ * Cuando la versión nueva del salón dejó de leer `aCobrar`, la API lo dejó de
+ * mandar en el mismo cambio. Un salón abierto desde antes del despliegue siguió
+ * leyéndolo, recibió nada, y mostró "Cobré $ NaN" hasta que alguien recargó.
+ */
+describe('un salón abierto desde antes del despliegue', () => {
+  it('sigue recibiendo el campo que lee', () => {
+    expect(SESIONES).toContain('aCobrar: table.owed.amountInMinorUnits');
+  });
+});
