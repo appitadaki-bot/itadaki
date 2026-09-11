@@ -189,11 +189,16 @@
 </head>
 <body>
 
-<a class="saltar" href="#alta">Ir al formulario</a>
 
 <header class="barra">
   <span class="marca chica" aria-hidden="true">Itadaki</span>
-  <a class="btn btn-acento chico" href="#alta">Probar 30 días gratis</a>
+  <a
+    class="btn btn-acento chico"
+    href="https://wa.me/5492645135540"
+    data-wa="Hola! Quiero empezar la prueba de 30 días de Itadaki en mi restaurante."
+    target="_blank"
+    rel="noopener"
+  >Probar 30 días gratis</a>
 </header>
 
 <main>
@@ -232,7 +237,13 @@
     </p>
 
     <div class="acciones centradas">
-      <a class="btn btn-acento" href="#alta">Probar 30 días gratis</a>
+      <a
+        class="btn btn-acento"
+        href="https://wa.me/5492645135540"
+        data-wa="Hola! Quiero empezar la prueba de 30 días de Itadaki en mi restaurante."
+        target="_blank"
+        rel="noopener"
+      >Probar 30 días gratis</a>
       <a class="btn btn-borde" href="#piezas">Ver cómo funciona</a>
     </div>
 
@@ -545,7 +556,7 @@
         </ul>
         <a
           class="btn btn-acento plan-btn"
-          href="#alta"
+          href="https://wa.me/5492645135540"
           data-wa="Hola! Quiero empezar la prueba de 30 días de Itadaki en mi restaurante."
           target="_blank"
           rel="noopener"
@@ -582,12 +593,12 @@
           <li>Soporte por WhatsApp</li>
           <li>Te damos de baja cuando quieras, desde tu panel</li>
         </ul>
-        <!-- Uno solo. Dos botones que llevaban al mismo formulario obligaban a
+        <!-- Uno solo. Dos botones que llevaban al mismo lugar obligaban a
              elegir entre "probar" y "contratar" antes de haber hablado con
              nadie, y esa decisión no es de esta pantalla. -->
         <a
           class="btn btn-acento plan-btn"
-          href="#alta"
+          href="https://wa.me/5492645135540"
           data-wa="Hola! Quiero contratar Itadaki para mi restaurante."
           target="_blank"
           rel="noopener"
@@ -658,7 +669,7 @@
         <p class="servicio-nota">No está incluido en el plan: se cotiza aparte.</p>
         <a
           class="btn btn-acento servicio-btn"
-          href="#alta"
+          href="https://wa.me/5492645135540"
           data-wa="Hola! Quiero consultar por un desarrollo a medida para mi restaurante."
           target="_blank"
           rel="noopener"
@@ -669,129 +680,44 @@
 </section>
 
 <!-- ═══ 07 · ALTA ═══ -->
+<!--
+  El alta es por WhatsApp, y sólo por ahí.
+
+  Había un formulario al lado del chat: dos caminos para lo mismo obligaban a
+  elegir antes de haber hablado con nadie, y del otro lado alguien tenía que
+  mirar dos lugares. Queda uno, que es además donde el restaurante ya habla con
+  sus proveedores.
+-->
 <section class="seccion" id="alta">
   <div class="ancho angosto">
     <p class="numero">07</p>
-    <h2 class="titulo centrado">Envianos tus datos, y te dejamos la cuenta lista.</h2>
-    <p class="lede">
-      Te escribimos por WhatsApp <strong>dentro de las 24 horas hábiles</strong>.
-      Cuando entres al panel, tu carta ya va a estar cargada.
+    <h2 class="titulo centrado">Escribinos, y te dejamos la cuenta lista.</h2>
+    <p class="lede centrado">
+      Por WhatsApp, con una persona del otro lado. Contanos de tu local y pasanos
+      la carta como la tengas: un link, una foto o el papel.
     </p>
 
-    <form class="form" id="form" novalidate>
-      <label class="campo">
-        <span>Nombre del restaurante</span>
-        <input name="local" type="text" required autocomplete="organization" />
-        <em class="error"></em>
-      </label>
+    <a
+      class="btn btn-acento ancho-total wa-grande"
+      href="https://wa.me/5492645135540"
+      data-wa="Hola! Quiero empezar la prueba de 30 días de Itadaki en mi restaurante."
+      target="_blank"
+      rel="noopener"
+    >
+      <span aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+          <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.45 9.9-9.91C21.95 6.45 17.5 2 12.04 2zm5.8 14.13c-.24.68-1.42 1.32-1.95 1.37-.5.05-.98.24-3.3-.69-2.79-1.1-4.56-3.95-4.7-4.13-.14-.19-1.13-1.5-1.13-2.87 0-1.36.71-2.03.97-2.31.25-.28.55-.35.73-.35.18 0 .37 0 .53.01.17.01.4-.06.62.48.24.55.8 1.92.87 2.06.07.14.12.3.02.49-.09.19-.14.3-.28.47-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.94 1.95 1.23 2.23 1.37.28.14.44.12.6-.07.17-.19.7-.81.88-1.09.19-.28.37-.23.63-.14.25.09 1.62.76 1.9.9.28.14.46.21.53.32.07.12.07.66-.17 1.34z"/>
+        </svg>
+      </span>
+      Escribinos por WhatsApp
+    </a>
 
-      <label class="campo">
-        <span>Tu nombre</span>
-        <input name="nombre" type="text" required autocomplete="name" />
-        <em class="error"></em>
-      </label>
-
-      <label class="campo">
-        <span>WhatsApp</span>
-        <input name="whatsapp" type="tel" required autocomplete="tel" placeholder="11 5555 5555" />
-        <em class="error"></em>
-      </label>
-
-      <label class="campo">
-        <span>Tu mail <em class="opcional">opcional</em></span>
-        <input name="email" type="email" autocomplete="email" />
-        <em class="error"></em>
-      </label>
-
-      <!--
-        La pregunta que decide cuánto trabajo es cada alta.
-
-        Opcional en el sentido que importa: ninguna respuesta deja a nadie
-        afuera. El restaurante chico sin web es justamente el cliente, y sería
-        el único que no podría completar el formulario si el link fuera
-        obligatorio.
-      -->
-      <fieldset class="campo campo-carta">
-        <legend>¿Cómo tenés la carta hoy?</legend>
-
-        <label class="opcion">
-          <input type="radio" name="carta" value="link" required />
-          <span>Tengo un link</span>
-        </label>
-
-        <label class="campo campo-link" id="campoLink" hidden>
-          <span>Pegá el link de tu carta</span>
-          <input name="cartaLink" type="url" placeholder="https://" />
-          <em class="error"></em>
-        </label>
-
-        <label class="opcion">
-          <input type="radio" name="carta" value="foto" />
-          <span>Te mando una foto por WhatsApp</span>
-        </label>
-
-        <label class="opcion">
-          <input type="radio" name="carta" value="papel" />
-          <span>Está en papel, la armamos juntos</span>
-        </label>
-        <em class="error" data-error-carta></em>
-      </fieldset>
-
-      <label class="campo">
-        <span>Cuántas mesas tenés, más o menos <em class="opcional">opcional</em></span>
-        <input name="mesas" type="number" min="1" max="500" />
-        <em class="error"></em>
-      </label>
-
-      <button class="btn btn-acento ancho-total" type="submit" id="enviar">
-        Crear cuenta
-      </button>
-
-      <p class="nota centrada">
-        Al enviar aceptás los
-        <a href="/legal/terminos.html" target="_blank" rel="noopener">términos y condiciones</a>
-        y la
-        <a href="/legal/privacidad.html" target="_blank" rel="noopener">política de privacidad</a>.
-      </p>
-    </form>
-
-    <div class="o-bien">
-      <span class="o-bien-linea">o si preferís preguntar antes</span>
-      <a
-        class="wa-inline"
-        href="#alta"
-        data-wa="Hola! Tengo una consulta sobre Itadaki."
-        target="_blank"
-        rel="noopener"
-      >
-        <span aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-            <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22h.01c5.46 0 9.9-4.45 9.9-9.91C21.95 6.45 17.5 2 12.04 2zm5.8 14.13c-.24.68-1.42 1.32-1.95 1.37-.5.05-.98.24-3.3-.69-2.79-1.1-4.56-3.95-4.7-4.13-.14-.19-1.13-1.5-1.13-2.87 0-1.36.71-2.03.97-2.31.25-.28.55-.35.73-.35.18 0 .37 0 .53.01.17.01.4-.06.62.48.24.55.8 1.92.87 2.06.07.14.12.3.02.49-.09.19-.14.3-.28.47-.14.16-.29.36-.42.48-.14.14-.28.29-.12.57.16.28.72 1.18 1.54 1.91 1.06.94 1.95 1.23 2.23 1.37.28.14.44.12.6-.07.17-.19.7-.81.88-1.09.19-.28.37-.23.63-.14.25.09 1.62.76 1.9.9.28.14.46.21.53.32.07.12.07.66-.17 1.34z"/>
-          </svg>
-        </span>
-        Escribinos por WhatsApp
-      </a>
-    </div>
-
-    <!-- Lo que sigue, en el orden en que va a pasar. Nadie tiene que
-         adivinar si "listo" quiere decir que ya tiene cuenta. -->
-    <div class="listo" id="listo" hidden role="status">
-      <p class="listo-titulo"><strong>Listo, lo recibimos.</strong></p>
-      <p class="listo-mail">
-        Te escribimos por WhatsApp al <strong id="whatsappDejado">número que dejaste</strong>
-        dentro de las 24 horas hábiles.
-      </p>
-      <p class="listo-nota">
-        Armamos tu carta con lo que nos pases, cargamos tus mesas y te
-        mandamos los QR listos para imprimir. Cuando entres al panel, ya va a
-        estar todo preparado.
-      </p>
-      <p class="listo-nota">
-        <strong>Los 30 días arrancan con tu primer pedido</strong>, no cuando
-        te damos el acceso: el tiempo que tardemos en armarla no te lo
-        descontamos.
-      </p>
-    </div>    </div>
+    <!-- Lo que sigue, en el orden en que va a pasar. -->
+    <p class="nota centrada">
+      Armamos tu carta, cargamos tus mesas y te mandamos los QR listos para
+      imprimir. <strong>Los 30 días arrancan con tu primer pedido</strong>, no
+      cuando te damos el acceso.
+    </p>
   </div>
 </section>
 
@@ -928,7 +854,7 @@
       <a href="/legal/privacidad.html" target="_blank" rel="noopener">Privacidad</a>
       <a
         class="pie-wa"
-        href="#alta"
+        href="https://wa.me/5492645135540"
         data-wa="Hola! Vi Itadaki y quiero probarlo en mi restaurante."
         target="_blank"
         rel="noopener"
@@ -945,7 +871,7 @@
 <a
   class="wa-flota"
   id="waFlota"
-  href="#alta"
+  href="https://wa.me/5492645135540"
   data-wa="Hola! Vi Itadaki y quiero probarlo en mi restaurante."
   target="_blank"
   rel="noopener"

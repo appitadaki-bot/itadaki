@@ -13,26 +13,22 @@
   /* ── WhatsApp ── */
 
   /*
-   * El número vive acá y en un solo lugar.
+   * Cada botón abre el chat con su mensaje ya escrito.
    *
-   * Va con código de país y sin espacios ni signos, que es como lo pide wa.me:
-   * 5491155555555 para un celular de Buenos Aires. Si queda vacío, los enlaces
-   * siguen apuntando al formulario en vez de abrir un chat roto — un botón que
-   * lleva a un número inexistente es peor que no tenerlo.
+   * WhatsApp es el único canal para dar de alta una cuenta: había también un
+   * formulario, y dos caminos para lo mismo obligaban a elegir antes de haber
+   * hablado con nadie.
+   *
+   * El número va con código de país y sin espacios ni signos, que es como lo
+   * pide wa.me. El HTML ya trae el chat en cada `href` —sin el mensaje—, así
+   * que un teléfono que no corre este script igual llega a WhatsApp: acá sólo
+   * se le suma el texto de cada botón.
    */
   const WHATSAPP = '5492645135540';
 
-  if (WHATSAPP !== '') {
-    for (const enlace of document.querySelectorAll('[data-wa]')) {
-      const texto = enlace.getAttribute('data-wa') ?? '';
-      enlace.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`;
-    }
-  } else {
-    // Sin número configurado no se abre una pestaña vacía: cae al formulario,
-    // que es la otra forma de dejar el contacto.
-    for (const enlace of document.querySelectorAll('[data-wa]')) {
-      enlace.removeAttribute('target');
-    }
+  for (const enlace of document.querySelectorAll('[data-wa]')) {
+    const texto = enlace.getAttribute('data-wa') ?? '';
+    enlace.href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(texto)}`;
   }
 
   /* ── El título, palabra por palabra ── */
@@ -213,242 +209,6 @@
       if (vendidas) vendidas.textContent = String(totalVendidas);
     }, 4000);
   }
-
-  /* ── El formulario ── */
-  const form = document.getElementById('form');
-  const listo = document.getElementById('listo');
-
-  const MENSAJES = {
-    local: 'Poné el nombre de tu restaurante',
-    nombre: 'Poné tu nombre',
-    whatsapp: 'Necesitamos un WhatsApp para escribirte',
-    cartaLink: 'Pegá el link de tu carta, o elegí otra opción',
-    mesas: 'Poné un número entre 1 y 500',
-  };
-
-  /*
-   * Dónde está la API.
-   *
-   * En localhost gana la de la máquina, no la del meta: probando la landing
-   * servida en el 4300, apuntar a producción hace que el navegador bloquee la
-   * llamada por CORS y se vea "sin conexión" — un error que no dice nada de
-   * lo que pasó. Es la misma regla que usan las cuatro apps.
-   */
-  const enLaMaquina = ['localhost', '127.0.0.1'].includes(globalThis.location?.hostname ?? '');
-  const boton = document.getElementById('enviar');
-
-  const api = enLaMaquina
-    ? `${globalThis.location.protocol}//${globalThis.location.hostname}:3000`
-    : (document.querySelector('meta[name="itadaki-api"]')?.content ?? '');
-  function revisar(input) {
-    const campo = input.closest('.campo');
-    if (campo === null) return true;
-
-    const vacio = input.value.trim() === '';
-    const malNumero =
-      input.type === 'number' && !vacio && (Number(input.value) < 1 || Number(input.value) > 500);
-    // Un mail sin arroba o una contraseña corta se rechazan acá y no después:
-    // el servidor los rechaza igual, y enterarse recién ahí es peor.
-    // El mail es opcional: sólo se revisa si escribió algo.
-    const malMail = input.type === 'email' && !vacio && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input.value);
-    const mal = (input.required && vacio) || malNumero || malMail;
-
-    campo.classList.toggle('mal', mal);
-    const error = campo.querySelector('.error');
-    if (error !== null) {
-      error.textContent = mal
-        ? malNumero
-          ? 'Poné un número entre 1 y 500'
-          : malMail
-            ? 'Ese mail no parece válido'
-            : (MENSAJES[input.name] ?? 'Falta completar esto')
-        : '';
-    }
-    return !mal;
-  }
-
-  /**
-   * Si el formulario está listo para mandar.
-   *
-   * Mira los valores sin tocar la pantalla: `revisar` pinta el campo en rojo,
-   * y eso mientras alguien todavía está escribiendo es corregirlo a mitad de
-   * la frase. Acá sólo se pregunta.
-   */
-  function completo() {
-    if (form === null) return false;
-
-    // Una de las tres opciones de la carta, sí o sí: es lo que decide qué
-    // hacemos después de recibirlo.
-    if (form.querySelector('input[name="carta"]:checked') === null) return false;
-
-    return [...form.querySelectorAll('input')].every((input) => {
-      if (input.type === 'radio') return true;
-      const valor = input.value.trim();
-      if (input.required && valor === '') return false;
-      // El mail es opcional; si lo escribió, que sea un mail.
-      if (input.type === 'email' && valor !== '' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(valor)) return false;
-      if (input.type === 'number' && valor !== '' && (Number(valor) < 1 || Number(valor) > 500)) return false;
-      return true;
-    });
-  }
-
-  /*
-   * El botón apagado hasta que esté todo.
-   *
-   * Dice de un vistazo que falta algo, sin tener que tocarlo para enterarse.
-   * `aria-disabled` y no `disabled`: un botón deshabilitado de verdad no
-   * recibe foco ni anuncia nada, así que quien navega con teclado o lector no
-   * se entera de que existe. Así se puede llegar a él, y al tocarlo el
-   * formulario marca en rojo lo que falta.
-   */
-  function refrescarBoton() {
-    const listoParaMandar = completo();
-    boton?.setAttribute('aria-disabled', String(!listoParaMandar));
-    boton?.classList.toggle('apagado', !listoParaMandar);
-  }
-
-  // Al salir del campo, no mientras escribe: marcar en rojo lo que todavía se
-  // está tipeando es corregir a alguien a mitad de la frase.
-  for (const input of form?.querySelectorAll('input') ?? []) {
-    input.addEventListener('blur', () => revisar(input));
-    input.addEventListener('input', () => {
-      const campo = input.closest('.campo');
-      if (campo?.classList.contains('mal')) revisar(input);
-      // El botón sí se actualiza mientras escribe: se prende solo al
-      // completar el último campo, que es la señal de que ya está.
-      refrescarBoton();
-    });
-  }
-
-  /*
-   * El campo del link, sólo cuando hace falta.
-   *
-   * Suelto y siempre visible parece obligatorio, y el que no tiene carta
-   * online —que es justamente el cliente— se frena ahí. Aparece al elegir esa
-   * opción y se va con cualquier otra, para que nadie mande un link pegado
-   * por error en la respuesta equivocada.
-   */
-  const campoLink = document.getElementById('campoLink');
-  const inputLink = campoLink?.querySelector('input') ?? null;
-
-  for (const opcion of form?.querySelectorAll('input[name="carta"]') ?? []) {
-    opcion.addEventListener('change', () => {
-      const conLink = opcion.value === 'link' && opcion.checked;
-      if (campoLink !== null) campoLink.hidden = !conLink;
-      if (inputLink !== null) {
-        inputLink.required = conLink;
-        if (!conLink) {
-          inputLink.value = '';
-          campoLink?.classList.remove('mal');
-        } else {
-          inputLink.focus();
-        }
-      }
-      refrescarBoton();
-    });
-  }
-
-  refrescarBoton();
-
-  /** Un error que no es de un campo puntual: sin red, el mail ya usado. */
-  function errorGeneral(texto) {
-    let aviso = form?.querySelector('.error-envio');
-    if (aviso === null || aviso === undefined) {
-      aviso = document.createElement('p');
-      aviso.className = 'error-envio';
-      aviso.setAttribute('role', 'alert');
-      boton?.insertAdjacentElement('beforebegin', aviso);
-    }
-    aviso.textContent = texto;
-  }
-
-  form?.addEventListener('submit', async (evento) => {
-    evento.preventDefault();
-
-    const inputs = [...form.querySelectorAll('input')];
-    const todosBien = inputs.map((i) => revisar(i)).every(Boolean);
-
-    if (!todosBien) {
-      // El botón está apagado pero se puede tocar: acá es donde se entera de
-      // qué le falta, marcado en el campo y con el foco puesto ahí.
-      form.querySelector('.campo.mal input')?.focus();
-      return;
-    }
-
-    if (api === '') {
-      errorGeneral('No podemos recibirlo ahora. Escribinos por WhatsApp.');
-      return;
-    }
-
-    const datos = Object.fromEntries(new FormData(form));
-
-    // Bloqueado mientras se manda: dos toques seguidos son dos pedidos, y del
-    // otro lado alguien escribe dos veces al mismo restaurante.
-    if (boton !== null) {
-      boton.disabled = true;
-      boton.textContent = 'Enviando…';
-    }
-    form.querySelector('.error-envio')?.remove();
-
-    try {
-      const mesas = Number(datos.mesas);
-      const respuesta = await fetch(`${api}/api/interesados`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          local: datos.local,
-          nombre: datos.nombre,
-          whatsapp: datos.whatsapp,
-          ...(String(datos.email ?? '').trim() === '' ? {} : { email: datos.email }),
-          ...(Number.isFinite(mesas) && mesas > 0 ? { mesas } : {}),
-          carta: datos.carta,
-          ...(datos.carta === 'link' ? { cartaLink: datos.cartaLink } : {}),
-        }),
-      });
-
-      if (!respuesta.ok) {
-        errorGeneral(
-          // 429: probó varias veces seguidas. Decir "probá de nuevo" sin más
-          // invita justamente a lo que está bloqueado.
-          respuesta.status === 429
-            ? 'Probaste varias veces seguidas. Esperá un minuto y volvé a intentar.'
-            : 'No pudimos recibir tus datos. Probá de nuevo o escribinos por WhatsApp.',
-        );
-        if (boton !== null) {
-          boton.disabled = false;
-          boton.textContent = 'Crear cuenta';
-        }
-        return;
-      }
-
-      form.hidden = true;
-      if (listo !== null) {
-        // El número a la vista: si se tipeó mal, este es el momento de darse
-        // cuenta y no dos días después, cuando no llegó ningún mensaje.
-        const donde = document.getElementById('whatsappDejado');
-        if (donde !== null) donde.textContent = String(datos.whatsapp);
-        listo.hidden = false;
-        listo.scrollIntoView({ behavior: quieto ? 'auto' : 'smooth', block: 'center' });
-      }
-    } catch {
-      /*
-       * Un `fetch` que tira no siempre es falta de red.
-       *
-       * También tira cuando el navegador bloquea la llamada por CORS, y ahí
-       * decir "fijate la red" manda a revisar el wifi por un problema
-       * nuestro. El texto ofrece la salida que sirve en los dos casos.
-       */
-      errorGeneral(
-        navigator.onLine === false
-          ? 'Sin conexión. Fijate la red y probá de nuevo.'
-          : 'No pudimos recibir tus datos. Escribinos por WhatsApp y lo resolvemos ahí.',
-      );
-      if (boton !== null) {
-        boton.disabled = false;
-        boton.textContent = 'Crear cuenta';
-      }
-    }
-  });
 
   /* ── Aparecer al scrollear ── */
   if (!quieto && 'IntersectionObserver' in globalThis) {
