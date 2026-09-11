@@ -104,19 +104,6 @@ button,
   user-select: none;
 }
 
-/* Primer tabulador: derecho al formulario. */
-.saltar {
-  position: absolute;
-  left: -9999px;
-  background: var(--acento);
-  color: var(--fondo);
-  padding: 0.8rem 1.2rem;
-  border-radius: 0 0 var(--r-chip) 0;
-  font-weight: 700;
-  z-index: 100;
-}
-.saltar:focus { left: 0; top: 0; }
-
 .ancho { max-width: 1000px; margin: 0 auto; padding: 0 1.5rem; }
 .ancho.angosto { max-width: 760px; }
 
@@ -609,90 +596,18 @@ strong { color: var(--tinta); font-weight: 700; }
 /* El día 31 desarma la desconfianza: misma calma que los otros. */
 .dia.final { background: var(--carta-alta); }
 
-/* ── Formulario ── */
+/* ── Alta ──
+ * El ancla deja aire arriba: sin esto, llegar desde un link la tapa el
+ * encabezado fijo. */
 #alta { scroll-margin-top: 4.5rem; }
 
-.form { display: grid; gap: 1rem; margin-top: 2rem; }
-.campo { display: grid; gap: 0.35rem; }
-.campo > span { font-size: 0.85rem; font-weight: 700; color: var(--tinta); }
-.campo > span i { font-style: normal; font-weight: 400; color: var(--tinta-suave); }
-
-.campo input {
-  padding: 0.85rem 1rem;
-  border: 1.5px solid var(--borde);
-  border-radius: var(--r-chip);
-  background: var(--carta);
-  color: var(--tinta);
-  font-family: inherit;
-  font-size: 1rem;
-  min-height: 48px;
-}
-.campo input::placeholder { color: var(--tinta-suave); }
-
-/* Lo que no hace falta llenar, dicho al lado del nombre del campo: dejarlo
-   librado a que alguien lo deduzca del asterisco que no está es pedirle un
-   dato que no necesitamos. */
-.opcional {
-  font-style: normal;
-  font-weight: 400;
-  font-size: 0.78rem;
-  color: var(--tinta-suave);
-}
-
-/* Cómo tiene la carta: tres opciones, ninguna deja a nadie afuera. */
-.campo-carta {
-  border: 1.5px solid var(--borde);
-  border-radius: var(--r-chip);
-  padding: 0.9rem 1rem 1rem;
-  gap: 0.55rem;
-}
-
-.campo-carta legend {
-  padding: 0 0.3rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--tinta);
-}
-
-.opcion {
-  display: flex;
-  align-items: center;
+/* El botón al chat, más alto que los demás: es la única acción de la sección
+   y el final de la página. */
+.wa-grande {
   gap: 0.6rem;
-  cursor: pointer;
-  font-size: 0.95rem;
-  min-height: 44px;
-}
-
-.opcion input {
-  width: 20px;
-  height: 20px;
-  min-height: 0;
-  accent-color: var(--acento);
-  flex: 0 0 auto;
-}
-
-/* Sangrado bajo su opción: se lee como parte de ella y no como un campo más
-   de la lista. */
-.campo-link {
-  margin: 0.1rem 0 0.4rem 1.9rem;
-}
-.campo input:focus-visible {
-  outline: 2px solid var(--acento);
-  outline-offset: 1px;
-  border-color: var(--acento);
-}
-
-.error { display: none; font-size: 0.8rem; font-style: normal; color: var(--acento); }
-.campo.mal input { border-color: var(--acento); }
-.campo.mal .error { display: block; }
-
-.listo {
-  margin: 2rem 0 0;
-  padding: 1.2rem 1.4rem;
-  border: 1px solid var(--ok);
-  border-radius: var(--r-carta);
-  background: color-mix(in oklab, var(--ok) 15%, transparent);
-  font-size: 0.95rem;
+  margin: 1.5rem 0 1.25rem;
+  min-height: 56px;
+  font-size: 1rem;
 }
 
 /* ── Preguntas ── */
@@ -883,45 +798,6 @@ strong { color: var(--tinta); font-weight: 700; }
   .wa-flota { padding: 1rem; right: 1rem; bottom: 1rem; }
   .wa-texto { display: none; }
 }
-
-/*
- * La salida para quien prefiere hablar antes de dejar sus datos.
- *
- * Separada del formulario con una línea: son dos caminos al mismo lugar, no
- * una aclaración al pie de uno.
- */
-.o-bien {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 2rem 0 0;
-  padding-top: 1.75rem;
-  border-top: 1px solid var(--borde);
-  text-align: center;
-}
-
-.o-bien-linea {
-  font-size: 0.85rem;
-  color: var(--tinta-suave);
-}
-
-/* Un botón y no un enlace más: escribir por WhatsApp es una de las dos formas
-   de contactarnos, no una nota al pie. */
-.wa-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.5rem;
-  padding: 0.7rem 1.3rem;
-  border-radius: var(--r-pill);
-  background: #25d366;
-  color: #0b3d1f;
-  font-weight: 700;
-  font-size: 0.92rem;
-  text-decoration: none;
-}
-.wa-inline:hover { background: #1fbe5a; }
 
 /* En el pie, el mismo verde para que se reconozca sin leerlo. */
 .pie-wa {
@@ -1187,62 +1063,6 @@ strong { color: var(--tinta); font-weight: 700; }
    nadie hace scroll para comparar dos tarjetas apiladas. */
 @media (max-width: 699px) {
   .planes { display: flex; flex-direction: column-reverse; }
-}
-
-/*
- * Un error que no es de ningún campo: sin red, el mail ya usado.
- *
- * Va pegado arriba del botón y no al pie de la página: es donde está mirando
- * quien acaba de tocar, y un aviso fuera de la vista es un aviso que no
- * existe.
- */
-.error-envio {
-  margin: 0 0 0.75rem;
-  padding: 0.75rem 0.9rem;
-  border-radius: var(--r-chip, 10px);
-  background: oklch(70% 0.15 45 / 0.15);
-  border: 1px solid oklch(70% 0.15 45 / 0.4);
-  font-size: 0.88rem;
-  line-height: 1.45;
-  color: var(--tinta);
-}
-
-/* El botón del panel, dentro del mensaje de listo. */
-.listo .btn {
-  margin-top: 1rem;
-}
-
-/*
- * El botón mientras falta completar algo.
- *
- * Apagado, no invisible: dice de un vistazo que todavía no está, sin esconder
- * a dónde lleva. Se puede tocar igual —`aria-disabled` y no `disabled`— y al
- * tocarlo el formulario marca en rojo lo que falta, que es más útil que un
- * botón muerto que no explica nada.
- */
-.btn.apagado {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.btn.apagado:hover {
-  transform: none;
-}
-
-/* ═══ CONFIRMACIÓN DEL ALTA ═══ */
-
-.listo-titulo { margin: 0 0 0.6rem; font-size: 1.05rem; }
-
-.listo-mail {
-  margin: 0 0 0.75rem;
-  line-height: 1.55;
-}
-
-.listo-nota {
-  margin: 0 0 0.6rem;
-  font-size: 0.88rem;
-  line-height: 1.5;
-  color: var(--tinta-media);
 }
 
 /*

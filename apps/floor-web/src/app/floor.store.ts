@@ -51,10 +51,14 @@ export interface UnsettledDto {
   readonly tableId: string;
   /** Lo que suman los platos, sin descuento. */
   readonly owed: { readonly amountInMinorUnits: number; readonly currency: string };
-  /** Lo acordado con la mesa por pagar en efectivo, o null si no hubo. */
+  /**
+   * Lo que se descuenta si pagan en efectivo, o null si el local no ofrece.
+   *
+   * No depende de lo que eligió la mesa al pedir la cuenta: eso cambia en la
+   * mesa, y el mozo tiene que poder cobrar en efectivo con el descuento aunque
+   * antes hayan dicho crédito.
+   */
   readonly descuento: { readonly amountInMinorUnits: number; readonly currency: string } | null;
-  /** Lo que hay que cobrar de verdad: `owed` menos el descuento. */
-  readonly aCobrar: number;
   readonly since: string | null;
   readonly diners: number;
 }

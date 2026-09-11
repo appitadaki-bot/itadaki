@@ -1,38 +1,45 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-const SESIONES = readFileSync(join(__dirname, 'sessions.controller.ts'), 'utf-8').replace(/\r\n/g, '\n');
+const SESIONES = readFileSync(join(__dirname, 'sessions.controller.ts'), 'utf-8').replace(
+  /\r\n/g,
+  '\n',
+);
 const SALON = readFileSync(
   join(__dirname, '..', '..', 'floor-web', 'src', 'app', 'floor.component.ts'),
   'utf-8',
 ).replace(/\r\n/g, '\n');
 
 /**
- * El salón cobra lo acordado, no lo que suman los platos.
+ * Lo que el salón cobra, según con qué paguen.
  *
- * Lo adeudado se arma de las comandas, que no saben cómo se paga. Si la mesa
- * eligió efectivo, el descuento quedó guardado en la cuenta: sin mirarlo, el
- * mozo cobraba el total y tenía que acordarse de restar el porcentaje de
- * memoria — o cobrarlo de más, que es lo que pasa en la mesa apurada.
+ * El botón de cobrar mostraba lo que la mesa había dicho al pedir la cuenta.
+ * Si dijo crédito y después pagó en efectivo, el salón no mostraba el
+ * descuento en ningún lado, y el mozo cobraba el total o restaba de memoria.
  */
 describe('lo que el salón tiene que cobrar', () => {
-  it('la lista de mesas por cobrar mira la cuenta', () => {
-    expect(SESIONES).toContain('this.bills.store.findBySession(tenantId, table.sessionId)');
+  it('sabe cuánto baja en efectivo aunque la mesa haya elegido otra cosa', () => {
+    // Del porcentaje del local, no de lo que quedó anotado en la cuenta.
+    expect(SESIONES).toContain('descuentoDelLocal(this.tenants.store, tenantId)');
+    expect(SESIONES).not.toContain('this.bills.store.findBySession(tenantId, table.sessionId)');
   });
 
-  it('y descuenta lo acordado', () => {
-    expect(SESIONES).toContain('descuentoMinor');
-    expect(SESIONES).toContain('aCobrar');
+  it('cada medio dice cuánto se cobra con él, antes de tocarlo', () => {
+    // Tocar el botón cobra en el acto: el monto tiene que estar en el botón.
+    const botones = SALON.slice(SALON.indexOf('@for (medio of mediosDeCobro'));
+    expect(botones.slice(0, 600)).toContain('money(montoPara(mesa, medio))');
   });
 
-  /** El botón dice el número que se cobra, no el de los platos. */
-  it('el botón de cobrar usa lo acordado', () => {
-    const boton = SALON.indexOf('Cobré');
-    expect(SALON.slice(boton - 200, boton + 120)).toContain('mesa.aCobrar');
+  it('la pregunta ya no dice un monto, porque depende de lo que toquen', () => {
+    expect(SALON).toContain('<p class="cobro-ask">¿Con qué pagaron?</p>');
   });
 
-  /** Y se dice de dónde sale, por si el cliente pregunta. */
-  it('el salón explica por qué es menos', () => {
-    expect(SALON).toContain('menos {{ money(mesa.descuento) }} en efectivo');
+  it('la tarjeta avisa cuánto sale en efectivo', () => {
+    expect(SALON).toContain("En efectivo, {{ money(montoPara(mesa, 'CASH')) }}");
+  });
+
+  it('el descuento se resta sólo en efectivo', () => {
+    const cuenta = SALON.slice(SALON.indexOf('protected montoPara('));
+    expect(cuenta.slice(0, 500)).toContain("medio === 'CASH' && mesa.descuento !== null");
   });
 });

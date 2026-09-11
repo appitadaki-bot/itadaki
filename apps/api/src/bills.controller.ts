@@ -15,7 +15,6 @@ import {
   type SplitStrategy,
   aplicaA,
   billSubtotal,
-  descuentoDe,
   montoDelDescuento,
   MEDIOS_DE_COBRO,
   byDinerSplit,
@@ -31,6 +30,7 @@ import { z } from 'zod';
 import { InMemoryTableStore, PostgresTableStore } from '@itadaki/identity/infra';
 import { type DinerScope, Public, RequirePermission, Scope, TableScoped } from './auth';
 import { database } from './database';
+import { descuentoDelLocal } from './descuento-del-local';
 import { BillsService } from './bills.service';
 import { SessionsService } from './sessions.service';
 import { OrdersService } from './orders.service';
@@ -301,26 +301,28 @@ export class BillsController {
     }
 
     /*
-     * El descuento se recalcula acá, no se cree lo que mande el cliente.
+     * El descuento lo decide el medio con el que pagaron, no el que eligió
+     * la mesa antes.
      *
-     * Es plata: aceptar un monto del teléfono del mozo dejaría que cualquiera
-     * declare el descuento que quiera. Se calcula igual que en la pantalla de
-     * la cuenta, desde el porcentaje que el dueño configuró.
+     * La mesa dice cómo piensa pagar cuando pide la cuenta, y eso cambia en
+     * la mesa: elige crédito, el mozo le cuenta que en efectivo tiene un diez
+     * por ciento menos, y paga en efectivo. Guardando lo que la mesa eligió,
+     * ese cobro quedaba sin descuento — en el salón y en las métricas — aunque
+     * el mozo había cobrado con la rebaja.
+     *
+     * Antes estuvo así y se sacó: el mozo declaraba efectivo, el sistema
+     * guardaba el descuento, y la mesa había pagado el total. Pasaba porque el
+     * botón de efectivo del salón no decía cuánto era. Ahora cada medio muestra
+     * su monto antes de tocarlo, así que lo que se guarda es lo que el mozo vio
+     * y cobró.
+     *
+     * Se calcula acá, desde el porcentaje del local: aceptar un monto del
+     * teléfono del mozo dejaría que cualquiera declare la rebaja que quiera.
      */
-    /*
-     * El descuento es el que la mesa vio, no el que corresponda al medio.
-     *
-     * Antes se recalculaba acá desde lo que el mozo declaraba: si decía
-     * "efectivo", se guardaba el descuento aunque la mesa hubiera pagado el
-     * total sin rebaja. La mesa entregaba 6.800, las métricas registraban
-     * 6.120, y el local aparecía cobrando menos de lo que cobró.
-     *
-     * El descuento se ofrece y se muestra cuando la mesa elige cómo pagar, en
-     * la pantalla de la cuenta. Si ahí no lo vio, no se le hizo — y un número
-     * que el dueño cruza con su caja tiene que decir lo que pasó, no lo que
-     * habría correspondido.
-     */
-    const yaAcordado = bill.descuentoMinor ?? 0;
+    const subtotal = billSubtotal(bill).unwrapOr(Money.zero(bill.currency));
+    const delLocal = await descuentoDelLocal(this.tenants.store, scope.tenantId);
+    const rebaja = aplicaA(cobradoCon) ? montoDelDescuento(delLocal, subtotal) : null;
+    const yaAcordado = rebaja !== null && rebaja.isOk() ? rebaja.value.amountInMinorUnits : 0;
 
     const settled = await this.bills.store.save(scope.tenantId, {
       ...bill,
@@ -383,15 +385,8 @@ export class BillsController {
       throw new HttpException(subtotal.error, HttpStatus.CONFLICT);
     }
 
-    /*
-     * El descuento por pagar en efectivo, si el local lo ofrece.
-     *
-     * Cualquier problema al leerlo deja el descuento en cero: un fallo no
-     * puede inventar una rebaja que el local no ofrece.
-     */
-    const puntos = await this.tenants.store.descuentoEnEfectivo(scope.tenantId);
-    const configurado = descuentoDe((puntos.isOk() ? puntos.value : 0) / 100);
-    const descuento = configurado.isOk() ? configurado.value : { porcentaje: 0 };
+    // El descuento por pagar en efectivo, si el local lo ofrece.
+    const descuento = await descuentoDelLocal(this.tenants.store, scope.tenantId);
 
     const daDescuento = aplicaA(parsed.data.paymentMethod ?? null);
     const rebaja = daDescuento
@@ -412,16 +407,14 @@ export class BillsController {
     }
 
     /*
-     * Queda anotado en la cuenta, no sólo mostrado.
+     * Queda anotado en la cuenta, como lo que la mesa dijo que iba a hacer.
      *
-     * Es el descuento que la mesa está viendo mientras decide, y el que va a
-     * pagar. Al cobrar se guarda éste y no uno recalculado: recalcularlo desde
-     * el medio que declara el mozo hacía que las métricas registraran una
-     * rebaja que la mesa nunca vio.
+     * Es lo que muestra el salón mientras la mesa no pagó. Al cobrar se
+     * vuelve a calcular desde el medio con el que de verdad pagaron: la mesa
+     * dice cómo piensa pagar antes de que llegue el mozo, y eso cambia.
      *
      * Un fallo al guardarlo no interrumpe la pantalla: el número que la mesa
-     * ve es correcto igual, y lo peor que pasa es que al cobrar el descuento
-     * quede en cero, que es el lado seguro del error.
+     * ve es correcto igual.
      */
     if ((bill.descuentoMinor ?? 0) !== rebaja.value.amountInMinorUnits) {
       await this.bills.store.save(scope.tenantId, {

@@ -458,13 +458,15 @@ const ROLE_NAMES: Record<string, string> = {
                   aria-label="Bajar"
                   (click)="moveCategory(category.id, 1)"
                 >↓</button>
+                <!-- Siempre habilitada. Estaba apagada mientras la categoría
+                     tuviera platos, y la explicación vivía en un title que
+                     en el celular no existe: se veía un botón roto. Ahora, si
+                     tiene platos, pregunta a dónde pasarlos. -->
                 <button
                   type="button"
                   class="cat-del"
-                  [disabled]="countIn(category.id) > 0"
-                  [attr.title]="countIn(category.id) > 0 ? 'primero movés lo que tiene' : 'eliminar'"
                   aria-label="Eliminar categoría"
-                  (click)="deleteCategory(category.id)"
+                  (click)="pedirBorrarCategoria(category.id, category.name)"
                 >×</button>
               </div>
             }
@@ -966,6 +968,46 @@ const ROLE_NAMES: Record<string, string> = {
          todo sin depender del orden de la página. -->
     @if (modal() !== null) {
       <div class="scrim" (click)="cerrarPorElFondo()" aria-hidden="true"></div>
+    }
+
+    <!-- Borrar una categoría que tiene platos: a dónde van.
+         Un plato siempre tiene categoría, así que borrarla sin moverlos los
+         sacaría de la carta. Se elige el destino y se hace todo junto. -->
+    @if (borrandoCategoria(); as borrando) {
+      <div class="scrim" (click)="borrandoCategoria.set(null)" aria-hidden="true"></div>
+      <div class="modal confirma" role="dialog" aria-modal="true" aria-labelledby="mover-title">
+        <header class="modal-head">
+          <h2 class="modal-title" id="mover-title">Borrar {{ borrando.nombre }}</h2>
+        </header>
+
+        <div class="modal-body">
+          <p class="confirma-detalle">
+            Tiene {{ borrando.platos }} {{ borrando.platos === 1 ? 'plato' : 'platos' }}.
+            ¿A qué categoría {{ borrando.platos === 1 ? 'lo pasamos' : 'los pasamos' }}?
+          </p>
+
+          <label class="field">
+            <span>Pasar a</span>
+            <select
+              [value]="borrando.destino"
+              (change)="elegirDestino($event)"
+            >
+              @for (otra of otrasCategorias(borrando.id); track otra.id) {
+                <option [value]="otra.id">{{ otra.name }}</option>
+              }
+            </select>
+          </label>
+
+          <div class="confirma-acciones">
+            <button type="button" class="ghost" (click)="borrandoCategoria.set(null)">
+              Cancelar
+            </button>
+            <button type="button" class="confirma-ok peligro" (click)="moverYBorrar()">
+              Pasar y borrar
+            </button>
+          </div>
+        </div>
+      </div>
     }
 
     <!-- Lo que preguntaba el confirm del navegador, con la letra y los
@@ -2679,21 +2721,70 @@ export class AdminComponent {
     await this.load();
   }
 
-  protected async deleteCategory(categoryId: string): Promise<void> {
+  /** La categoría que se está por borrar, con a dónde van sus platos. */
+  protected readonly borrandoCategoria = signal<{
+    id: string;
+    nombre: string;
+    platos: number;
+    destino: string;
+  } | null>(null);
+
+  /** Las categorías a las que se pueden pasar los platos de ésta. */
+  protected otrasCategorias(categoryId: string): readonly MenuCategory[] {
+    return this.categories().filter((category) => category.id !== categoryId);
+  }
+
+  /**
+   * Borrar: directo si está vacía, preguntando a dónde si tiene platos.
+   *
+   * Vacía, no hay nada que perder y se borra de un toque. Con platos, antes se
+   * negaba y había que pasarlos de a uno a otra categoría para poder borrarla.
+   */
+  protected pedirBorrarCategoria(categoryId: string, nombre: string): void {
     this.catError.set(null);
 
-    const response = await this.auth.apiFetch(`${API}/menu/categories/${categoryId}`, {
-      method: 'DELETE',
-      headers: this.auth.headers(),
-    });
-    if (!response.ok) {
-      // El motivo habitual es tener productos adentro, pero no es el único:
-      // decirlo sin mirar mandaba a vaciar una categoría ya vacía.
+    const platos = this.countIn(categoryId);
+    if (platos === 0) {
+      void this.deleteCategory(categoryId);
+      return;
+    }
+
+    const destino = this.otrasCategorias(categoryId)[0];
+    if (destino === undefined) {
+      // Es la única: no hay a dónde pasarlos. Se dice qué hacer en vez de
+      // abrir una ventana con un desplegable vacío.
       this.catError.set(
-        this.countIn(categoryId) > 0
-          ? 'esa categoría todavía tiene productos'
-          : 'no pudimos eliminar la categoría',
+        `${nombre} es la única categoría. Creá otra para pasarle los platos antes de borrarla.`,
       );
+      return;
+    }
+
+    this.borrandoCategoria.set({ id: categoryId, nombre, platos, destino: destino.id });
+  }
+
+  protected elegirDestino(event: Event): void {
+    const destino = (event.target as HTMLSelectElement).value;
+    this.borrandoCategoria.update((actual) => (actual === null ? null : { ...actual, destino }));
+  }
+
+  protected async moverYBorrar(): Promise<void> {
+    const borrando = this.borrandoCategoria();
+    if (borrando === null) return;
+
+    this.borrandoCategoria.set(null);
+    await this.deleteCategory(borrando.id, borrando.destino);
+  }
+
+  protected async deleteCategory(categoryId: string, moverA?: string): Promise<void> {
+    this.catError.set(null);
+
+    const consulta = moverA === undefined ? '' : `?moverA=${encodeURIComponent(moverA)}`;
+    const response = await this.auth.apiFetch(
+      `${API}/menu/categories/${categoryId}${consulta}`,
+      { method: 'DELETE', headers: this.auth.headers() },
+    );
+    if (!response.ok) {
+      this.catError.set('No pudimos borrar la categoría. Probá de nuevo.');
       return;
     }
     await this.load();

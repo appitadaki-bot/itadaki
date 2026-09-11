@@ -38,7 +38,9 @@ import { database } from './database';
 import { CatalogService } from './catalog.service';
 import { OrdersService } from './orders.service';
 import { CallsService } from './calls.service';
-import { BillsService } from './bills.service';
+import { descuentoDelLocal } from './descuento-del-local';
+import { TenantsService } from './tenants.service';
+import { montoDelDescuento } from '@itadaki/billing/domain';
 import { RealtimeGateway } from './realtime.gateway';
 import { SessionsService } from './sessions.service';
 import { toMoneyDto, toOrderDto } from './contracts';
@@ -162,7 +164,7 @@ export class SessionsController {
     private readonly orders: OrdersService,
     private readonly realtime: RealtimeGateway,
     private readonly calls: CallsService,
-    private readonly bills: BillsService,
+    private readonly tenants: TenantsService,
   ) {}
 
   /** El código de cada mesa vive acá, no en la sesión. */
@@ -239,32 +241,35 @@ export class SessionsController {
     }
 
     /*
-     * Con el descuento que la mesa ya acordó.
+     * Cuánto baja si pagan en efectivo, para cada mesa.
      *
-     * Lo adeudado se arma de las comandas, que no saben nada de cómo se paga.
-     * Si la mesa abrió la cuenta y eligió efectivo, el descuento quedó
-     * guardado ahí: sin mirarlo, el salón le cobraba el total y el mozo tenía
-     * que acordarse de restar el diez por ciento de memoria — o cobrarlo de
-     * más, que es lo que iba a pasar en la mesa apurada.
+     * Siempre, no sólo si la mesa eligió efectivo al pedir la cuenta: eso
+     * cambia en la mesa. Elige crédito, el mozo le cuenta que en efectivo
+     * tiene un diez por ciento menos, y paga en efectivo. El salón tiene que
+     * poder mostrar ese monto en el botón de efectivo aunque la mesa haya
+     * dicho otra cosa antes — y el cobro guarda el descuento del medio que el
+     * mozo toca, con la misma cuenta.
      */
-    return Promise.all(
-      result.value.map(async (table) => {
-        const cuenta = await this.bills.store.findBySession(tenantId, table.sessionId);
-        const descuento = cuenta.isOk() ? (cuenta.value?.descuentoMinor ?? 0) : 0;
+    const delLocal = await descuentoDelLocal(this.tenants.store, tenantId);
 
-        return {
-          sessionId: table.sessionId,
-          tableId: table.tableId,
-          owed: toMoneyDto(table.owed),
-          // Aparte y no restado del total: el mozo cobra uno y el otro le
-          // dice por qué es menos de lo que suman los platos.
-          descuento: descuento === 0 ? null : { amountInMinorUnits: descuento, currency: table.owed.currency },
-          aCobrar: toMoneyDto(table.owed).amountInMinorUnits - descuento,
-          since: table.since?.toISOString() ?? null,
-          diners: table.diners,
-        };
-      }),
-    );
+    return result.value.map((table) => {
+      const rebaja = montoDelDescuento(delLocal, table.owed);
+      const enEfectivo = rebaja.isOk() ? rebaja.value.amountInMinorUnits : 0;
+
+      return {
+        sessionId: table.sessionId,
+        tableId: table.tableId,
+        owed: toMoneyDto(table.owed),
+        // Lo que se descuenta si pagan en efectivo, o null si el local no
+        // ofrece descuento. Con cualquier otro medio se cobra `owed` entero.
+        descuento:
+          enEfectivo === 0
+            ? null
+            : { amountInMinorUnits: enEfectivo, currency: table.owed.currency },
+        since: table.since?.toISOString() ?? null,
+        diners: table.diners,
+      };
+    });
   }
 
   /**
