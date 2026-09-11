@@ -990,6 +990,53 @@ strong { color: var(--tinta); font-weight: 700; }
   padding: 1.75rem 1.5rem;
 }
 
+/* ── Acompañamiento y trabajo a medida ──
+ *
+ * Mismas piezas que los planes —chapa, lista con tilde— para que se lea como
+ * parte de la misma oferta y no como otra página pegada adentro. La de a
+ * medida lleva el borde terracota: es la que vende algo aparte, y la que
+ * termina en un botón.
+ */
+.servicio {
+  display: flex;
+  flex-direction: column;
+}
+
+.servicio .chapa {
+  align-self: flex-start;
+}
+
+.servicio h3 {
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
+.servicio.destacado {
+  background: var(--carta-alta);
+  border: 1px solid oklch(70% 0.15 45 / 0.35);
+}
+
+.servicio .plan-items {
+  margin-bottom: 1.25rem;
+}
+
+/* Dicho antes del botón y no en letra chica al pie: quien toca "pedir
+   cotización" tiene que saber que eso no está en los $40.000. */
+.servicio-nota {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--r-chip);
+  background: oklch(70% 0.15 45 / 0.08);
+  font-size: 0.85rem;
+  color: var(--tinta-media);
+}
+
+.servicio-btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: auto;
+}
+
 .plan.destacado {
   position: relative;
   background: var(--carta-alta);
