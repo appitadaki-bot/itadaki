@@ -210,6 +210,52 @@
     }, 4000);
   }
 
+  /* ── Volver arriba ── */
+  const alTope = document.getElementById('arriba');
+  if (alTope !== null) {
+    /*
+     * Aparece después de dos pantallas.
+     *
+     * Antes de eso el hero todavía se ve y su propio botón está a mano, así
+     * que el flotante sólo taparía contenido.
+     */
+    const DESDE = () => globalThis.innerHeight * 2;
+
+    /*
+     * El scroll se consulta en el próximo cuadro, no en cada evento.
+     *
+     * `scroll` dispara decenas de veces por segundo y leer `scrollY` fuerza
+     * al navegador a recalcular la página: hacerlo en cada uno traba el
+     * desplazamiento justo en los teléfonos donde más se nota.
+     */
+    let pedido = false;
+    const revisar = () => {
+      pedido = false;
+      alTope.hidden = globalThis.scrollY < DESDE();
+    };
+
+    globalThis.addEventListener(
+      'scroll',
+      () => {
+        if (pedido) return;
+        pedido = true;
+        requestAnimationFrame(revisar);
+      },
+      { passive: true },
+    );
+
+    alTope.addEventListener('click', () => {
+      // `quieto` es quien pidió menos movimiento: para esa persona el salto
+      // es instantáneo, sin el barrido de toda la página.
+      globalThis.scrollTo({ top: 0, behavior: quieto ? 'auto' : 'smooth' });
+      // El foco vuelve al principio, o quien usa teclado seguiría tabulando
+      // desde el pie aunque la vista ya esté arriba.
+      document.querySelector('a, button')?.focus({ preventScroll: true });
+    });
+
+    revisar();
+  }
+
   /* ── Aparecer al scrollear ── */
   if (!quieto && 'IntersectionObserver' in globalThis) {
     const mirador = new IntersectionObserver(

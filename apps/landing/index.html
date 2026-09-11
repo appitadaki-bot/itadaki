@@ -18,6 +18,24 @@
 <meta name="theme-color" content="#211a15" />
 
 <!--
+  El favicon, dibujado acá mismo.
+  Un SVG en la propia etiqueta y no un archivo: son 300 bytes que viajan con
+  el HTML, así que no hay un pedido más ni un 404 esperando a que alguien se
+  olvide de subirlo. La "I" sobre el color de acento es la misma marca que
+  usa la página, para que la pestaña se reconozca entre veinte abiertas.
+
+  El SVG escala solo, así que sirve igual en la pestaña y en el acceso
+  directo del teléfono; el .ico queda para navegadores viejos que ignoran
+  esta etiqueta y buscan /favicon.ico por su cuenta.
+-->
+<link
+  rel="icon"
+  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e8834f'/%3E%3Cpath d='M13 8h6v3h-1.4v10H19v3h-6v-3h1.4V11H13z' fill='%23fff'/%3E%3C/svg%3E"
+/>
+<!-- En iOS el acceso directo usa esta, y no acepta SVG. -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!--
   La dirección del sitio, en un solo lugar.
   El canonical, la tarjeta social y los datos estructurados la necesitan
   igual, y tres copias de una URL son tres lugares donde olvidarse de
@@ -883,6 +901,23 @@
   </span>
   <span class="wa-texto">Escribinos</span>
 </a>
+
+<!--
+  Volver arriba.
+  La página es larga y el único CTA que importa vive en el hero y en el
+  precio; quien llegó al pie leyendo las preguntas tiene que poder volver sin
+  arrastrar el dedo veinte veces.
+
+  Aparece recién después de dos pantallas: antes de eso el usuario todavía ve
+  el hero y el botón sería un estorbo tapando contenido. Arranca oculto con
+  `hidden` para que no parpadee mientras carga el JS, y va a la izquierda
+  porque la derecha ya la ocupa el botón de WhatsApp.
+-->
+<button type="button" class="arriba" id="arriba" hidden aria-label="Volver arriba">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+    <path d="M12 19V5M5 12l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" />
+  </svg>
+</button>
 
 <script src="./landing.js" defer></script>
 </body>
