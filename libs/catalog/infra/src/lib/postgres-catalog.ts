@@ -303,9 +303,40 @@ export class PostgresCategoryStore implements CategoryReader, CategoryWriter {
     }
   }
 
-  async remove(tenantId: string, categoryId: string): Promise<Result<void, RepositoryError>> {
+  async remove(
+    tenantId: string,
+    categoryId: string,
+    moverA?: string,
+  ): Promise<Result<void, RepositoryError>> {
     try {
       return await this.db.withTenant(tenantId, async (client) => {
+        /*
+         * Moverlos antes de borrar, en la misma transacción.
+         *
+         * Pasar los platos de a uno para poder borrar una categoría era justo
+         * el trabajo que nadie quería hacer. Se valida el destino antes de
+         * tocar nada: si no existe —o es de otro restaurante, que con el RLS
+         * es lo mismo—, no se mueve ni se borra nada.
+         */
+        if (moverA !== undefined) {
+          if (moverA === categoryId) {
+            return err({
+              kind: 'CONFLICT',
+              detail: 'no se pueden mover los platos a la misma categoría que se borra',
+            }) as Result<void, RepositoryError>;
+          }
+
+          const destino = await client.query('SELECT 1 FROM categories WHERE id = $1', [moverA]);
+          if (destino.rowCount === 0) {
+            return err({ kind: 'NOT_FOUND', id: moverA }) as Result<void, RepositoryError>;
+          }
+
+          await client.query('UPDATE products SET category_id = $2 WHERE category_id = $1', [
+            categoryId,
+            moverA,
+          ]);
+        }
+
         const inUse = await client.query<{ total: string }>(
           'SELECT count(*)::text AS total FROM products WHERE category_id = $1',
           [categoryId],

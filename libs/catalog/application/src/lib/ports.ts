@@ -29,8 +29,18 @@ export interface CategoryReader {
 export interface CategoryWriter {
   save(category: Category): Promise<Result<Category, RepositoryError>>;
   reorder(tenantId: string, orderedIds: readonly string[]): Promise<Result<void, RepositoryError>>;
-  /** Fails while the category still holds dishes: a delete must not orphan them. */
-  remove(tenantId: string, categoryId: string): Promise<Result<void, RepositoryError>>;
+  /**
+   * Borra una categoría.
+   *
+   * Con `moverA`, primero pasa sus platos a esa otra y después la borra, en la
+   * misma transacción. Sin `moverA` se niega si todavía tiene platos: un plato
+   * siempre tiene categoría, y borrarla sin moverlos lo sacaría de la carta.
+   */
+  remove(
+    tenantId: string,
+    categoryId: string,
+    moverA?: string,
+  ): Promise<Result<void, RepositoryError>>;
 }
 
 /** Every price change is auditable: who, when, and the previous value. */

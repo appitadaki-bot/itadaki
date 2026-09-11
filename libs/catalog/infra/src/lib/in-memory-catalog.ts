@@ -110,7 +110,19 @@ export class InMemoryCategoryStore implements CategoryReader, CategoryWriter {
     return ok(undefined);
   }
 
-  async remove(tenantId: string, categoryId: string): Promise<Result<void, RepositoryError>> {
+  async remove(
+    tenantId: string,
+    categoryId: string,
+    moverA?: string,
+  ): Promise<Result<void, RepositoryError>> {
+    if (moverA !== undefined) {
+      if (moverA === categoryId) return err({ kind: 'CONFLICT', detail: 'misma categoría' });
+      const existe = this.categories.some(
+        (category) => category.tenantId === tenantId && category.id === moverA,
+      );
+      if (!existe) return err({ kind: 'NOT_FOUND', id: moverA });
+    }
+
     const before = this.categories.length;
     this.categories = this.categories.filter(
       (category) => !(category.tenantId === tenantId && category.id === categoryId),

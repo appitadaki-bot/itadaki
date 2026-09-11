@@ -18,6 +18,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { setProductAvailability } from '@itadaki/catalog/application';
 import { uploadImage } from '@itadaki/catalog/application/server';
@@ -224,10 +225,22 @@ export class MenuController {
     return { ok: true };
   }
 
+  /**
+   * Borra una categoría.
+   *
+   * `?moverA=<id>` pasa sus platos a esa otra antes de borrarla. Va en la
+   * consulta y no en el cuerpo porque un DELETE con cuerpo lo descartan
+   * algunos proxies sin avisar.
+   */
   @RequirePermission('menu:write')
   @Delete('categories/:id')
-  async deleteCategory(@Param('id') categoryId: string, @TenantId() tenantId: string) {
-    const result = await this.catalog.categoryWriter.remove(tenantId, categoryId);
+  async deleteCategory(
+    @Param('id') categoryId: string,
+    @TenantId() tenantId: string,
+    @Query('moverA') moverA?: string,
+  ) {
+    const destino = typeof moverA === 'string' && moverA !== '' ? moverA : undefined;
+    const result = await this.catalog.categoryWriter.remove(tenantId, categoryId, destino);
     if (result.isErr()) {
       const status = result.error.kind === 'NOT_FOUND' ? HttpStatus.NOT_FOUND : HttpStatus.CONFLICT;
       throw new HttpException(result.error, status);
