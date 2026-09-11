@@ -840,6 +840,28 @@ button {
     border-color var(--itadaki-quick) var(--itadaki-ease);
 }
 
+/*
+ * El medio arriba y cuánto se cobra con él abajo.
+ *
+ * Tocar el botón cobra en el acto, así que el monto tiene que estar en el
+ * botón mismo y no en una pregunta antes: el de efectivo dice el número con
+ * el descuento, los otros el total, y lo que queda guardado es lo que el mozo
+ * leyó antes de tocar.
+ */
+.cobro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.cobro-monto {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
 /* El efectivo primero y marcado: es el que lleva descuento, así que es el que
    hay que acertar. */
 .cobro.efectivo {

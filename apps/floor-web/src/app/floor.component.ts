@@ -15,7 +15,7 @@ import {
 } from '@itadaki/billing/domain';
 import { type PlatoJunto, juntarIguales } from '@itadaki/ordering/domain';
 import { AuthStore, LoginComponent } from '@itadaki/shared/ui-auth';
-import { FloorStore, type CallDto, type Pickup } from './floor.store';
+import { FloorStore, type CallDto, type Pickup, type UnsettledDto } from './floor.store';
 
 const API_URL = apiUrl();
 
@@ -218,15 +218,16 @@ const CALL_LABELS: Record<string, string> = {
                   <!-- Cobrar es la acción normal y cierra la cuenta; liberar sin
                        cobrar existe para la mesa que pagó por fuera del sistema. -->
                   @if (cobrando() !== mesa.sessionId && confirming() !== mesa.sessionId) {
-                    <!-- Lo que hay que cobrar, no lo que suman los platos: si
-                         la mesa acordó pagar en efectivo con descuento, cobrar
-                         el total es cobrarle de más. -->
+                    <!-- El total, y aparte cuánto sale en efectivo. El monto
+                         exacto se decide al elegir con qué pagaron: la mesa
+                         dice cómo piensa pagar antes de que llegue el mozo, y
+                         eso cambia en la mesa. -->
                     <button type="button" class="action" (click)="cobrando.set(mesa.sessionId)">
-                      Cobré {{ money({ amountInMinorUnits: mesa.aCobrar, currency: mesa.owed.currency }) }}
+                      Cobré {{ money(mesa.owed) }}
                     </button>
                     @if (mesa.descuento !== null) {
                       <span class="con-descuento">
-                        {{ money(mesa.owed) }} menos {{ money(mesa.descuento) }} en efectivo
+                        En efectivo, {{ money(montoPara(mesa, 'CASH')) }}
                       </span>
                     }
                     <button
@@ -253,7 +254,10 @@ const CALL_LABELS: Record<string, string> = {
               -->
               @if (cobrando() === mesa.sessionId) {
                 <div class="cobro-zona">
-                  <p class="cobro-ask">¿Con qué pagaron los {{ money(mesa.owed) }}?</p>
+                  <!-- Sin el monto en la pregunta: depende de lo que toquen.
+                       Cada botón dice el suyo, así lo que se guarda es lo que
+                       el mozo vio antes de tocarlo. -->
+                  <p class="cobro-ask">¿Con qué pagaron?</p>
                   <!-- Recorridos y no escritos a mano: agregar un medio en un
                        solo lugar tiene que alcanzar. Crédito y débito van
                        separados porque al dueño le cuestan distinto, y eso
@@ -266,7 +270,8 @@ const CALL_LABELS: Record<string, string> = {
                         [class.efectivo]="medio === 'CASH'"
                         (click)="charge(mesa.sessionId, medio)"
                       >
-                        {{ nombreDelMedio(medio) }}
+                        <span class="cobro-medio">{{ nombreDelMedio(medio) }}</span>
+                        <span class="cobro-monto">{{ money(montoPara(mesa, medio)) }}</span>
                       </button>
                     }
                   </div>
@@ -522,6 +527,24 @@ export class FloorComponent implements OnDestroy {
 
   /** Un solo toque: cobrar es lo que pasa en casi todas las mesas. */
   /** Qué mesa está eligiendo con qué se cobró. */
+  /**
+   * Cuánto se cobra con este medio.
+   *
+   * En efectivo, con el descuento del local; con cualquier otro, el total. Es
+   * la misma cuenta que hace el servidor al cobrar, así que el número del
+   * botón es el que queda en las métricas.
+   */
+  protected montoPara(
+    mesa: UnsettledDto,
+    medio: MedioDeCobro,
+  ): { amountInMinorUnits: number; currency: string } {
+    const descuento = medio === 'CASH' && mesa.descuento !== null ? mesa.descuento : null;
+    return {
+      amountInMinorUnits: mesa.owed.amountInMinorUnits - (descuento?.amountInMinorUnits ?? 0),
+      currency: mesa.owed.currency,
+    };
+  }
+
   /** Si alguna de mis mesas pidió la cuenta, para que el bloque avise. */
   protected readonly algunaPideLaCuenta = computed(() =>
     this.store.misImpagas().some((mesa) => this.store.pidieronLaCuenta().has(mesa.sessionId)),
