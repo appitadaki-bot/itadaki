@@ -1165,3 +1165,17 @@ strong { color: var(--tinta); font-weight: 700; }
 @media (max-width: 600px) {
   .marca-logo { height: 22px; }
 }
+
+/*
+ * La campana del pie.
+ *
+ * Chica y al lado del texto: acá no es la marca presentándose —eso ya pasó
+ * arriba— sino el cierre de la página. `vertical-align` la alinea con la
+ * línea de base del texto en vez de colgarla del borde superior.
+ */
+.pie-iso {
+  width: 20px;
+  height: 20px;
+  vertical-align: -4px;
+  margin-right: 0.4rem;
+}

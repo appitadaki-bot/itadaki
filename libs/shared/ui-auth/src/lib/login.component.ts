@@ -185,6 +185,13 @@ import { AuthStore } from './auth.store';
       } @else {
       <form class="card" (submit)="submit($event)">
         <header class="head">
+          <!--
+            La campana, no el logo entero: acá abajo ya dice ITADAKI en el
+            título, y repetir la palabra dos veces seguidas se lee como un
+            error. Decorativa, por lo mismo — el lector de pantalla anuncia
+            el <h1> que sigue.
+          -->
+          <img class="marca-iso" src="itadaki-isotipo.png" alt="" width="48" height="48" />
           <p class="eyebrow">{{ context() }}</p>
           <h1 class="title">ITADAKI</h1>
           <p class="lede">

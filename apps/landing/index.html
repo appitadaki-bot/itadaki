@@ -873,7 +873,24 @@
 
 <footer class="pie">
   <div class="ancho">
-    <p class="pie-nota">Itadaki — pedidos por QR para restaurantes en Argentina.</p>
+    <!--
+      La campana cierra la página donde la barra la abrió.
+      Va el isotipo y no el logo entero: el nombre ya está en la misma
+      frase, y repetirlo al lado en imagen se lee como un error. Decorativa,
+      por eso el alt vacío.
+    -->
+    <p class="pie-nota">
+      <img
+        class="pie-iso"
+        src="./itadaki-isotipo.png"
+        alt=""
+        width="512"
+        height="512"
+        loading="lazy"
+        decoding="async"
+      />
+      Itadaki — pedidos por QR para restaurantes en Argentina.
+    </p>
     <nav class="pie-links">
       <a href="/legal/terminos.html" target="_blank" rel="noopener">Términos y condiciones</a>
       <a href="/legal/privacidad.html" target="_blank" rel="noopener">Privacidad</a>

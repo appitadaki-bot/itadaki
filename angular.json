@@ -121,6 +121,11 @@
                 "glob": "robots.txt",
                 "input": "apps/kds-web/src",
                 "output": "/"
+              },
+              {
+                "glob": "itadaki-isotipo.png",
+                "input": "apps/kds-web/src",
+                "output": "/"
               }
             ],
             "optimization": {
@@ -187,6 +192,11 @@
                 "glob": "robots.txt",
                 "input": "apps/admin-web/src",
                 "output": "/"
+              },
+              {
+                "glob": "itadaki-isotipo.png",
+                "input": "apps/admin-web/src",
+                "output": "/"
               }
             ],
             "optimization": {
@@ -251,6 +261,11 @@
               },
               {
                 "glob": "robots.txt",
+                "input": "apps/floor-web/src",
+                "output": "/"
+              },
+              {
+                "glob": "itadaki-isotipo.png",
                 "input": "apps/floor-web/src",
                 "output": "/"
               }
