@@ -54,3 +54,32 @@ dot verde pulsante.
   las anula bajo `prefers-reduced-motion`.
 - **Contraste**: `ink-disabled` (`65% 0.02 40`) sobre crema queda por debajo de
   WCAG AA para texto chico. Revisar antes de usarlo en labels de pasos inactivos.
+
+## El logo
+
+`itadaki-logo-original.jpeg` es lo que nos pasaron: 1600×338, sin
+transparencia, fondo `#f7f7f7` plano. Todo lo demás sale de ahí.
+
+| archivo | para qué |
+|---|---|
+| `itadaki-logo.png` | logo completo, fondo transparente, tinta original |
+| `itadaki-logo-oscuro.png` | igual pero con la palabra en crema |
+| `itadaki-logo@2x.png` · `-oscuro@2x.png` | los dos anteriores a 440px, para web |
+| `itadaki-isotipo.png` | sólo la campana, cuadrado, 485×485 |
+| `itadaki-isotipo-180.png` | ícono de iOS |
+| `itadaki-isotipo-512.png` | favicon |
+
+**Cuál usar.** La palabra es casi negra, así que sobre un fondo oscuro
+desaparece: ahí va la versión `-oscuro`, que repinta la tinta a crema y deja
+la campana roja. Sobre fondo claro va la normal. Elegir mal no rompe nada,
+sólo deja la mitad del logo invisible — que es peor, porque no se nota hasta
+que alguien lo mira.
+
+**A 16 píxeles** el logo entero es una mancha. Por eso el favicon es el
+isotipo solo.
+
+**Falta el vector.** El original es un JPEG, así que estas versiones se
+recortaron por color: el fondo era perfectamente uniforme y salió limpio,
+pero ampliado mucho se ve el ruido del JPEG alrededor de las letras. Para
+imprimir —carteles, los QR de las mesas— conviene conseguir el SVG y
+regenerar todo desde ahí.

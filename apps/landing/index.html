@@ -18,21 +18,14 @@
 <meta name="theme-color" content="#211a15" />
 
 <!--
-  El favicon, dibujado acá mismo.
-  Un SVG en la propia etiqueta y no un archivo: son 300 bytes que viajan con
-  el HTML, así que no hay un pedido más ni un 404 esperando a que alguien se
-  olvide de subirlo. La "I" sobre el color de acento es la misma marca que
-  usa la página, para que la pestaña se reconozca entre veinte abiertas.
-
-  El SVG escala solo, así que sirve igual en la pestaña y en el acceso
-  directo del teléfono; el .ico queda para navegadores viejos que ignoran
-  esta etiqueta y buscan /favicon.ico por su cuenta.
+  El favicon: la campana del logo, sin la palabra.
+  A 16 píxeles el logo entero sería una mancha ilegible, así que va sólo el
+  isotipo — que es lo que hace reconocible la pestaña entre veinte abiertas.
+  Un PNG y no un SVG porque el logo llegó como mapa de bits; el día que
+  aparezca el vector, este es el único lugar que hay que cambiar.
 -->
-<link
-  rel="icon"
-  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e8834f'/%3E%3Cpath d='M13 8h6v3h-1.4v10H19v3h-6v-3h1.4V11H13z' fill='%23fff'/%3E%3C/svg%3E"
-/>
-<!-- En iOS el acceso directo usa esta, y no acepta SVG. -->
+<link rel="icon" type="image/png" href="/itadaki-isotipo.png" />
+<!-- En iOS el acceso directo usa ésta, ya recortada a 180. -->
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
 <!--
@@ -209,7 +202,21 @@
 
 
 <header class="barra">
-  <span class="marca chica" aria-hidden="true">Itadaki</span>
+  <!--
+    El logo, no la palabra suelta.
+    Sigue siendo decorativo: el nombre ya está en el <h1> y en el <title>, así
+    que un alt con "Itadaki" se lo haría leer dos veces a quien usa lector de
+    pantalla. Las medidas van en el atributo para que la barra no salte cuando
+    la imagen termina de cargar.
+  -->
+  <img
+    class="marca-logo"
+    src="./itadaki-logo.png"
+    alt=""
+    width="440"
+    height="93"
+    decoding="async"
+  />
   <a
     class="btn btn-acento chico"
     href="https://wa.me/5492645135540"

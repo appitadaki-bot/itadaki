@@ -1146,3 +1146,22 @@ strong { color: var(--tinta); font-weight: 700; }
   outline-offset: 3px;
   border-radius: 3px;
 }
+
+/* ── El logo de la barra ── */
+/*
+ * Alto fijo y ancho automático: el logo es muy apaisado, así que atarlo al
+ * ancho lo desbordaría en un teléfono angosto. Con el alto mandando, la barra
+ * mide siempre lo mismo y el logo se acomoda solo.
+ *
+ * `display: block` saca el espacio que el navegador reserva debajo de una
+ * imagen en línea, que es lo que descentraba la barra por dos píxeles.
+ */
+.marca-logo {
+  display: block;
+  height: 26px;
+  width: auto;
+}
+
+@media (max-width: 600px) {
+  .marca-logo { height: 22px; }
+}
