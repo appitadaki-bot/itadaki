@@ -215,3 +215,17 @@
     background: var(--itadaki-accent-tint);
   }
 }
+
+/*
+ * La campana arriba del título.
+ *
+ * `display: block` con margen automático la centra sin tocar el
+ * `text-align` del bloque, y saca el espacio que el navegador reserva
+ * debajo de una imagen en línea.
+ */
+.marca-iso {
+  display: block;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 0.5rem;
+}

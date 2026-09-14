@@ -210,6 +210,88 @@
     }, 4000);
   }
 
+  /* ── La marca del hero, en tres tiempos ── */
+  const marca = document.querySelector('.marca-armado');
+  const heroMarca = marca?.closest('.marca-hero') ?? null;
+
+  if (marca !== null && heroMarca !== null) {
+    const piezas = [...marca.querySelectorAll('img')];
+
+    /*
+     * Recién se cambia el texto por las imágenes cuando las tres cargaron.
+     *
+     * Si una falla —o si la conexión se corta a mitad— la palabra escrita se
+     * queda, que es lo que hace que el hero nunca aparezca vacío. `complete`
+     * cubre las que ya estaban en caché cuando corre esto.
+     */
+    const cargada = (img) =>
+      img.complete
+        ? Promise.resolve(img.naturalWidth > 0)
+        : new Promise((listo) => {
+            img.addEventListener('load', () => listo(true), { once: true });
+            img.addEventListener('error', () => listo(false), { once: true });
+          });
+
+    void Promise.all(piezas.map(cargada)).then((estados) => {
+      if (!estados.every(Boolean)) return;
+
+      heroMarca.classList.add('marca-lista');
+      if (quieto) return;
+
+      // `anima-marca` esconde las piezas; `corre` las trae. En dos cuadros
+      // distintos porque aplicar el estado inicial y el final en el mismo
+      // hace que el navegador no vea el cambio y aparezca todo de golpe.
+      marca.classList.add('anima-marca');
+      requestAnimationFrame(() => marca.classList.add('corre'));
+    });
+  }
+
+  /* ── Volver arriba ── */
+  const alTope = document.getElementById('arriba');
+  if (alTope !== null) {
+    /*
+     * Aparece después de dos pantallas.
+     *
+     * Antes de eso el hero todavía se ve y su propio botón está a mano, así
+     * que el flotante sólo taparía contenido.
+     */
+    const DESDE = () => globalThis.innerHeight * 2;
+
+    /*
+     * El scroll se consulta en el próximo cuadro, no en cada evento.
+     *
+     * `scroll` dispara decenas de veces por segundo y leer `scrollY` fuerza
+     * al navegador a recalcular la página: hacerlo en cada uno traba el
+     * desplazamiento justo en los teléfonos donde más se nota.
+     */
+    let pedido = false;
+    const revisar = () => {
+      pedido = false;
+      alTope.hidden = globalThis.scrollY < DESDE();
+    };
+
+    globalThis.addEventListener(
+      'scroll',
+      () => {
+        if (pedido) return;
+        pedido = true;
+        requestAnimationFrame(revisar);
+      },
+      { passive: true },
+    );
+
+    alTope.addEventListener('click', () => {
+      // `quieto` es quien pidió menos movimiento: para esa persona el salto
+      // es instantáneo, sin el barrido de toda la página.
+      globalThis.scrollTo({ top: 0, behavior: quieto ? 'auto' : 'smooth' });
+      // El foco vuelve al principio, o quien usa teclado seguiría tabulando
+      // desde el pie aunque la vista ya esté arriba.
+      document.querySelector('a, button')?.focus({ preventScroll: true });
+    });
+
+    revisar();
+  }
+
   /* ── Aparecer al scrollear ── */
   if (!quieto && 'IntersectionObserver' in globalThis) {
     const mirador = new IntersectionObserver(

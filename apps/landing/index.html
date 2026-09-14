@@ -18,6 +18,17 @@
 <meta name="theme-color" content="#211a15" />
 
 <!--
+  El favicon: la campana del logo, sin la palabra.
+  A 16 píxeles el logo entero sería una mancha ilegible, así que va sólo el
+  isotipo — que es lo que hace reconocible la pestaña entre veinte abiertas.
+  Un PNG y no un SVG porque el logo llegó como mapa de bits; el día que
+  aparezca el vector, este es el único lugar que hay que cambiar.
+-->
+<link rel="icon" type="image/png" href="/itadaki-isotipo.png" />
+<!-- En iOS el acceso directo usa ésta, ya recortada a 180. -->
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+<!--
   La dirección del sitio, en un solo lugar.
   El canonical, la tarjeta social y los datos estructurados la necesitan
   igual, y tres copias de una URL son tres lugares donde olvidarse de
@@ -191,7 +202,21 @@
 
 
 <header class="barra">
-  <span class="marca chica" aria-hidden="true">Itadaki</span>
+  <!--
+    El logo, no la palabra suelta.
+    Sigue siendo decorativo: el nombre ya está en el <h1> y en el <title>, así
+    que un alt con "Itadaki" se lo haría leer dos veces a quien usa lector de
+    pantalla. Las medidas van en el atributo para que la barra no salte cuando
+    la imagen termina de cargar.
+  -->
+  <img
+    class="marca-logo"
+    src="./itadaki-logo.png"
+    alt=""
+    width="440"
+    height="93"
+    decoding="async"
+  />
   <a
     class="btn btn-acento chico"
     href="https://wa.me/5492645135540"
@@ -213,7 +238,28 @@
          no nos conoce, y el `h1` es lo que un buscador lee como "de qué trata
          esta página". Visualmente no cambia nada: sigue arriba y del mismo
          tamaño. -->
-    <p class="marca-hero">Itadaki</p>
+    <!--
+      La marca se arma en tres tiempos: la campana, la palabra, y la
+      campanita que cae sobre la "a".
+
+      El texto sigue estando: es lo que lee un buscador y un lector de
+      pantalla, y lo que se ve si las imágenes no cargan. Las tres piezas van
+      encima, con aria-hidden, así nadie lo escucha cuatro veces.
+
+      La "a" de la palabra está incompleta a propósito —le falta la tapa que
+      cubre la campanita— así que la última pieza no es un adorno: es la que
+      termina de escribir el nombre.
+    -->
+    <p class="marca-hero">
+      <span class="marca-armado" aria-hidden="true">
+        <img class="marca-iso" src="./itadaki-isotipo.png" alt="" width="512" height="512" />
+        <span class="marca-palabra">
+          <img src="./hero-palabra.png" alt="" width="1089" height="338" />
+          <img class="marca-campanita" src="./hero-campanita.png" alt="" width="167" height="130" />
+        </span>
+      </span>
+      <span class="marca-texto">Itadaki</span>
+    </p>
 
     <!-- El `h1` es la promesa, que es lo que la persona vino a entender.
          Las letras entran de a una: el texto vive completo en el HTML —el
@@ -848,7 +894,24 @@
 
 <footer class="pie">
   <div class="ancho">
-    <p class="pie-nota">Itadaki — pedidos por QR para restaurantes en Argentina.</p>
+    <!--
+      La campana cierra la página donde la barra la abrió.
+      Va el isotipo y no el logo entero: el nombre ya está en la misma
+      frase, y repetirlo al lado en imagen se lee como un error. Decorativa,
+      por eso el alt vacío.
+    -->
+    <p class="pie-nota">
+      <img
+        class="pie-iso"
+        src="./itadaki-isotipo.png"
+        alt=""
+        width="512"
+        height="512"
+        loading="lazy"
+        decoding="async"
+      />
+      Itadaki — pedidos por QR para restaurantes en Argentina.
+    </p>
     <nav class="pie-links">
       <a href="/legal/terminos.html" target="_blank" rel="noopener">Términos y condiciones</a>
       <a href="/legal/privacidad.html" target="_blank" rel="noopener">Privacidad</a>
@@ -883,6 +946,23 @@
   </span>
   <span class="wa-texto">Escribinos</span>
 </a>
+
+<!--
+  Volver arriba.
+  La página es larga y el único CTA que importa vive en el hero y en el
+  precio; quien llegó al pie leyendo las preguntas tiene que poder volver sin
+  arrastrar el dedo veinte veces.
+
+  Aparece recién después de dos pantallas: antes de eso el usuario todavía ve
+  el hero y el botón sería un estorbo tapando contenido. Arranca oculto con
+  `hidden` para que no parpadee mientras carga el JS, y va a la izquierda
+  porque la derecha ya la ocupa el botón de WhatsApp.
+-->
+<button type="button" class="arriba" id="arriba" hidden aria-label="Volver arriba">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+    <path d="M12 19V5M5 12l7-7 7 7" stroke-linecap="round" stroke-linejoin="round" />
+  </svg>
+</button>
 
 <script src="./landing.js" defer></script>
 </body>

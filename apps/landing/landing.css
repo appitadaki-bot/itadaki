@@ -1087,3 +1087,183 @@ strong { color: var(--tinta); font-weight: 700; }
   text-decoration: none;
   cursor: default;
 }
+
+/* ── Volver arriba ── */
+/*
+ * A la izquierda: la derecha ya la ocupa el botón de WhatsApp, y dos círculos
+ * flotantes en la misma esquina se tapan entre sí en un teléfono angosto.
+ */
+.arriba {
+  position: fixed;
+  left: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: 50%;
+  background: var(--fondo-alt);
+  color: var(--tinta);
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgb(0 0 0 / 0.35);
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), background 200ms ease;
+}
+
+.arriba:hover {
+  transform: translateY(-2px);
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #fff;
+}
+
+/*
+ * Aparece deslizándose, no de golpe.
+ * `[hidden]` lo saca del flujo mientras no corresponde, así que la animación
+ * sólo corre la primera vez que entra.
+ */
+.arriba:not([hidden]) {
+  animation: arriba-entra 240ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes arriba-entra {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── El foco del teclado ── */
+/*
+ * Quien navega con Tab tiene que ver dónde está parado.
+ * El anillo del navegador se pierde sobre los fondos oscuros de la página, y
+ * sin esto la única forma de saber qué está enfocado es apretar y ver qué
+ * pasa. `:focus-visible` y no `:focus` para que no aparezca al hacer clic con
+ * el mouse, que es lo que hacía que muchos lo desactivaran por feo.
+ */
+:focus-visible {
+  outline: 3px solid var(--acento);
+  outline-offset: 3px;
+  border-radius: 3px;
+}
+
+/* ── El logo de la barra ── */
+/*
+ * Alto fijo y ancho automático: el logo es muy apaisado, así que atarlo al
+ * ancho lo desbordaría en un teléfono angosto. Con el alto mandando, la barra
+ * mide siempre lo mismo y el logo se acomoda solo.
+ *
+ * `display: block` saca el espacio que el navegador reserva debajo de una
+ * imagen en línea, que es lo que descentraba la barra por dos píxeles.
+ */
+.marca-logo {
+  display: block;
+  height: 26px;
+  width: auto;
+}
+
+@media (max-width: 600px) {
+  .marca-logo { height: 22px; }
+}
+
+/*
+ * La campana del pie.
+ *
+ * Chica y al lado del texto: acá no es la marca presentándose —eso ya pasó
+ * arriba— sino el cierre de la página. `vertical-align` la alinea con la
+ * línea de base del texto en vez de colgarla del borde superior.
+ */
+.pie-iso {
+  width: 20px;
+  height: 20px;
+  vertical-align: -4px;
+  margin-right: 0.4rem;
+}
+
+/* ── La marca del hero, en tres tiempos ── */
+/*
+ * El texto manda hasta que las imágenes estén cargadas de verdad.
+ *
+ * Antes esto se decidía con `@supports (display: flex)`, que es siempre
+ * cierto: el texto quedaba oculto aunque las imágenes fallaran, y el hero se
+ * veía vacío con dos cuadros rotos. Ahora lo decide `marca-lista`, que el
+ * script pone recién cuando las tres piezas terminaron de cargar — si una
+ * falla, o si el script no corre, queda la palabra escrita y la página se
+ * entiende igual.
+ */
+.marca-armado {
+  display: none;
+  align-items: center;
+  gap: clamp(0.5rem, 1.6vw, 1.1rem);
+}
+
+.marca-hero.marca-lista .marca-armado { display: inline-flex; }
+
+.marca-hero.marca-lista .marca-texto {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.marca-armado .marca-iso {
+  height: clamp(2.6rem, 9.5vw, 5.8rem);
+  width: auto;
+}
+
+/* La palabra ancla a la campanita: posición relativa y medidas en porcentaje
+   para que las dos escalen juntas en cualquier ancho. */
+.marca-palabra {
+  position: relative;
+  display: block;
+  height: clamp(2.1rem, 7.6vw, 4.7rem);
+}
+
+.marca-palabra > img:first-child {
+  display: block;
+  height: 100%;
+  width: auto;
+}
+
+.marca-campanita {
+  position: absolute;
+  left: 58.77%;
+  top: 0.89%;
+  width: 15.335%;
+  height: auto;
+}
+
+/*
+ * Los tres tiempos.
+ *
+ * Sin la clase `anima` todo está visible: si el script no corre, la marca se
+ * ve entera y quieta, que es lo correcto.
+ */
+.anima-marca .marca-iso,
+.anima-marca .marca-palabra > img:first-child,
+.anima-marca .marca-campanita {
+  opacity: 0;
+}
+
+.anima-marca.corre .marca-iso {
+  animation: marca-entra 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anima-marca.corre .marca-palabra > img:first-child {
+  animation: marca-entra 520ms cubic-bezier(0.16, 1, 0.3, 1) 260ms forwards;
+}
+
+/* La campanita cae y se asienta: es el golpe final, por eso el rebote. */
+.anima-marca.corre .marca-campanita {
+  animation: campanita-cae 460ms cubic-bezier(0.34, 1.56, 0.64, 1) 620ms forwards;
+}
+
+@keyframes marca-entra {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes campanita-cae {
+  from { opacity: 0; transform: translateY(-42%) scale(0.86); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
