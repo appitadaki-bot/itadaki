@@ -1179,3 +1179,91 @@ strong { color: var(--tinta); font-weight: 700; }
   vertical-align: -4px;
   margin-right: 0.4rem;
 }
+
+/* ── La marca del hero, en tres tiempos ── */
+/*
+ * El texto manda hasta que las imágenes estén cargadas de verdad.
+ *
+ * Antes esto se decidía con `@supports (display: flex)`, que es siempre
+ * cierto: el texto quedaba oculto aunque las imágenes fallaran, y el hero se
+ * veía vacío con dos cuadros rotos. Ahora lo decide `marca-lista`, que el
+ * script pone recién cuando las tres piezas terminaron de cargar — si una
+ * falla, o si el script no corre, queda la palabra escrita y la página se
+ * entiende igual.
+ */
+.marca-armado {
+  display: none;
+  align-items: center;
+  gap: clamp(0.5rem, 1.6vw, 1.1rem);
+}
+
+.marca-hero.marca-lista .marca-armado { display: inline-flex; }
+
+.marca-hero.marca-lista .marca-texto {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.marca-armado .marca-iso {
+  height: clamp(2.6rem, 9.5vw, 5.8rem);
+  width: auto;
+}
+
+/* La palabra ancla a la campanita: posición relativa y medidas en porcentaje
+   para que las dos escalen juntas en cualquier ancho. */
+.marca-palabra {
+  position: relative;
+  display: block;
+  height: clamp(2.1rem, 7.6vw, 4.7rem);
+}
+
+.marca-palabra > img:first-child {
+  display: block;
+  height: 100%;
+  width: auto;
+}
+
+.marca-campanita {
+  position: absolute;
+  left: 58.77%;
+  top: 0.89%;
+  width: 15.335%;
+  height: auto;
+}
+
+/*
+ * Los tres tiempos.
+ *
+ * Sin la clase `anima` todo está visible: si el script no corre, la marca se
+ * ve entera y quieta, que es lo correcto.
+ */
+.anima-marca .marca-iso,
+.anima-marca .marca-palabra > img:first-child,
+.anima-marca .marca-campanita {
+  opacity: 0;
+}
+
+.anima-marca.corre .marca-iso {
+  animation: marca-entra 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.anima-marca.corre .marca-palabra > img:first-child {
+  animation: marca-entra 520ms cubic-bezier(0.16, 1, 0.3, 1) 260ms forwards;
+}
+
+/* La campanita cae y se asienta: es el golpe final, por eso el rebote. */
+.anima-marca.corre .marca-campanita {
+  animation: campanita-cae 460ms cubic-bezier(0.34, 1.56, 0.64, 1) 620ms forwards;
+}
+
+@keyframes marca-entra {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes campanita-cae {
+  from { opacity: 0; transform: translateY(-42%) scale(0.86); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}

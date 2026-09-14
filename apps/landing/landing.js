@@ -210,6 +210,42 @@
     }, 4000);
   }
 
+  /* ── La marca del hero, en tres tiempos ── */
+  const marca = document.querySelector('.marca-armado');
+  const heroMarca = marca?.closest('.marca-hero') ?? null;
+
+  if (marca !== null && heroMarca !== null) {
+    const piezas = [...marca.querySelectorAll('img')];
+
+    /*
+     * Recién se cambia el texto por las imágenes cuando las tres cargaron.
+     *
+     * Si una falla —o si la conexión se corta a mitad— la palabra escrita se
+     * queda, que es lo que hace que el hero nunca aparezca vacío. `complete`
+     * cubre las que ya estaban en caché cuando corre esto.
+     */
+    const cargada = (img) =>
+      img.complete
+        ? Promise.resolve(img.naturalWidth > 0)
+        : new Promise((listo) => {
+            img.addEventListener('load', () => listo(true), { once: true });
+            img.addEventListener('error', () => listo(false), { once: true });
+          });
+
+    void Promise.all(piezas.map(cargada)).then((estados) => {
+      if (!estados.every(Boolean)) return;
+
+      heroMarca.classList.add('marca-lista');
+      if (quieto) return;
+
+      // `anima-marca` esconde las piezas; `corre` las trae. En dos cuadros
+      // distintos porque aplicar el estado inicial y el final en el mismo
+      // hace que el navegador no vea el cambio y aparezca todo de golpe.
+      marca.classList.add('anima-marca');
+      requestAnimationFrame(() => marca.classList.add('corre'));
+    });
+  }
+
   /* ── Volver arriba ── */
   const alTope = document.getElementById('arriba');
   if (alTope !== null) {

@@ -238,7 +238,28 @@
          no nos conoce, y el `h1` es lo que un buscador lee como "de qué trata
          esta página". Visualmente no cambia nada: sigue arriba y del mismo
          tamaño. -->
-    <p class="marca-hero">Itadaki</p>
+    <!--
+      La marca se arma en tres tiempos: la campana, la palabra, y la
+      campanita que cae sobre la "a".
+
+      El texto sigue estando: es lo que lee un buscador y un lector de
+      pantalla, y lo que se ve si las imágenes no cargan. Las tres piezas van
+      encima, con aria-hidden, así nadie lo escucha cuatro veces.
+
+      La "a" de la palabra está incompleta a propósito —le falta la tapa que
+      cubre la campanita— así que la última pieza no es un adorno: es la que
+      termina de escribir el nombre.
+    -->
+    <p class="marca-hero">
+      <span class="marca-armado" aria-hidden="true">
+        <img class="marca-iso" src="./itadaki-isotipo.png" alt="" width="512" height="512" />
+        <span class="marca-palabra">
+          <img src="./hero-palabra.png" alt="" width="1089" height="338" />
+          <img class="marca-campanita" src="./hero-campanita.png" alt="" width="167" height="130" />
+        </span>
+      </span>
+      <span class="marca-texto">Itadaki</span>
+    </p>
 
     <!-- El `h1` es la promesa, que es lo que la persona vino a entender.
          Las letras entran de a una: el texto vive completo en el HTML —el
