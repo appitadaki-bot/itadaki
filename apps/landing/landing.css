@@ -1246,21 +1246,39 @@ strong { color: var(--tinta); font-weight: 700; }
 /* La "a" de la campanita: su tapa va anclada acá, no a la palabra entera. */
 .letra-a { position: relative; }
 
-.marca-campanita {
+/*
+ * La "a" servida: plato abajo, letra en el medio, campanita arriba.
+ *
+ * Las tres medidas salen de la letra —por eso van en porcentaje— así que el
+ * conjunto escala solo en cualquier pantalla. Las dos imágenes se sacan del
+ * flujo con `position: absolute` para que no muevan la línea de base: si
+ * empujaran, la "a" quedaría más alta que el resto de la palabra.
+ */
+.marca-campanita,
+.marca-plato {
   position: absolute;
-  /*
-   * Apoyada sobre la letra, no flotando encima.
-   *
-   * En el logo la cúpula apoya sobre el borde de arriba de la "a" y la
-   * letra se sigue leyendo entera debajo. Bajarla más la tapaba: se leía
-   * "itad⌒ki". El ancho sale de la letra, que es lo que la hace escalar
-   * junto con el texto en cualquier pantalla.
-   */
   left: 50%;
-  bottom: 62%;
-  width: 116%;
   height: auto;
   transform: translateX(-50%);
+}
+
+/* Arriba, apoyada sobre el borde de la letra sin taparla. */
+.marca-campanita {
+  bottom: 74%;
+  width: 84%;
+}
+
+/*
+ * Abajo, como la bandeja donde está servida.
+ *
+ * Detrás de la letra: la "a" tiene que leerse entera y el plato asomar por
+ * los costados, que es más ancho. Sin el `z-index` el plato se dibuja encima
+ * y le come el pie a la letra.
+ */
+.marca-plato {
+  top: 97%;
+  width: 118%;
+  z-index: -1;
 }
 
 /*
@@ -1271,6 +1289,7 @@ strong { color: var(--tinta); font-weight: 700; }
  */
 .anima-marca .marca-iso,
 .anima-marca .letra,
+.anima-marca .marca-plato,
 .anima-marca .marca-campanita {
   opacity: 0;
 }
@@ -1289,6 +1308,11 @@ strong { color: var(--tinta); font-weight: 700; }
   animation: letra-cae 480ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* El plato se apoya primero: es la base sobre la que cae la letra. */
+.anima-marca.corre .marca-plato {
+  animation: plato-apoya 420ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
 /* La campanita es el golpe final: cae después de su letra. */
 .anima-marca.corre .marca-campanita {
   animation: campanita-cae 440ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -1304,6 +1328,11 @@ strong { color: var(--tinta); font-weight: 700; }
   from { opacity: 0; transform: translateY(-85%) scale(0.88); }
   60%  { opacity: 1; }
   to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes plato-apoya {
+  from { opacity: 0; transform: translateX(-50%) translateY(60%) scale(0.9); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 
 @keyframes campanita-cae {

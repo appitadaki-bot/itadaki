@@ -255,11 +255,21 @@
         letra.style.animationDelay = `${PLATO + i * ENTRE}ms`;
       }
 
+      /*
+       * La "a" se sirve en orden: primero el plato, después cae la letra y
+       * al final la campanita la tapa.
+       *
+       * El plato se adelanta a su letra —tiene que estar puesto antes de que
+       * caiga— y la campanita llega cuando la letra ya se asentó.
+       */
+      const suLetra = letras.findIndex((l) => l.classList.contains('letra-a'));
+      const cuando = PLATO + Math.max(0, suLetra) * ENTRE;
+
+      const plato = marca.querySelector('.marca-plato');
+      if (plato !== null) plato.style.animationDelay = `${Math.max(0, cuando - 160)}ms`;
+
       const campanita = marca.querySelector('.marca-campanita');
-      const suLetra = letras.indexOf(campanita?.closest('.letra'));
-      if (campanita !== null && suLetra >= 0) {
-        campanita.style.animationDelay = `${PLATO + suLetra * ENTRE + 300}ms`;
-      }
+      if (campanita !== null) campanita.style.animationDelay = `${cuando + 300}ms`;
 
       marca.classList.add('anima-marca');
       requestAnimationFrame(() => marca.classList.add('corre'));
