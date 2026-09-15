@@ -1277,7 +1277,12 @@ strong { color: var(--tinta); font-weight: 700; }
  */
 .marca-plato {
   top: 97%;
-  width: 118%;
+  /*
+   * El ancho sale del logo y no a ojo: ahí el plato mide 1.24 veces la
+   * cúpula, y la campanita del hero está al 84% de la letra. Dibujarlo por mi
+   * cuenta fue el error anterior — quedaba enorme y no era el del logo.
+   */
+  width: 104%;
   z-index: -1;
 }
 
