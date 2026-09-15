@@ -1207,63 +1207,106 @@ strong { color: var(--tinta); font-weight: 700; }
 }
 
 .marca-armado .marca-iso {
-  height: clamp(2.6rem, 9.5vw, 5.8rem);
+  /*
+   * Más alto que el `font-size` de la palabra a propósito: ese número es el
+   * cuerpo de la tipografía, no lo que mide una letra. Igualándolos el plato
+   * se veía chico al lado del texto.
+   */
+  height: clamp(3.4rem, 10.2vw, 7.2rem);
   width: auto;
-}
-
-/* La palabra ancla a la campanita: posición relativa y medidas en porcentaje
-   para que las dos escalen juntas en cualquier ancho. */
-.marca-palabra {
-  position: relative;
-  display: block;
-  height: clamp(2.1rem, 7.6vw, 4.7rem);
-}
-
-.marca-palabra > img:first-child {
-  display: block;
-  height: 100%;
-  width: auto;
-}
-
-.marca-campanita {
-  position: absolute;
-  left: 58.77%;
-  top: 0.89%;
-  width: 15.335%;
-  height: auto;
 }
 
 /*
- * Los tres tiempos.
+ * La palabra, escrita con la tipografía de la marca.
  *
- * Sin la clase `anima` todo está visible: si el script no corre, la marca se
- * ve entera y quieta, que es lo correcto.
+ * `align-items: baseline` no sirve acá: cada letra se anima por separado y
+ * la línea de base se movería con ellas. Con `flex-end` y una altura fija
+ * quedan apoyadas aunque una esté a mitad de camino.
+ */
+.marca-palabra {
+  display: inline-flex;
+  align-items: flex-end;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.6rem, 9.4vw, 5.8rem);
+  line-height: 0.82;
+  letter-spacing: -0.045em;
+  color: var(--tinta);
+}
+
+/*
+ * `inline-block` para que `transform` funcione: sobre un elemento en línea
+ * el navegador lo ignora, y las letras no se moverían.
+ */
+.letra {
+  display: inline-block;
+  transform-origin: 50% 100%;
+}
+
+/* La "a" de la campanita: su tapa va anclada acá, no a la palabra entera. */
+.letra-a { position: relative; }
+
+.marca-campanita {
+  position: absolute;
+  /*
+   * Apoyada sobre la letra, no flotando encima.
+   *
+   * En el logo la cúpula apoya sobre el borde de arriba de la "a" y la
+   * letra se sigue leyendo entera debajo. Bajarla más la tapaba: se leía
+   * "itad⌒ki". El ancho sale de la letra, que es lo que la hace escalar
+   * junto con el texto en cualquier pantalla.
+   */
+  left: 50%;
+  bottom: 74%;
+  width: 84%;
+  height: auto;
+  transform: translateX(-50%);
+}
+
+/*
+ * Los tiempos.
+ *
+ * Sin `anima-marca` está todo visible y quieto: si el script no corre, la
+ * marca se ve entera, que es lo correcto.
  */
 .anima-marca .marca-iso,
-.anima-marca .marca-palabra > img:first-child,
+.anima-marca .letra,
 .anima-marca .marca-campanita {
   opacity: 0;
 }
 
+/* El plato entra rápido desde el costado, como si lo trajeran. */
 .anima-marca.corre .marca-iso {
-  animation: marca-entra 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: plato-llega 620ms cubic-bezier(0.22, 1.2, 0.36, 1) forwards;
 }
 
-.anima-marca.corre .marca-palabra > img:first-child {
-  animation: marca-entra 520ms cubic-bezier(0.16, 1, 0.3, 1) 260ms forwards;
+/*
+ * Las letras caen de a una y rebotan. El retraso lo pone el script, que es
+ * quien sabe cuántas son — escribirlo acá obliga a tocar el CSS el día que
+ * cambie el nombre.
+ */
+.anima-marca.corre .letra {
+  animation: letra-cae 480ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* La campanita cae y se asienta: es el golpe final, por eso el rebote. */
+/* La campanita es el golpe final: cae después de su letra. */
 .anima-marca.corre .marca-campanita {
-  animation: campanita-cae 460ms cubic-bezier(0.34, 1.56, 0.64, 1) 620ms forwards;
+  animation: campanita-cae 440ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-@keyframes marca-entra {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes plato-llega {
+  from { opacity: 0; transform: translateX(-120%) rotate(-12deg); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: translateX(0) rotate(0); }
+}
+
+@keyframes letra-cae {
+  from { opacity: 0; transform: translateY(-85%) scale(0.88); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes campanita-cae {
-  from { opacity: 0; transform: translateY(-42%) scale(0.86); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateX(-50%) translateY(-70%) scale(0.82); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
