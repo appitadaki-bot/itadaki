@@ -78,6 +78,20 @@ que alguien lo mira.
 **A 16 píxeles** el logo entero es una mancha. Por eso el favicon es el
 isotipo solo.
 
+**Las piezas en blanco.** El plato y el mango del isotipo eran casi negros y
+sobre el fondo oscuro de la landing no se veían. `itadaki-isotipo-blanco.png`
+los pasa a crema dejando la cúpula roja; es el que usan la landing y las tres
+apps del personal.
+
+`itadaki-ios.png` es ese mismo con el fondo oscuro pegado: iOS no compone
+transparencia para el acceso directo, y el plato blanco sobre una pantalla
+clara desaparecía.
+
+`hero-campanita-plato.png` le agrega a la campanita el plato que no tenía. La
+forma sale del isotipo, escalada: ahí el plato mide 403 contra una cúpula de
+300, o sea que es más ancho que la campana. La primera versión lo escaló
+contra el lienzo en vez de contra la cúpula y quedó al revés, más angosto.
+
 **Falta el vector.** El original es un JPEG, así que estas versiones se
 recortaron por color: el fondo era perfectamente uniforme y salió limpio,
 pero ampliado mucho se ve el ruido del JPEG alrededor de las letras. Para

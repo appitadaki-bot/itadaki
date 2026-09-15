@@ -1257,8 +1257,8 @@ strong { color: var(--tinta); font-weight: 700; }
    * junto con el texto en cualquier pantalla.
    */
   left: 50%;
-  bottom: 74%;
-  width: 84%;
+  bottom: 62%;
+  width: 116%;
   height: auto;
   transform: translateX(-50%);
 }
