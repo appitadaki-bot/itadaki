@@ -1376,3 +1376,128 @@ strong { color: var(--tinta); font-weight: 700; }
   from { opacity: 0; transform: translateX(-50%) translateY(-70%) scale(0.82); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
+
+/* ── El formulario de registro ── */
+/*
+ * `<dialog>` y no un `<div>` a mano: el navegador ya resuelve el foco
+ * atrapado adentro, el cierre con Escape y bloquear el scroll de la página
+ * de fondo. Reescribir eso en JS es donde vive la mayoría de los modales
+ * rotos.
+ */
+.modal-registro {
+  position: relative;
+  width: min(92vw, 460px);
+  max-height: min(88vh, 720px);
+  padding: 1.75rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--r-carta);
+  background: var(--carta);
+  color: var(--tinta);
+}
+
+.modal-registro::backdrop {
+  background: oklch(10% 0.01 55 / 70%);
+  backdrop-filter: blur(2px);
+}
+
+/* Entra con un leve acercamiento, no de golpe: es lo mismo que ya hace el
+   resto de la página al aparecer. `open` es el único estado en que el
+   navegador lo pinta, así que animar cualquier otra cosa no se ve. */
+.modal-registro[open] {
+  animation: modal-entra 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-entra {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-registro[open] { animation: none; }
+}
+
+.modal-cerrar {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--tinta-suave);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.modal-cerrar:hover { background: var(--carta-alta); color: var(--tinta); }
+
+.modal-titulo {
+  margin: 0 1.6rem 0.4rem 0;
+  font-family: var(--display);
+  font-size: 1.3rem;
+}
+
+.modal-lede {
+  margin: 0 0 1.4rem;
+  font-size: 0.92rem;
+  color: var(--tinta-media);
+}
+
+.form-registro {
+  display: grid;
+  gap: 1rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.88rem;
+  color: var(--tinta-media);
+}
+
+.campo input,
+.campo select {
+  padding: 0.75rem 0.9rem;
+  border: 1.5px solid var(--borde);
+  border-radius: var(--r-chip);
+  background: var(--fondo-alt);
+  color: var(--tinta);
+  font-family: var(--texto);
+  font-size: 0.95rem;
+}
+
+.campo input:focus,
+.campo select:focus {
+  outline: none;
+  border-color: var(--acento);
+}
+
+/* El navegador ya marca en rojo lo inválido al perder el foco; esto sólo
+   evita que un campo vacío se vea "roto" antes de que la persona llegue
+   a tocarlo. */
+.campo input:invalid:not(:placeholder-shown):not(:focus),
+.campo select:invalid:not(:focus) {
+  border-color: color-mix(in oklab, var(--borde) 60%, oklch(65% 0.2 25));
+}
+
+.campo-error {
+  color: oklch(72% 0.19 25);
+  font-size: 0.82rem;
+}
+
+.campo-check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+}
+.campo-check input { margin-top: 0.2rem; accent-color: var(--acento); }
+.campo-check a { color: var(--acento); }
+
+@media (max-width: 480px) {
+  .modal-registro { padding: 1.4rem; }
+}
