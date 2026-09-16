@@ -54,6 +54,20 @@ function sinSslmode(connectionString: string): string {
   }
 }
 
+
+/**
+ * El PEM, venga con saltos de línea de verdad o escritos como texto.
+ *
+ * La casilla de una variable de entorno en un panel web suele ser de un solo
+ * renglón: al pegar un certificado, los saltos se pierden o quedan como los
+ * dos caracteres \n. Sin ellos OpenSSL no lo puede leer, lo descarta en
+ * silencio, y la conexión falla con SELF_SIGNED_CERT_IN_CHAIN — el mismo error
+ * que si no se hubiera configurado nada.
+ */
+function pegado(crudo: string): string {
+  return crudo.replaceAll(String.raw`\n`, '\n').trim();
+}
+
 /**
  * Cómo conectarse a Postgres, para el pool y para cada script.
  *
@@ -74,7 +88,7 @@ export function conexionPostgres(connectionString: string): {
   connectionString: string;
   ssl?: { ca: string };
 } {
-  const ca = (process.env['DATABASE_CA_CERT'] ?? '').trim();
+  const ca = pegado(process.env['DATABASE_CA_CERT'] ?? '');
   if (ca === '') return { connectionString: withSslWhenRemote(connectionString) };
 
   return { connectionString: sinSslmode(connectionString), ssl: { ca } };

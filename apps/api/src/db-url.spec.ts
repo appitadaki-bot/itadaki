@@ -65,6 +65,18 @@ describe('la conexión con una CA propia', () => {
     expect(config.connectionString).not.toContain('sslmode');
   });
 
+  it('acepta el PEM con los saltos escritos como texto', () => {
+    // La casilla de una variable de entorno en un panel web es de un renglón:
+    // al pegar el certificado, los saltos quedan como los dos caracteres \n.
+    // Sin convertirlos, OpenSSL lo descarta en silencio y el error es el mismo
+    // que si no se hubiera configurado nada.
+    process.env['DATABASE_CA_CERT'] = String.raw`-----BEGIN CERTIFICATE-----\nMIIDxDCC\n-----END CERTIFICATE-----`;
+    const ca = conexionPostgres(CADENA).ssl?.ca ?? '';
+
+    expect(ca.split('\n')).toHaveLength(3);
+    expect(ca).not.toContain(String.raw`\n`);
+  });
+
   it('una CA vacía o con espacios no cuenta como configurada', () => {
     process.env['DATABASE_CA_CERT'] = '   ';
     expect(conexionPostgres(CADENA).ssl).toBeUndefined();

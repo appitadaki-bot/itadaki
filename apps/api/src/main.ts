@@ -102,6 +102,26 @@ async function bootstrap(): Promise<void> {
   // every table gets an error. In production that is a failed boot, so the
   // orchestrator keeps the previous version serving instead.
   const usingPostgres = process.env['USE_POSTGRES'] !== 'false';
+
+  /*
+   * Con qué certificado se está verificando, antes de intentar conectarse.
+   *
+   * Sin esta línea, una CA mal pegada y una CA sin configurar dan el mismo
+   * error —SELF_SIGNED_CERT_IN_CHAIN— y no hay forma de distinguirlas desde
+   * el log. Se dice el largo y si tiene la cabecera, que es lo que se rompe al
+   * pegarla en una casilla de un solo renglón; el contenido no es secreto,
+   * pero tampoco hace falta.
+   */
+  if (usingPostgres) {
+    const ca = (process.env['DATABASE_CA_CERT'] ?? '').trim();
+    log.info(
+      ca === ''
+        ? 'TLS: sin CA propia — se verifica contra las que trae Node'
+        : `TLS: verificando contra DATABASE_CA_CERT (${ca.length} caracteres, ` +
+          `${ca.includes('BEGIN CERTIFICATE') ? 'con' : 'SIN'} cabecera PEM)`,
+    );
+  }
+
   const estado = usingPostgres ? await estadoDeLaBase() : { ok: false, motivo: null };
   const reachable = estado.ok;
 
