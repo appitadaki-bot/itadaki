@@ -23,10 +23,37 @@ services:
       - key: AUTH_SECRET
         generateValue: true
 
+      # La base vive en Supabase, no en Render.
+      #
+      # La de Render era del plan gratis, que la borra a los 90 días: se
+      # cumplieron y la API dejó de arrancar. Volver a contratarla salía 25
+      # dólares por mes, que sin clientes todavía no tiene sentido.
+      #
+      # Tiene que ser la cadena del **pooler en modo sesión** —el host
+      # `...pooler.supabase.com`, puerto 5432—, no la conexión directa ni el
+      # puerto 6543:
+      #
+      #   - La conexión directa de Supabase sólo resuelve por IPv6 y Render
+      #     sale por IPv4: no llega a abrirse.
+      #   - El 6543 es el pooler en modo transacción, y ahí cada consulta puede
+      #     caer en otra conexión. Seis lugares de la API fijan `app.tenant_id`
+      #     a nivel sesión y siguen consultando: el filtro por restaurante se
+      #     perdería entre una consulta y la siguiente.
       - key: DATABASE_URL
-        fromDatabase:
-          name: itadaki-db
-          property: connectionString
+        sync: false
+
+      # El certificado raíz de Supabase, en PEM.
+      #
+      # Firma con una CA propia, que Node no trae: sin esto el handshake falla
+      # con SELF_SIGNED_CERT_IN_CHAIN. Se baja del panel de Supabase, en
+      # Settings → Database → SSL Configuration.
+      #
+      # Con esta variable se verifica contra esa CA en vez de contra las de
+      # fábrica. Se cambia contra quién se verifica, no si: apagar la
+      # comprobación cifraría la conexión sin saber con quién se está hablando,
+      # y del otro lado están los pedidos y las cuentas.
+      - key: DATABASE_CA_CERT
+        sync: false
 
       # Los dominios que pueden llamar a esta API, separados por coma. Sin
       # esto el navegador bloquea las llamadas: la página carga y no puede
@@ -110,14 +137,6 @@ services:
       - key: AXIOM_DATASET
         sync: false
 
-databases:
-  - name: itadaki-db
-    plan: free
-    region: oregon
-    # El plan gratis de Render borra la base a los 90 días. Antes de eso hay
-    # que pasar a un plan pago o migrarla — scripts/backup.sh saca el dump.
-    postgresMajorVersion: "16"
-
 # ─────────────────────────────────────────────────────────────────────────────
 # El aviso de vencimiento, cuando haga falta prenderlo.
 #
@@ -151,7 +170,7 @@ databases:
 # desarrollo: ese script compila primero, y la imagen de runtime se instala
 # con `npm ci --omit=dev`, sin TypeScript.
 #
-# Variables: DATABASE_ADMIN_URL (la Internal Database URL de itadaki-db),
+# Variables: DATABASE_ADMIN_URL (la misma cadena de Supabase que usa la API),
 # RESEND_API_KEY y MAIL_FROM (las mismas que itadaki-api). NODE_ENV ya viene
 # en production desde el Dockerfile.
 #

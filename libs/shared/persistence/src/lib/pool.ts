@@ -3,6 +3,13 @@ import { Pool, type PoolClient } from 'pg';
 export interface DatabaseConfig {
   readonly connectionString: string;
   readonly maxConnections?: number;
+  /**
+   * La CA contra la que verificar, cuando el proveedor firma con una propia.
+   *
+   * Va por acá y no en la cadena porque `pg` descarta este objeto si la cadena
+   * trae `sslmode`: quien la arma tiene que sacarlo.
+   */
+  readonly ssl?: { readonly ca: string };
 }
 
 /**
@@ -18,6 +25,7 @@ export class Database {
   constructor(config: DatabaseConfig) {
     this.pool = new Pool({
       connectionString: config.connectionString,
+      ...(config.ssl === undefined ? {} : { ssl: config.ssl }),
       // Row locks mean a busy table's writes queue while holding a connection,
       // so the pool has to be wider than the number of diners who might tap at
       // once. A full pool otherwise stalls requests that touch other tables.
@@ -58,12 +66,28 @@ export class Database {
     }
   }
 
-  async healthy(): Promise<boolean> {
+  /**
+   * Si la base contesta, y si no, por qué.
+   *
+   * Devolvía sólo `true`/`false` y se tragaba el error. El arranque decía
+   * "postgres UNREACHABLE — check DATABASE_URL" tanto si la contraseña estaba
+   * mal, como si la base ya no existía, como si era TLS o el nombre no
+   * resolvía. La causa estaba a una línea de distancia y había que ir a
+   * buscarla a mano.
+   */
+  async healthy(): Promise<{ ok: boolean; motivo: string | null }> {
     try {
       await this.pool.query('SELECT 1');
-      return true;
-    } catch {
-      return false;
+      return { ok: true, motivo: null };
+    } catch (error) {
+      // El código de `pg` dice más que el texto: 28P01 es contraseña, 3D000
+      // base inexistente, ENOTFOUND un host que no resuelve.
+      const codigo = (error as { code?: unknown }).code;
+      const detalle = error instanceof Error ? error.message : String(error);
+      return {
+        ok: false,
+        motivo: typeof codigo === 'string' && codigo !== '' ? `${codigo}: ${detalle}` : detalle,
+      };
     }
   }
 

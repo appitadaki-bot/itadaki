@@ -61,6 +61,38 @@ export async function tablasSinAislar(): Promise<readonly TablaSinAislar[]> {
   }
 }
 
+/**
+ * Si el rol con el que conecta la API puede saltearse el aislamiento.
+ *
+ * Tener el candado puesto en cada tabla no alcanza: un rol superusuario o con
+ * `BYPASSRLS` ve todas las filas igual, y las consultas de cada restaurante no
+ * llevan `WHERE tenant_id` porque confían en la política. Con un rol así, el
+ * panel de un local muestra los datos de otro y nada falla.
+ *
+ * Se mira al arrancar porque depende de con qué credencial arrancó el
+ * servicio, no del esquema: mudarse de proveedor —o que alguien cambie la
+ * cadena de conexión por la del dueño de la base— lo cambia sin tocar una
+ * migración. Supabase es el caso concreto: su rol `postgres` tiene permisos
+ * amplios y hay que mirar cuál se usa.
+ *
+ * Un fallo al mirar responde `false`, igual que el resto de este archivo: no
+ * poder averiguarlo no es lo mismo que saber que está mal.
+ */
+export async function elRolSalteaElAislamiento(): Promise<boolean> {
+  try {
+    return await database.unscoped(async (client) => {
+      const { rows } = await client.query<{ saltea: boolean }>(
+        `SELECT (rolsuper OR rolbypassrls) AS saltea
+           FROM pg_roles
+          WHERE rolname = current_user`,
+      );
+      return rows[0]?.saltea === true;
+    });
+  } catch {
+    return false;
+  }
+}
+
 export interface QueHacer {
   readonly mensaje: string;
   readonly rompe: boolean;
@@ -77,15 +109,32 @@ export interface QueHacer {
 export function comoTratarLoSinAislar(
   sinAislar: readonly TablaSinAislar[],
   entorno: string | undefined,
+  rolSaltea = false,
 ): QueHacer | null {
-  if (sinAislar.length === 0) return null;
+  if (sinAislar.length === 0 && !rolSaltea) return null;
 
-  const cuales = sinAislar.map((una) => una.tabla).join(', ');
+  const porque: string[] = [];
+
+  if (rolSaltea) {
+    porque.push(
+      'el rol con el que se conecta puede saltear row level security ' +
+        '(es superusuario o tiene BYPASSRLS), así que el candado de las tablas no lo frena. ' +
+        'Usar un rol sin ese permiso en DATABASE_URL',
+    );
+  }
+
+  if (sinAislar.length > 0) {
+    porque.push(
+      `no está puesto el candado en: ${sinAislar.map((una) => una.tabla).join(', ')}. ` +
+        'Correr db:migrate contra esta base',
+    );
+  }
+
   const mensaje =
-    `sin aislamiento entre restaurantes en: ${cuales}. ` +
+    'sin aislamiento entre restaurantes — ' +
+    `${porque.join('; y ')}. ` +
     'Las consultas de cada restaurante confían en row level security para filtrar, ' +
-    'así que sin esto un panel puede mostrar los datos de otro local. ' +
-    'Correr db:migrate contra esta base.';
+    'así que sin esto un panel puede mostrar los datos de otro local.';
 
   return { mensaje, rompe: entorno === 'production' };
 }

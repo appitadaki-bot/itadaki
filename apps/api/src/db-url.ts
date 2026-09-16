@@ -36,3 +36,46 @@ export function withSslWhenRemote(connectionString: string): string {
   url.searchParams.set('sslmode', 'verify-full');
   return url.toString();
 }
+
+/**
+ * Quita el `sslmode` de la cadena.
+ *
+ * `pg` decide el TLS de un solo lado: si la cadena trae `sslmode`, descarta el
+ * objeto `ssl` que se le pase, certificado incluido. Para verificar contra una
+ * CA propia hay que sacarlo de la cadena y decirlo por el objeto.
+ */
+function sinSslmode(connectionString: string): string {
+  try {
+    const url = new URL(connectionString);
+    url.searchParams.delete('sslmode');
+    return url.toString();
+  } catch {
+    return connectionString;
+  }
+}
+
+/**
+ * Cómo conectarse a Postgres, para el pool y para cada script.
+ *
+ * Con `DATABASE_CA_CERT` se verifica contra esa CA en vez de contra las que
+ * Node trae de fábrica. Hace falta cuando el proveedor firma con una CA propia
+ * —Supabase es el caso— y si no, el handshake falla con
+ * `SELF_SIGNED_CERT_IN_CHAIN`: el certificado está bien, lo que falta es el
+ * raíz que lo respalda.
+ *
+ * Se sigue verificando: se cambia contra quién, no si. Bajar a `no-verify`
+ * cifraría la conexión sin comprobar del otro lado, que para la base donde
+ * viven los pedidos y las cuentas no es un intercambio aceptable.
+ *
+ * La variable lleva el PEM tal cual, con sus saltos de línea: tanto Render como
+ * una terminal admiten valores de varias líneas.
+ */
+export function conexionPostgres(connectionString: string): {
+  connectionString: string;
+  ssl?: { ca: string };
+} {
+  const ca = (process.env['DATABASE_CA_CERT'] ?? '').trim();
+  if (ca === '') return { connectionString: withSslWhenRemote(connectionString) };
+
+  return { connectionString: sinSslmode(connectionString), ssl: { ca } };
+}

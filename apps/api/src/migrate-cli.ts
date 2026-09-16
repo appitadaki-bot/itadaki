@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { Client } from 'pg';
 import { applyMigrations } from './migrate';
-import { withSslWhenRemote } from './db-url';
+import { conexionPostgres } from './db-url';
 
 /**
  * Pone al día el esquema de una base que ya tiene datos.
@@ -18,7 +18,7 @@ const ADMIN_URL =
   process.env['DATABASE_ADMIN_URL'] ?? 'postgres://itadaki:itadaki@localhost:5433/itadaki';
 
 async function main(): Promise<void> {
-  const client = new Client({ connectionString: withSslWhenRemote(ADMIN_URL) });
+  const client = new Client(conexionPostgres(ADMIN_URL));
   await client.connect();
 
   try {
