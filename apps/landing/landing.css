@@ -628,9 +628,12 @@ strong { color: var(--tinta); font-weight: 700; }
 .pregunta p { margin: 0 0 1.2rem; font-size: 0.93rem; color: var(--tinta-media); }
 
 /* ── Pie ── */
-.pie { padding: 2.5rem 0 3.5rem; border-top: 1px solid var(--borde); }
+/* Centrado: es el cierre de la página, no una columna de datos. */
+.pie { padding: 2.5rem 0 3.5rem; border-top: 1px solid var(--borde); text-align: center; }
 .pie-nota { margin: 0 0 1rem; font-size: 0.9rem; color: var(--tinta-suave); }
-.pie-links { display: flex; flex-wrap: wrap; gap: 1.5rem; }
+/* `justify-content` y no sólo `text-align`: los enlaces son un flex y el
+   centrado del texto no los mueve. */
+.pie-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; }
 .pie-links a { color: var(--acento); font-size: 0.9rem; text-decoration: none; }
 .pie-links a:hover { text-decoration: underline; }
 .pie-wa { font-weight: 700; }
@@ -857,14 +860,34 @@ strong { color: var(--tinta); font-weight: 700; }
  * diferencia las dos se leen como alternativas iguales, y la gratis gana
  * siempre por ser gratis.
  */
-.planes { margin-top: 2.5rem; align-items: start; }
+/*
+ * Las dos cards miden lo mismo.
+ *
+ * Con `align-items: start` cada una medía su propio contenido, y la de
+ * Prueba —que tiene una viñeta menos y no lleva el precio tachado— quedaba
+ * visiblemente más corta al lado de la de Pro. `stretch` las empareja; el
+ * espacio que sobra queda abajo, que es preferible a dos cajas desparejas.
+ */
+.planes { margin-top: 2.5rem; align-items: stretch; }
 
 .plan {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   padding: 1.75rem 1.5rem;
+  /* Se estira a lo que mida la fila, no a su contenido. */
+  height: 100%;
 }
+
+/*
+ * El hueco va justo antes del botón.
+ *
+ * Empujar desde la lista no alcanza: la card de Pro tiene el precio tachado
+ * y la promo después de las viñetas, y la de Prueba no, así que el sobrante
+ * caía en lugares distintos y los botones quedaban desalineados. Desde el
+ * botón, en cambio, los dos terminan apoyados abajo.
+ */
+
 
 /* ── Acompañamiento y trabajo a medida ──
  *
@@ -1024,9 +1047,18 @@ strong { color: var(--tinta); font-weight: 700; }
   list-style: none;
   display: grid;
   gap: 0.6rem;
-  /* Empuja el botón al pie: con listas de largo distinto, los dos botones
-     quedaban a alturas distintas y la comparación se hacía difícil. */
-  flex-grow: 1;
+  /*
+   * La lista mide lo suyo y no se estira.
+   *
+   * Antes crecía para empujar el botón al pie, y eso alcanzaba mientras las
+   * cards medían cada una su contenido. Ahora que las dos miden lo mismo, el
+   * sobrante caía acá adentro y la grilla lo repartía entre los renglones:
+   * las viñetas de la card corta quedaban al doble de distancia que las de
+   * la otra. Del botón se ocupa `.plan .plan-btn`, que ya tiene su
+   * `margin-top: auto` — el hueco se junta ahí, que es donde no se nota.
+   */
+  flex-grow: 0;
+  align-content: start;
 }
 
 .plan-items li {
