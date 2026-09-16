@@ -11,6 +11,11 @@ const CONNECTION =
  */
 export const database = new Database({ connectionString: CONNECTION });
 
-export async function databaseAvailable(): Promise<boolean> {
+/** Si la base contesta, y si no, por qué — para poder decirlo en el log. */
+export async function estadoDeLaBase(): Promise<{ ok: boolean; motivo: string | null }> {
   return database.healthy();
+}
+
+export async function databaseAvailable(): Promise<boolean> {
+  return (await database.healthy()).ok;
 }

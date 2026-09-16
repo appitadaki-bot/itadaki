@@ -5,8 +5,12 @@ import { type NestExpressApplication } from '@nestjs/platform-express';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { USING_DEV_SECRET } from './auth';
-import { databaseAvailable } from './database';
-import { comoTratarLoSinAislar, tablasSinAislar } from './aislamiento-activo';
+import { estadoDeLaBase } from './database';
+import {
+  comoTratarLoSinAislar,
+  elRolSalteaElAislamiento,
+  tablasSinAislar,
+} from './aislamiento-activo';
 import { comoTratarLasPendientes, migracionesQueFaltan } from './migraciones-al-dia';
 import { axiomEnabled, log } from './logger';
 import { ErrorFilter } from './error.filter';
@@ -98,10 +102,15 @@ async function bootstrap(): Promise<void> {
   // every table gets an error. In production that is a failed boot, so the
   // orchestrator keeps the previous version serving instead.
   const usingPostgres = process.env['USE_POSTGRES'] !== 'false';
-  const reachable = usingPostgres ? await databaseAvailable() : false;
+  const estado = usingPostgres ? await estadoDeLaBase() : { ok: false, motivo: null };
+  const reachable = estado.ok;
 
   if (usingPostgres && !reachable) {
-    const detail = 'postgres UNREACHABLE — check DATABASE_URL, or set USE_POSTGRES=false';
+    // Con la causa: sin ella este mensaje era el mismo para una contraseña
+    // vencida, una base borrada y un host que no resuelve.
+    const detail =
+      'postgres UNREACHABLE — check DATABASE_URL, or set USE_POSTGRES=false' +
+      (estado.motivo === null ? '' : ` — ${estado.motivo}`);
     if (process.env['NODE_ENV'] === 'production') {
       throw new Error(detail);
     }
@@ -135,7 +144,8 @@ async function bootstrap(): Promise<void> {
      * parecía andar bien. Un deploy que no puede aislar no debe atender.
      */
     const sinAislar = await tablasSinAislar();
-    const sobreEso = comoTratarLoSinAislar(sinAislar, process.env['NODE_ENV']);
+    const rolSaltea = await elRolSalteaElAislamiento();
+    const sobreEso = comoTratarLoSinAislar(sinAislar, process.env['NODE_ENV'], rolSaltea);
 
     if (sobreEso !== null) {
       if (sobreEso.rompe) throw new Error(sobreEso.mensaje);

@@ -57,6 +57,43 @@ describe('el aislamiento entre restaurantes', () => {
  * `ENABLE` sin `FORCE` no alcanza: el dueño de la tabla sigue viendo todas las
  * filas, y la API se conecta con un rol que en Neon y en Render es el dueño.
  */
+/**
+ * Tener el candado puesto no alcanza si el rol lo puede saltear.
+ *
+ * Un superusuario, o un rol con BYPASSRLS, ve todas las filas igual. Las
+ * consultas de cada restaurante no llevan `WHERE tenant_id` porque confían en
+ * la política: con un rol así, el panel de un local muestra los de otro y nada
+ * falla. Depende de la credencial con la que arrancó el servicio, no del
+ * esquema, así que mudarse de proveedor lo cambia sin tocar una migración.
+ */
+describe('el rol con el que se conecta', () => {
+  it('si puede saltear el aislamiento, rompe el arranque en un servidor', () => {
+    const queHacer = comoTratarLoSinAislar([], 'production', true);
+
+    expect(queHacer?.rompe).toBe(true);
+    expect(queHacer?.mensaje).toContain('BYPASSRLS');
+  });
+
+  it('y dice qué hacer: cambiar el rol de la conexión', () => {
+    expect(comoTratarLoSinAislar([], 'production', true)?.mensaje).toContain('DATABASE_URL');
+  });
+
+  it('en desarrollo avisa y sigue', () => {
+    expect(comoTratarLoSinAislar([], undefined, true)?.rompe).toBe(false);
+  });
+
+  it('con el rol bien y las tablas aisladas, no dice nada', () => {
+    expect(comoTratarLoSinAislar([], 'production', false)).toBeNull();
+  });
+
+  it('los dos problemas juntos se cuentan los dos', () => {
+    const queHacer = comoTratarLoSinAislar([sinAislar('staff_users')], 'production', true);
+
+    expect(queHacer?.mensaje).toContain('BYPASSRLS');
+    expect(queHacer?.mensaje).toContain('staff_users');
+  });
+});
+
 describe('la consulta que busca las tablas sin aislar', () => {
   const FUENTE = readFileSync(join(__dirname, 'aislamiento-activo.ts'), 'utf-8').replace(
     /\r\n/g,
@@ -65,6 +102,10 @@ describe('la consulta que busca las tablas sin aislar', () => {
 
   it('exige las dos cosas, no sólo que el RLS esté activo', () => {
     expect(FUENTE).toContain('c.relrowsecurity IS NOT TRUE OR c.relforcerowsecurity IS NOT TRUE');
+  });
+
+  it('el rol se mira por superusuario y por BYPASSRLS, que son dos cosas', () => {
+    expect(FUENTE).toContain('(rolsuper OR rolbypassrls) AS saltea');
   });
 
   it('mira sólo las tablas que son de un restaurante', () => {
