@@ -217,13 +217,11 @@
     height="93"
     decoding="async"
   />
-  <a
+  <button
+    type="button"
     class="btn btn-acento chico"
-    href="https://wa.me/5492645135540"
-    data-wa="Hola! Quiero empezar la prueba de 30 días de Itadaki en mi restaurante."
-    target="_blank"
-    rel="noopener"
-  >Probar 30 días gratis</a>
+    data-abrir-registro
+  >Probar 30 días gratis</button>
 </header>
 
 <main>
@@ -309,13 +307,11 @@
     </p>
 
     <div class="acciones centradas">
-      <a
+      <button
+        type="button"
         class="btn btn-acento"
-        href="https://wa.me/5492645135540"
-        data-wa="Hola! Quiero empezar la prueba de 30 días de Itadaki en mi restaurante."
-        target="_blank"
-        rel="noopener"
-      >Probar 30 días gratis</a>
+        data-abrir-registro
+      >Probar 30 días gratis</button>
       <a class="btn btn-borde" href="#piezas">Ver cómo funciona</a>
     </div>
 
@@ -351,6 +347,120 @@
     </div>
   </div>
 </section>
+
+<!-- ═══ FORMULARIO DE REGISTRO (modal) ═══ -->
+<!--
+  Vive acá, justo después del hero, porque es a donde apuntan los botones
+  "Probar 30 días gratis" de la barra y del hero. Sigue siendo un `<dialog>`
+  —aparece flotando por encima de la página— pero su lugar en el HTML es este.
+
+  El destino final sigue siendo uno solo, WhatsApp: este formulario no
+  reemplaza ese canal, junta los datos antes de abrir el chat para que la
+  conversación arranque con todo lo que hace falta.
+-->
+<dialog class="modal-registro" id="modalRegistro" aria-labelledby="modalRegistroTitulo">
+  <form class="form-registro" id="formRegistro" novalidate>
+    <button type="button" class="modal-cerrar" id="modalCerrar" aria-label="Cerrar">✕</button>
+
+    <h2 class="modal-titulo" id="modalRegistroTitulo">Empezá tu prueba gratis</h2>
+    <p class="modal-lede">
+      Dejanos tus datos y te escribimos por WhatsApp para dejarte la cuenta lista.
+    </p>
+
+    <label class="campo">
+      <span>Nombre</span>
+      <input
+        type="text"
+        name="nombre"
+        id="campoNombre"
+        maxlength="50"
+        required
+        autocomplete="name"
+      />
+    </label>
+
+    <label class="campo">
+      <span>Nombre del restaurante</span>
+      <input
+        type="text"
+        name="restaurante"
+        id="campoRestaurante"
+        maxlength="50"
+        required
+        autocomplete="organization"
+      />
+    </label>
+
+    <label class="campo">
+      <span>Provincia</span>
+      <select name="provincia" id="campoProvincia" required autocomplete="address-level1">
+        <option value="" disabled selected>Elegí una provincia</option>
+        <option>Buenos Aires</option>
+        <option>Catamarca</option>
+        <option>Chaco</option>
+        <option>Chubut</option>
+        <option>Ciudad Autónoma de Buenos Aires</option>
+        <option>Córdoba</option>
+        <option>Corrientes</option>
+        <option>Entre Ríos</option>
+        <option>Formosa</option>
+        <option>Jujuy</option>
+        <option>La Pampa</option>
+        <option>La Rioja</option>
+        <option>Mendoza</option>
+        <option>Misiones</option>
+        <option>Neuquén</option>
+        <option>Río Negro</option>
+        <option>Salta</option>
+        <option>San Juan</option>
+        <option>San Luis</option>
+        <option>Santa Cruz</option>
+        <option>Santa Fe</option>
+        <option>Santiago del Estero</option>
+        <option>Tierra del Fuego</option>
+        <option>Tucumán</option>
+      </select>
+    </label>
+
+    <label class="campo">
+      <span>Dirección del restaurante</span>
+      <input
+        type="text"
+        name="direccion"
+        id="campoDireccion"
+        maxlength="100"
+        placeholder="Calle, número, localidad"
+        required
+        autocomplete="street-address"
+      />
+    </label>
+
+    <label class="campo">
+      <span>Correo</span>
+      <input
+        type="email"
+        name="correo"
+        id="campoCorreo"
+        required
+        autocomplete="email"
+        inputmode="email"
+      />
+      <small class="campo-error" id="errorCorreo" hidden>Ingresá un correo válido.</small>
+    </label>
+
+    <label class="campo campo-check">
+      <input type="checkbox" name="terminos" id="campoTerminos" required />
+      <span>
+        Acepto los
+        <a href="/legal/terminos.html" target="_blank" rel="noopener">términos y condiciones</a>
+      </span>
+    </label>
+
+    <button type="submit" class="btn btn-acento ancho-total" id="botonEnviarRegistro">
+      Enviar por WhatsApp
+    </button>
+  </form>
+</dialog>
 
 <!-- ═══ 01 · TRES PANTALLAS ═══ -->
 <section class="seccion">

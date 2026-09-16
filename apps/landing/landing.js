@@ -139,6 +139,83 @@
     else if (corriendo) arrancar();
   });
 
+  /* ── El formulario de registro ── */
+
+  /*
+   * Los botones "Probar 30 días gratis" abren este modal en vez de ir
+   * directo a WhatsApp: junta nombre, restaurante, dirección y correo antes
+   * de abrir el chat, así la conversación arranca con todo lo que hace
+   * falta para dejar la cuenta lista.
+   *
+   * El destino final sigue siendo uno solo — WhatsApp — esto sólo junta los
+   * datos antes de mandarlos para allá.
+   */
+  const modalRegistro = document.getElementById('modalRegistro');
+  const formRegistro = document.getElementById('formRegistro');
+  const botonCerrarModal = document.getElementById('modalCerrar');
+  const campoCorreo = document.getElementById('campoCorreo');
+  const errorCorreo = document.getElementById('errorCorreo');
+
+  for (const boton of document.querySelectorAll('[data-abrir-registro]')) {
+    boton.addEventListener('click', () => {
+      formRegistro?.reset();
+      if (errorCorreo) errorCorreo.hidden = true;
+      modalRegistro?.showModal();
+      document.getElementById('campoNombre')?.focus();
+    });
+  }
+
+  botonCerrarModal?.addEventListener('click', () => modalRegistro?.close());
+
+  // Cerrar tocando el fondo oscuro, no el formulario en sí.
+  modalRegistro?.addEventListener('click', (evento) => {
+    if (evento.target === modalRegistro) modalRegistro.close();
+  });
+
+  /*
+   * Un correo "de fuente confiable" acá quiere decir uno con forma real:
+   * usuario, arroba y un dominio con extensión. El propio navegador ya
+   * valida `type="email"`; esto suma el chequeo para cuando alguien lo
+   * completa con algo que ese control por sí solo deja pasar.
+   */
+  const CORREO_VALIDO = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+
+  formRegistro?.addEventListener('submit', (evento) => {
+    evento.preventDefault();
+
+    const correo = campoCorreo?.value.trim() ?? '';
+    const correoOk = CORREO_VALIDO.test(correo);
+
+    if (errorCorreo) errorCorreo.hidden = correoOk;
+
+    // `reportValidity` cubre lo obligatorio, el largo máximo y la forma
+    // básica de `type="email"`; se suma el chequeo propio del correo antes
+    // de dejar seguir.
+    if (!formRegistro.reportValidity() || !correoOk) {
+      if (!correoOk) campoCorreo?.focus();
+      return;
+    }
+
+    const nombre = document.getElementById('campoNombre').value.trim();
+    const restaurante = document.getElementById('campoRestaurante').value.trim();
+    const provincia = document.getElementById('campoProvincia').value;
+    const direccion = document.getElementById('campoDireccion').value.trim();
+    const direccionCompleta = `${direccion}, ${provincia}`;
+
+    const mensaje =
+      `¡Hola! Les escribe ${nombre}.\n\n` +
+      `Les paso mis datos para registrarme:\n\n` +
+      `Nombre: ${nombre}\n` +
+      `Nombre del restaurante: ${restaurante}\n` +
+      `Dirección y provincia del restaurante: ${direccionCompleta}\n` +
+      `Correo: ${correo}\n\n` +
+      `¡Muchas gracias!`;
+
+    globalThis.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener');
+    modalRegistro?.close();
+    formRegistro.reset();
+  });
+
   /* ── El timbre: un llamado a la vez ── */
   const timbre = document.getElementById('timbre');
   const timbreNota = document.getElementById('timbreNota');
