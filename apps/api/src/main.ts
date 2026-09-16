@@ -164,8 +164,8 @@ async function bootstrap(): Promise<void> {
      * parecía andar bien. Un deploy que no puede aislar no debe atender.
      */
     const sinAislar = await tablasSinAislar();
-    const rolSaltea = await elRolSalteaElAislamiento();
-    const sobreEso = comoTratarLoSinAislar(sinAislar, process.env['NODE_ENV'], rolSaltea);
+    const rolQueSaltea = await elRolSalteaElAislamiento();
+    const sobreEso = comoTratarLoSinAislar(sinAislar, process.env['NODE_ENV'], rolQueSaltea);
 
     if (sobreEso !== null) {
       if (sobreEso.rompe) throw new Error(sobreEso.mensaje);

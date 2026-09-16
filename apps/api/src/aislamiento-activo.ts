@@ -78,18 +78,21 @@ export async function tablasSinAislar(): Promise<readonly TablaSinAislar[]> {
  * Un fallo al mirar responde `false`, igual que el resto de este archivo: no
  * poder averiguarlo no es lo mismo que saber que está mal.
  */
-export async function elRolSalteaElAislamiento(): Promise<boolean> {
+export async function elRolSalteaElAislamiento(): Promise<string | null> {
   try {
     return await database.unscoped(async (client) => {
-      const { rows } = await client.query<{ saltea: boolean }>(
-        `SELECT (rolsuper OR rolbypassrls) AS saltea
+      const { rows } = await client.query<{ rol: string; saltea: boolean }>(
+        `SELECT current_user AS rol, (rolsuper OR rolbypassrls) AS saltea
            FROM pg_roles
           WHERE rolname = current_user`,
       );
-      return rows[0]?.saltea === true;
+      // El nombre, no un sí o un no: con sólo "hay un rol que saltea" no se
+      // distingue no haber cambiado la cadena de conexión de haberla cambiado
+      // y que el proveedor la haya ignorado.
+      return rows[0]?.saltea === true ? rows[0].rol : null;
     });
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -109,15 +112,15 @@ export interface QueHacer {
 export function comoTratarLoSinAislar(
   sinAislar: readonly TablaSinAislar[],
   entorno: string | undefined,
-  rolSaltea = false,
+  rolQueSaltea: string | null = null,
 ): QueHacer | null {
-  if (sinAislar.length === 0 && !rolSaltea) return null;
+  if (sinAislar.length === 0 && rolQueSaltea === null) return null;
 
   const porque: string[] = [];
 
-  if (rolSaltea) {
+  if (rolQueSaltea !== null) {
     porque.push(
-      'el rol con el que se conecta puede saltear row level security ' +
+      `se está conectando como "${rolQueSaltea}", que puede saltear row level security ` +
         '(es superusuario o tiene BYPASSRLS), así que el candado de las tablas no lo frena. ' +
         'Usar un rol sin ese permiso en DATABASE_URL',
     );

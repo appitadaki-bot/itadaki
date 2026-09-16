@@ -68,26 +68,32 @@ describe('el aislamiento entre restaurantes', () => {
  */
 describe('el rol con el que se conecta', () => {
   it('si puede saltear el aislamiento, rompe el arranque en un servidor', () => {
-    const queHacer = comoTratarLoSinAislar([], 'production', true);
+    const queHacer = comoTratarLoSinAislar([], 'production', 'postgres');
 
     expect(queHacer?.rompe).toBe(true);
     expect(queHacer?.mensaje).toContain('BYPASSRLS');
   });
 
+  it('dice con qué rol se conectó, no sólo que hay uno malo', () => {
+    // Sin el nombre no se distingue no haber cambiado la cadena de conexión
+    // de haberla cambiado y que el proveedor la haya ignorado.
+    expect(comoTratarLoSinAislar([], 'production', 'postgres')?.mensaje).toContain('"postgres"');
+  });
+
   it('y dice qué hacer: cambiar el rol de la conexión', () => {
-    expect(comoTratarLoSinAislar([], 'production', true)?.mensaje).toContain('DATABASE_URL');
+    expect(comoTratarLoSinAislar([], 'production', 'postgres')?.mensaje).toContain('DATABASE_URL');
   });
 
   it('en desarrollo avisa y sigue', () => {
-    expect(comoTratarLoSinAislar([], undefined, true)?.rompe).toBe(false);
+    expect(comoTratarLoSinAislar([], undefined, 'postgres')?.rompe).toBe(false);
   });
 
   it('con el rol bien y las tablas aisladas, no dice nada', () => {
-    expect(comoTratarLoSinAislar([], 'production', false)).toBeNull();
+    expect(comoTratarLoSinAislar([], 'production', null)).toBeNull();
   });
 
   it('los dos problemas juntos se cuentan los dos', () => {
-    const queHacer = comoTratarLoSinAislar([sinAislar('staff_users')], 'production', true);
+    const queHacer = comoTratarLoSinAislar([sinAislar('staff_users')], 'production', 'postgres');
 
     expect(queHacer?.mensaje).toContain('BYPASSRLS');
     expect(queHacer?.mensaje).toContain('staff_users');
