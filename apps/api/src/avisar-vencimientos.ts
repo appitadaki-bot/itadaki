@@ -8,7 +8,7 @@ import {
 } from '@itadaki/identity/domain';
 import { ResendMailer } from '@itadaki/identity/infra';
 import { Client } from 'pg';
-import { withSslWhenRemote } from './db-url';
+import { conexionPostgres } from './db-url';
 
 /**
  * Avisa por correo a los restaurantes cuya suscripción venció.
@@ -125,7 +125,7 @@ async function main(): Promise<void> {
   const ahora = new Date();
   const mensajero = secos ? null : elMensajero();
 
-  const client = new Client({ connectionString: withSslWhenRemote(ADMIN_URL) });
+  const client = new Client(conexionPostgres(ADMIN_URL));
   await client.connect();
 
   let avisados = 0;

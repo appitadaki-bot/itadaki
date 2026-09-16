@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { TRIAL_DAYS, describeSubscription, trialEndFor } from '@itadaki/identity/domain';
 import { Client } from 'pg';
-import { withSslWhenRemote } from './db-url';
+import { conexionPostgres } from './db-url';
 
 /**
  * Trial administration, until there is billing.
@@ -31,7 +31,7 @@ const LABELS: Record<string, string> = {
 
 async function main(): Promise<void> {
   const [command, slug, amount] = process.argv.slice(2);
-  const client = new Client({ connectionString: withSslWhenRemote(ADMIN_URL) });
+  const client = new Client(conexionPostgres(ADMIN_URL));
   await client.connect();
 
   try {

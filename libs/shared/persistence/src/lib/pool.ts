@@ -3,6 +3,13 @@ import { Pool, type PoolClient } from 'pg';
 export interface DatabaseConfig {
   readonly connectionString: string;
   readonly maxConnections?: number;
+  /**
+   * La CA contra la que verificar, cuando el proveedor firma con una propia.
+   *
+   * Va por acá y no en la cadena porque `pg` descarta este objeto si la cadena
+   * trae `sslmode`: quien la arma tiene que sacarlo.
+   */
+  readonly ssl?: { readonly ca: string };
 }
 
 /**
@@ -18,6 +25,7 @@ export class Database {
   constructor(config: DatabaseConfig) {
     this.pool = new Pool({
       connectionString: config.connectionString,
+      ...(config.ssl === undefined ? {} : { ssl: config.ssl }),
       // Row locks mean a busy table's writes queue while holding a connection,
       // so the pool has to be wider than the number of diners who might tap at
       // once. A full pool otherwise stalls requests that touch other tables.

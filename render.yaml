@@ -42,6 +42,19 @@ services:
       - key: DATABASE_URL
         sync: false
 
+      # El certificado raíz de Supabase, en PEM.
+      #
+      # Firma con una CA propia, que Node no trae: sin esto el handshake falla
+      # con SELF_SIGNED_CERT_IN_CHAIN. Se baja del panel de Supabase, en
+      # Settings → Database → SSL Configuration.
+      #
+      # Con esta variable se verifica contra esa CA en vez de contra las de
+      # fábrica. Se cambia contra quién se verifica, no si: apagar la
+      # comprobación cifraría la conexión sin saber con quién se está hablando,
+      # y del otro lado están los pedidos y las cuentas.
+      - key: DATABASE_CA_CERT
+        sync: false
+
       # Los dominios que pueden llamar a esta API, separados por coma. Sin
       # esto el navegador bloquea las llamadas: la página carga y no puede
       # hacer nada, y el error que se ve dice "sin conexión" aunque la red
