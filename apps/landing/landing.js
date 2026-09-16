@@ -210,19 +210,20 @@
     }, 4000);
   }
 
-  /* ── La marca del hero, en tres tiempos ── */
+  /* ── La marca del hero: llega el plato y caen las letras ── */
   const marca = document.querySelector('.marca-armado');
   const heroMarca = marca?.closest('.marca-hero') ?? null;
 
   if (marca !== null && heroMarca !== null) {
-    const piezas = [...marca.querySelectorAll('img')];
+    const imagenes = [...marca.querySelectorAll('img')];
 
     /*
-     * Recién se cambia el texto por las imágenes cuando las tres cargaron.
+     * Se cambia el texto por la marca armada recién cuando las imágenes
+     * cargaron. La palabra es texto y no necesita esperar a nada, pero el
+     * plato sí: sin él la marca entraría coja.
      *
-     * Si una falla —o si la conexión se corta a mitad— la palabra escrita se
-     * queda, que es lo que hace que el hero nunca aparezca vacío. `complete`
-     * cubre las que ya estaban en caché cuando corre esto.
+     * Si una falla —o si el script no corre— queda la palabra escrita del
+     * fallback y el hero nunca aparece vacío.
      */
     const cargada = (img) =>
       img.complete
@@ -232,15 +233,44 @@
             img.addEventListener('error', () => listo(false), { once: true });
           });
 
-    void Promise.all(piezas.map(cargada)).then((estados) => {
+    void Promise.all(imagenes.map(cargada)).then((estados) => {
       if (!estados.every(Boolean)) return;
 
       heroMarca.classList.add('marca-lista');
       if (quieto) return;
 
-      // `anima-marca` esconde las piezas; `corre` las trae. En dos cuadros
-      // distintos porque aplicar el estado inicial y el final en el mismo
-      // hace que el navegador no vea el cambio y aparezca todo de golpe.
+      /*
+       * Cada letra arranca un poco después que la anterior, y la campanita
+       * cae cuando su letra ya se asentó.
+       *
+       * El escalonado se calcula acá y no en el CSS porque depende de
+       * cuántas letras hay: escrito a mano habría que tocarlo el día que
+       * cambie el nombre.
+       */
+      const PLATO = 240;
+      const ENTRE = 72;
+      const letras = [...marca.querySelectorAll('.letra')];
+
+      for (const [i, letra] of letras.entries()) {
+        letra.style.animationDelay = `${PLATO + i * ENTRE}ms`;
+      }
+
+      /*
+       * La "a" se sirve en orden: primero el plato, después cae la letra y
+       * al final la campanita la tapa.
+       *
+       * El plato se adelanta a su letra —tiene que estar puesto antes de que
+       * caiga— y la campanita llega cuando la letra ya se asentó.
+       */
+      const suLetra = letras.findIndex((l) => l.classList.contains('letra-a'));
+      const cuando = PLATO + Math.max(0, suLetra) * ENTRE;
+
+      const plato = marca.querySelector('.marca-plato');
+      if (plato !== null) plato.style.animationDelay = `${Math.max(0, cuando - 160)}ms`;
+
+      const campanita = marca.querySelector('.marca-campanita');
+      if (campanita !== null) campanita.style.animationDelay = `${cuando + 300}ms`;
+
       marca.classList.add('anima-marca');
       requestAnimationFrame(() => marca.classList.add('corre'));
     });

@@ -253,9 +253,35 @@
     <p class="marca-hero">
       <span class="marca-armado" aria-hidden="true">
         <img class="marca-iso" src="./itadaki-isotipo.png" alt="" width="512" height="512" />
+        <!--
+          La palabra es texto, no una imagen.
+
+          El logo usa Unbounded 800, que la página ya carga: escrita con la
+          tipografía queda idéntica, nítida a cualquier tamaño, y cada letra
+          se puede animar sola. Recortarla en siete PNG era la otra opción y
+          no había por dónde: las letras se tocan, y los únicos cortes
+          posibles pasaban por encima de la tinta.
+
+          La campanita vive adentro de la segunda "a" — es su tapa, así que
+          tiene que moverse con ella y no con la palabra entera.
+        -->
         <span class="marca-palabra">
-          <img src="./hero-palabra.png" alt="" width="1089" height="338" />
-          <img class="marca-campanita" src="./hero-campanita.png" alt="" width="167" height="130" />
+          <span class="letra">i</span>
+          <span class="letra">t</span>
+          <span class="letra">a</span>
+          <span class="letra">d</span>
+          <!--
+            La "a" servida: el plato abajo, la letra encima y la campanita
+            arriba. Son tres piezas separadas y no una sola imagen, porque la
+            letra tiene que quedar en el medio — con el plato y la campanita
+            pegados, los dos caían juntos por encima y no se leía la idea.
+          -->
+          <span class="letra letra-a"
+            ><img class="marca-plato" src="./hero-plato.png" alt="" width="405" height="55" />a<img
+            class="marca-campanita" src="./hero-campanita.png" alt="" width="167" height="130"
+          /></span>
+          <span class="letra">k</span>
+          <span class="letra">i</span>
         </span>
       </span>
       <span class="marca-texto">Itadaki</span>

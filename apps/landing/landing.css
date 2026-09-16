@@ -628,9 +628,12 @@ strong { color: var(--tinta); font-weight: 700; }
 .pregunta p { margin: 0 0 1.2rem; font-size: 0.93rem; color: var(--tinta-media); }
 
 /* ── Pie ── */
-.pie { padding: 2.5rem 0 3.5rem; border-top: 1px solid var(--borde); }
+/* Centrado: es el cierre de la página, no una columna de datos. */
+.pie { padding: 2.5rem 0 3.5rem; border-top: 1px solid var(--borde); text-align: center; }
 .pie-nota { margin: 0 0 1rem; font-size: 0.9rem; color: var(--tinta-suave); }
-.pie-links { display: flex; flex-wrap: wrap; gap: 1.5rem; }
+/* `justify-content` y no sólo `text-align`: los enlaces son un flex y el
+   centrado del texto no los mueve. */
+.pie-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.5rem; }
 .pie-links a { color: var(--acento); font-size: 0.9rem; text-decoration: none; }
 .pie-links a:hover { text-decoration: underline; }
 .pie-wa { font-weight: 700; }
@@ -857,14 +860,34 @@ strong { color: var(--tinta); font-weight: 700; }
  * diferencia las dos se leen como alternativas iguales, y la gratis gana
  * siempre por ser gratis.
  */
-.planes { margin-top: 2.5rem; align-items: start; }
+/*
+ * Las dos cards miden lo mismo.
+ *
+ * Con `align-items: start` cada una medía su propio contenido, y la de
+ * Prueba —que tiene una viñeta menos y no lleva el precio tachado— quedaba
+ * visiblemente más corta al lado de la de Pro. `stretch` las empareja; el
+ * espacio que sobra queda abajo, que es preferible a dos cajas desparejas.
+ */
+.planes { margin-top: 2.5rem; align-items: stretch; }
 
 .plan {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
   padding: 1.75rem 1.5rem;
+  /* Se estira a lo que mida la fila, no a su contenido. */
+  height: 100%;
 }
+
+/*
+ * El hueco va justo antes del botón.
+ *
+ * Empujar desde la lista no alcanza: la card de Pro tiene el precio tachado
+ * y la promo después de las viñetas, y la de Prueba no, así que el sobrante
+ * caía en lugares distintos y los botones quedaban desalineados. Desde el
+ * botón, en cambio, los dos terminan apoyados abajo.
+ */
+
 
 /* ── Acompañamiento y trabajo a medida ──
  *
@@ -1024,9 +1047,18 @@ strong { color: var(--tinta); font-weight: 700; }
   list-style: none;
   display: grid;
   gap: 0.6rem;
-  /* Empuja el botón al pie: con listas de largo distinto, los dos botones
-     quedaban a alturas distintas y la comparación se hacía difícil. */
-  flex-grow: 1;
+  /*
+   * La lista mide lo suyo y no se estira.
+   *
+   * Antes crecía para empujar el botón al pie, y eso alcanzaba mientras las
+   * cards medían cada una su contenido. Ahora que las dos miden lo mismo, el
+   * sobrante caía acá adentro y la grilla lo repartía entre los renglones:
+   * las viñetas de la card corta quedaban al doble de distancia que las de
+   * la otra. Del botón se ocupa `.plan .plan-btn`, que ya tiene su
+   * `margin-top: auto` — el hueco se junta ahí, que es donde no se nota.
+   */
+  flex-grow: 0;
+  align-content: start;
 }
 
 .plan-items li {
@@ -1207,63 +1239,140 @@ strong { color: var(--tinta); font-weight: 700; }
 }
 
 .marca-armado .marca-iso {
-  height: clamp(2.6rem, 9.5vw, 5.8rem);
+  /*
+   * Más alto que el `font-size` de la palabra a propósito: ese número es el
+   * cuerpo de la tipografía, no lo que mide una letra. Igualándolos el plato
+   * se veía chico al lado del texto.
+   */
+  height: clamp(3.4rem, 10.2vw, 7.2rem);
   width: auto;
-}
-
-/* La palabra ancla a la campanita: posición relativa y medidas en porcentaje
-   para que las dos escalen juntas en cualquier ancho. */
-.marca-palabra {
-  position: relative;
-  display: block;
-  height: clamp(2.1rem, 7.6vw, 4.7rem);
-}
-
-.marca-palabra > img:first-child {
-  display: block;
-  height: 100%;
-  width: auto;
-}
-
-.marca-campanita {
-  position: absolute;
-  left: 58.77%;
-  top: 0.89%;
-  width: 15.335%;
-  height: auto;
 }
 
 /*
- * Los tres tiempos.
+ * La palabra, escrita con la tipografía de la marca.
  *
- * Sin la clase `anima` todo está visible: si el script no corre, la marca se
- * ve entera y quieta, que es lo correcto.
+ * `align-items: baseline` no sirve acá: cada letra se anima por separado y
+ * la línea de base se movería con ellas. Con `flex-end` y una altura fija
+ * quedan apoyadas aunque una esté a mitad de camino.
+ */
+.marca-palabra {
+  display: inline-flex;
+  align-items: flex-end;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(2.6rem, 9.4vw, 5.8rem);
+  line-height: 0.82;
+  letter-spacing: -0.045em;
+  color: var(--tinta);
+}
+
+/*
+ * `inline-block` para que `transform` funcione: sobre un elemento en línea
+ * el navegador lo ignora, y las letras no se moverían.
+ */
+.letra {
+  display: inline-block;
+  transform-origin: 50% 100%;
+}
+
+/* La "a" de la campanita: su tapa va anclada acá, no a la palabra entera. */
+.letra-a { position: relative; }
+
+/*
+ * La "a" servida: plato abajo, letra en el medio, campanita arriba.
+ *
+ * Las tres medidas salen de la letra —por eso van en porcentaje— así que el
+ * conjunto escala solo en cualquier pantalla. Las dos imágenes se sacan del
+ * flujo con `position: absolute` para que no muevan la línea de base: si
+ * empujaran, la "a" quedaría más alta que el resto de la palabra.
+ */
+.marca-campanita,
+.marca-plato {
+  position: absolute;
+  left: 50%;
+  height: auto;
+  transform: translateX(-50%);
+}
+
+/* Arriba, apoyada sobre el borde de la letra sin taparla. */
+.marca-campanita {
+  bottom: 74%;
+  width: 84%;
+}
+
+/*
+ * Abajo, como la bandeja donde está servida.
+ *
+ * Detrás de la letra: la "a" tiene que leerse entera y el plato asomar por
+ * los costados, que es más ancho. Sin el `z-index` el plato se dibuja encima
+ * y le come el pie a la letra.
+ */
+.marca-plato {
+  top: 97%;
+  /*
+   * El ancho sale del logo y no a ojo: ahí el plato mide 1.24 veces la
+   * cúpula, y la campanita del hero está al 84% de la letra. Dibujarlo por mi
+   * cuenta fue el error anterior — quedaba enorme y no era el del logo.
+   */
+  width: 104%;
+  z-index: -1;
+}
+
+/*
+ * Los tiempos.
+ *
+ * Sin `anima-marca` está todo visible y quieto: si el script no corre, la
+ * marca se ve entera, que es lo correcto.
  */
 .anima-marca .marca-iso,
-.anima-marca .marca-palabra > img:first-child,
+.anima-marca .letra,
+.anima-marca .marca-plato,
 .anima-marca .marca-campanita {
   opacity: 0;
 }
 
+/* El plato entra rápido desde el costado, como si lo trajeran. */
 .anima-marca.corre .marca-iso {
-  animation: marca-entra 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: plato-llega 620ms cubic-bezier(0.22, 1.2, 0.36, 1) forwards;
 }
 
-.anima-marca.corre .marca-palabra > img:first-child {
-  animation: marca-entra 520ms cubic-bezier(0.16, 1, 0.3, 1) 260ms forwards;
+/*
+ * Las letras caen de a una y rebotan. El retraso lo pone el script, que es
+ * quien sabe cuántas son — escribirlo acá obliga a tocar el CSS el día que
+ * cambie el nombre.
+ */
+.anima-marca.corre .letra {
+  animation: letra-cae 480ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* La campanita cae y se asienta: es el golpe final, por eso el rebote. */
+/* El plato se apoya primero: es la base sobre la que cae la letra. */
+.anima-marca.corre .marca-plato {
+  animation: plato-apoya 420ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* La campanita es el golpe final: cae después de su letra. */
 .anima-marca.corre .marca-campanita {
-  animation: campanita-cae 460ms cubic-bezier(0.34, 1.56, 0.64, 1) 620ms forwards;
+  animation: campanita-cae 440ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-@keyframes marca-entra {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes plato-llega {
+  from { opacity: 0; transform: translateX(-120%) rotate(-12deg); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: translateX(0) rotate(0); }
+}
+
+@keyframes letra-cae {
+  from { opacity: 0; transform: translateY(-85%) scale(0.88); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes plato-apoya {
+  from { opacity: 0; transform: translateX(-50%) translateY(60%) scale(0.9); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 
 @keyframes campanita-cae {
-  from { opacity: 0; transform: translateY(-42%) scale(0.86); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateX(-50%) translateY(-70%) scale(0.82); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
