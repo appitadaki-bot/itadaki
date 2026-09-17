@@ -165,7 +165,7 @@ import { AuthStore } from './auth.store';
              existe. El servidor tampoco se lo aceptaría.
              En el panel se conserva: ahí el PIN se enciende por el tramo de
              la URL, y el dueño tiene que poder volver a su mail. -->
-        @if (allowSignUp()) {
+        @if (entraConMail()) {
           <p class="switch">
             <button type="button" class="link" (click)="conPin.set(false)">
               Entrar con mail y contraseña
@@ -173,29 +173,6 @@ import { AuthStore } from './auth.store';
           </p>
         }
       </form>
-      } @else if (mailMandado()) {
-      <!-- El alta salió y lo que falta está en la casilla.
-           Reemplaza al formulario en vez de ponerse encima: dejar los campos
-           invitaría a intentar de nuevo creyendo que no funcionó.
-
-           Dice lo mismo tenga o no cuenta ese mail, que es justamente lo que
-           impide averiguar qué direcciones están registradas. Quien ya tenía
-           cuenta recibe un aviso distinto en su casilla. -->
-      <section class="card">
-        <header class="head">
-          <p class="eyebrow">{{ context() }}</p>
-          <h1 class="title">Revisá tu mail</h1>
-          <p class="lede">
-            Te mandamos un link a <strong>{{ email() }}</strong> para entrar a tu
-            restaurante. Si no lo ves, mirá en spam.
-          </p>
-        </header>
-        <p class="switch">
-          <button type="button" class="link" (click)="volverAEmpezar()">
-            Usar otro mail
-          </button>
-        </p>
-      </section>
       } @else {
       <form class="card" (submit)="submit($event)">
         <header class="head">
@@ -208,30 +185,8 @@ import { AuthStore } from './auth.store';
           <img class="marca-iso" src="itadaki-isotipo.png" alt="" width="48" height="48" />
           <p class="eyebrow">{{ context() }}</p>
           <h1 class="title">ITADAKI</h1>
-          <p class="lede">
-            {{
-              registering()
-                ? 'Creá la cuenta de tu restaurante. Es gratis y toma un minuto.'
-                : 'Ingresá con tu cuenta del restaurante.'
-            }}
-          </p>
+          <p class="lede">Ingresá con tu cuenta del restaurante.</p>
         </header>
-
-        @if (registering()) {
-          <label class="field">
-            <span>Nombre del restaurante</span>
-            <input
-              name="restaurant"
-              type="text"
-              autocomplete="organization"
-              maxlength="60"
-              required
-              placeholder="Ej: Parrilla Don José"
-              [value]="restaurant()"
-              (input)="onRestaurant($event)"
-            />
-          </label>
-        }
 
         <label class="field">
           <span>Email</span>
@@ -250,14 +205,11 @@ import { AuthStore } from './auth.store';
           <input
             name="password"
             type="password"
-            [attr.autocomplete]="registering() ? 'new-password' : 'current-password'"
+            autocomplete="current-password"
             required
             [value]="password()"
             (input)="onPassword($event)"
           />
-          @if (registering()) {
-            <small class="hint">Mínimo 8 caracteres</small>
-          }
         </label>
 
         @if (resetSent()) {
@@ -274,41 +226,22 @@ import { AuthStore } from './auth.store';
           {{ busyLabel() }}
         </button>
 
-        @if (!registering()) {
-          <button
-            type="button"
-            class="link forgot"
-            [disabled]="auth.busy()"
-            (click)="forgot()"
-          >
-            Olvidé mi contraseña
-          </button>
-        }
+        <button
+          type="button"
+          class="link forgot"
+          [disabled]="auth.busy()"
+          (click)="forgot()"
+        >
+          Olvidé mi contraseña
+        </button>
 
         @if (googleClientId(); as clientId) {
           <div class="divider"><span>o</span></div>
           <div class="google-slot" #googleSlot></div>
-          @if (needsRestaurant()) {
-            <p class="notice" role="status">
-              Es tu primera vez acá. Escribí el nombre de tu restaurante arriba y
-              volvé a tocar el botón de Google.
-            </p>
-          }
         }
 
-        @if (allowSignUp()) {
-        <p class="switch">
-          @if (registering()) {
-            ¿Ya tenés cuenta?
-            <button type="button" class="link" (click)="setMode(false)">Entrar</button>
-          } @else {
-            ¿Todavía no tenés cuenta?
-            <button type="button" class="link" (click)="setMode(true)">
-              Registrá tu restaurante
-            </button>
-          }
-        </p>
-        }
+        <!-- Sin link para registrarse: las cuentas las damos de alta
+             nosotros, con la carta y las mesas ya cargadas. -->
       </form>
       }
     </main>
@@ -318,23 +251,19 @@ export class LoginComponent {
   /** Shown above the title, e.g. "Administración" or "Cocina". */
   readonly context = input('Acceso del personal');
 
-  /** Hidden where signing up makes no sense, e.g. the kitchen display. */
-  readonly allowSignUp = input(true);
+  /**
+   * Si se puede entrar con mail y contraseña, además del PIN.
+   *
+   * Sí en el panel del dueño, no en el salón ni en la cocina: ahí entra el
+   * equipo, con usuario y PIN. Se llamaba `allowSignUp` porque además mostraba
+   * el link para registrarse, y cuando el alta dejó de estar abierta quedó
+   * haciendo sólo esto — con un nombre que prometía otra cosa.
+   */
+  readonly entraConMail = input(true);
 
   protected readonly auth = inject(AuthStore);
   protected readonly email = signal('');
   protected readonly password = signal('');
-  protected readonly restaurant = signal('');
-  protected readonly registering = signal(false);
-
-  /**
-   * El alta salió y hay un mail en camino.
-   *
-   * Reemplaza al formulario en vez de ponerse encima: lo que hay que hacer
-   * ahora está en la casilla, no en esta pantalla, y dejar los campos
-   * invitaría a intentar de nuevo creyendo que no funcionó.
-   */
-  protected readonly mailMandado = signal(false);
 
   /** La contraseña repetida, para no quedar afuera por un error de tipeo. */
   protected readonly repetida = signal('');
@@ -349,7 +278,6 @@ export class LoginComponent {
     () => this.repetida() !== '' && this.password() !== this.repetida(),
   );
   protected readonly resetSent = signal(false);
-  protected readonly needsRestaurant = signal(false);
   protected readonly googleClientId = signal<string | null>(null);
   /** 'reset' when the page was opened from a reset link. */
   protected readonly mode = signal<'auth' | 'reset'>('auth');
@@ -446,11 +374,11 @@ export class LoginComponent {
      * falta para entrar: "nico" identifica a una persona, y si trabaja en
      * varios lugares elige después de poner el PIN.
      *
-     * Se decide por `allowSignUp`, que ya distingue las apps del personal del
-     * panel del dueño: donde no se puede registrar un restaurante, quien entra
-     * es alguien del equipo.
+     * Se decide por `entraConMail`, que distingue las apps del personal del
+     * panel del dueño: donde no se entra con mail, quien entra es alguien del
+     * equipo.
      */
-    if (!this.allowSignUp()) {
+    if (!this.entraConMail()) {
       this.conPin.set(true);
     }
 
@@ -501,10 +429,7 @@ export class LoginComponent {
    * dejarlo en una pantalla rota.
    */
   private async verificarElMail(token: string): Promise<void> {
-    const entro = await this.auth.verificarMail(token);
-    if (!entro) {
-      this.mailMandado.set(false);
-    }
+    await this.auth.verificarMail(token);
   }
 
   /**
@@ -541,18 +466,8 @@ export class LoginComponent {
   }
 
   private async onGoogleCredential(idToken: string): Promise<void> {
-    const restaurant = this.restaurant().trim();
-    const result = await this.auth.signInWithGoogle(
-      idToken,
-      restaurant === '' ? undefined : restaurant,
-    );
-
-    if (result === 'needs-restaurant') {
-      // First time with this address: switch to the signup form so the
-      // restaurant field is visible, and say why.
-      this.registering.set(true);
-      this.needsRestaurant.set(true);
-    }
+    // Un mail sin cuenta vuelve con el aviso en `auth.error`: no hay alta acá.
+    await this.auth.signInWithGoogle(idToken);
   }
 
   protected async forgot(): Promise<void> {
@@ -590,21 +505,11 @@ export class LoginComponent {
   }
 
   protected filled(): boolean {
-    const credentials = this.email().trim() !== '' && this.password() !== '';
-    return this.registering() ? credentials && this.restaurant().trim() !== '' : credentials;
+    return this.email().trim() !== '' && this.password() !== '';
   }
 
   protected busyLabel(): string {
-    if (this.auth.busy()) return this.registering() ? 'Creando…' : 'Entrando…';
-    return this.registering() ? 'Crear mi restaurante' : 'Entrar';
-  }
-
-  protected setMode(registering: boolean): void {
-    this.registering.set(registering);
-    this.resetSent.set(false);
-    this.needsRestaurant.set(false);
-    // An error from the other mode would read as a comment on this one.
-    this.auth.error.set(null);
+    return this.auth.busy() ? 'Entrando…' : 'Entrar';
   }
 
   protected onEmail(event: Event): void {
@@ -619,31 +524,11 @@ export class LoginComponent {
     this.password.set((event.target as HTMLInputElement).value);
   }
 
-  protected onRestaurant(event: Event): void {
-    this.restaurant.set((event.target as HTMLInputElement).value);
-  }
-
-  /** Vuelve al formulario, para quien se equivocó de dirección. */
-  protected volverAEmpezar(): void {
-    this.mailMandado.set(false);
-    this.password.set('');
-  }
 
   protected async submit(event: Event): Promise<void> {
     event.preventDefault();
     if (!this.filled() || this.auth.busy()) return;
 
-    if (this.registering()) {
-      const salio = await this.auth.signUp(
-        this.restaurant().trim(),
-        this.email().trim(),
-        this.password(),
-      );
-      // El alta ya no entra al panel: se entra por el link del mail. Eso es lo
-      // que permite que el servidor conteste igual tenga o no cuenta ese mail.
-      if (salio) this.mailMandado.set(true);
-      return;
-    }
     await this.auth.signIn(this.email().trim(), this.password());
   }
 }

@@ -99,12 +99,6 @@ export class AuthStore {
   }
 
   /**
-   * Registers a restaurant and signs its owner straight in.
-   *
-   * The server returns a session with the account, so there is no reason to
-   * bounce someone who just typed their password back to a login form.
-   */
-  /**
    * Confirma el mail del link y deja al dueño adentro.
    *
    * Es el momento en que alguien probó que la casilla es suya, y desde que el
@@ -133,50 +127,6 @@ export class AuthStore {
       this.token.set(sesion.token);
       this.profile.set(sesion.user);
       localStorage.setItem(STORAGE_KEY, sesion.token);
-      return true;
-    } catch {
-      this.error.set('No pudimos conectar con el servidor');
-      return false;
-    } finally {
-      this.busy.set(false);
-    }
-  }
-
-  async signUp(restaurant: string, email: string, password: string): Promise<boolean> {
-    this.busy.set(true);
-    this.error.set(null);
-
-    try {
-      const response = await fetch(`${this.baseUrl}/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ restaurant, email, password }),
-      });
-
-      if (!response.ok) {
-        const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
-        this.error.set(
-          detail?.kind === 'PASSWORD_TOO_SHORT'
-              ? 'La contraseña necesita al menos 8 caracteres'
-              : detail?.kind === 'PASSWORD_TOO_COMMON'
-                ? 'Esa contraseña es de las primeras que prueban; elegí otra'
-              : detail?.kind === 'INVALID_EMAIL'
-                ? 'Revisá el email'
-                : detail?.kind === 'NAME_TOO_SHORT' || detail?.kind === 'NAME_NOT_USABLE'
-                  ? 'Poné el nombre del restaurante'
-                  : 'No pudimos crear la cuenta',
-        );
-        return false;
-      }
-
-      /*
-       * El alta ya no inicia sesión: se entra por el link del mail.
-       *
-       * Es lo que permite que el servidor conteste igual para un mail libre y
-       * para uno que ya tiene cuenta. Antes, entrar directo sólo en el primer
-       * caso delataba cuál era cuál, y con eso se podía recorrer una lista de
-       * direcciones para saber qué restaurantes usan Itadaki.
-       */
       return true;
     } catch {
       this.error.set('No pudimos conectar con el servidor');
@@ -269,29 +219,27 @@ export class AuthStore {
   /**
    * Exchanges a Google ID token for a session.
    *
-   * `needsRestaurant` means the address is new and the caller has to ask for a
-   * restaurant name before trying again.
+   * Un mail sin cuenta no se da de alta solo: las cuentas las crea el equipo
+   * de Itadaki, así que es alguien que todavía no es cliente.
    */
-  async signInWithGoogle(
-    idToken: string,
-    restaurant?: string,
-  ): Promise<'ok' | 'needs-restaurant' | 'failed'> {
+  async signInWithGoogle(idToken: string): Promise<'ok' | 'failed'> {
     this.busy.set(true);
     this.error.set(null);
     try {
       const response = await fetch(`${this.baseUrl}/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(restaurant === undefined ? { idToken } : { idToken, restaurant }),
+        body: JSON.stringify({ idToken }),
       });
 
       if (!response.ok) {
         const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
-        if (detail?.kind === 'NEEDS_RESTAURANT') return 'needs-restaurant';
         this.error.set(
-          detail?.kind === 'GOOGLE_NOT_CONFIGURED'
-            ? 'El acceso con Google no está configurado'
-            : 'No pudimos entrar con Google',
+          detail?.kind === 'SIN_CUENTA'
+            ? 'Ese mail no tiene cuenta en Itadaki. Escribinos y te damos de alta.'
+            : detail?.kind === 'GOOGLE_NOT_CONFIGURED'
+              ? 'El acceso con Google no está configurado'
+              : 'No pudimos entrar con Google',
         );
         return 'failed';
       }

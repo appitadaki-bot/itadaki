@@ -1,13 +1,10 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Post } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
 import {
   type Role,
   describeSubscription,
   normaliseEmail,
   entraConMail,
   permissionsOf,
-  prepareTenant,
-  uniqueSlug,
   validateCredentials,
   validatePassword,
   estaTrabada,
@@ -21,7 +18,6 @@ import {
   RESET_TOKEN_MINUTES,
   digestDeVerificacion,
   digestOf,
-  mailDeIntentoDeAlta,
   mailDeVerificacion,
   nuevoTokenDeVerificacion,
   hashPassword,
@@ -166,27 +162,6 @@ export class AuthController {
    * have an account. It returns a session so signing up lands the owner
    * straight in the panel rather than at a login form.
    */
-  /**
-   * Le avisa al dueño que alguien intentó anotarse con su mail.
-   *
-   * Sin link de acción: un mail que llega sin que uno lo pidiera y trae un
-   * botón es la forma de todo phishing, y acá no hay nada que hacer — la
-   * cuenta sigue como estaba. Lleva la dirección del panel, que es la que el
-   * dueño ya conoce.
-   *
-   * Su fallo no se propaga: la respuesta al que intentó anotarse tiene que ser
-   * la misma pase lo que pase, o el tiempo que tarda vuelve a delatar cuál de
-   * los dos caminos se tomó.
-   */
-  private async avisarDelIntento(email: string): Promise<void> {
-    try {
-      const { subject, body } = mailDeIntentoDeAlta(ADMIN_APP_URL);
-      await this.resets.mailer.send({ to: email, subject, body });
-    } catch (error) {
-      log.error('no se pudo avisar del intento de alta', { detail: String(error) });
-    }
-  }
-
   /**
    * Manda el link de verificación.
    *
@@ -680,101 +655,18 @@ export class AuthController {
     };
   }
 
-  @Public()
-  @RateLimit('signUp')
-  @Post('signup')
-  async signUp(@Body() body: unknown) {
-    const parsed = z
-      .object({
-        restaurant: z.string().min(1).max(80),
-        email: z.string().min(1).max(120),
-        password: z.string().min(1).max(200),
-        displayName: z.string().min(1).max(60).optional(),
-      })
-      .safeParse(body);
-    if (!parsed.success) {
-      throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
-    }
-
-    const named = prepareTenant(parsed.data.restaurant);
-    if (named.isErr()) {
-      throw new HttpException(named.error, HttpStatus.BAD_REQUEST);
-    }
-
-    const checked = validateCredentials(parsed.data.email, parsed.data.password);
-    if (checked.isErr()) {
-      throw new HttpException(checked.error, HttpStatus.BAD_REQUEST);
-    }
-
-    const taken = await this.tenants.store.takenSlugs(named.value.slug);
-    if (taken.isErr()) {
-      throw new HttpException(taken.error, HttpStatus.BAD_GATEWAY);
-    }
-    const slug = uniqueSlug(named.value.slug, taken.value);
-
-    const created = await this.tenants.store.signUp({
-      // Slug doubles as the id: it is already unique and stays readable in logs.
-      tenantId: slug,
-      name: named.value.name,
-      slug,
-      currency: 'ARS',
-      staff: {
-        id: crypto.randomUUID(),
-        email: checked.value.email,
-        displayName: parsed.data.displayName?.trim() ?? checked.value.email.split('@')[0] ?? 'dueño',
-        passwordHash: await hashPassword(checked.value.password),
-        role: 'OWNER',
-      },
-    });
-
-    /*
-     * Un mail ya registrado no se contesta distinto.
-     *
-     * Devolver "ese mail ya existe" deja recorrer una lista de direcciones y
-     * armar el padrón de qué restaurantes usan Itadaki y con qué mail — que es
-     * justo lo que hace falta para un phishing dirigido creíble.
-     *
-     * Callarse del todo tampoco sirve: si alguien está probando el mail de un
-     * dueño, ese dueño tiene derecho a enterarse. Así que la respuesta al que
-     * intenta es siempre la misma, y lo que cambia es el mail que llega.
-     */
-    if (created.isErr() && created.error.kind === 'EMAIL_TAKEN') {
-      void this.avisarDelIntento(checked.value.email);
-      return { creado: true };
-    }
-
-    if (created.isErr()) {
-      throw new HttpException(created.error, HttpStatus.BAD_GATEWAY);
-    }
-
-    // Sólo el local: el alta ya no arma la sesión del dueño, así que no hace
-    // falta la fila del usuario acá.
-    const { tenant } = created.value;
-
-    /*
-     * El mail de verificación sale acá, y su fallo no vuelca el alta.
-     *
-     * La cuenta ya está creada: si el proveedor de correo está caído, negarle
-     * la cuenta a alguien que hizo todo bien es peor que dejarla sin verificar
-     * — el mail se puede reenviar, y el alta no se puede rehacer con el mismo
-     * mail porque ya quedó tomado.
-     */
-    void this.mandarVerificacion(checked.value.email, tenant.name);
-
-    /*
-     * El alta no inicia sesión: se entra por el link del mail.
-     *
-     * Es lo que hace que la respuesta pueda ser idéntica para un mail libre y
-     * para uno que ya tiene cuenta. Devolver una sesión sólo en el primer caso
-     * delataba cuál era cuál —y con eso se recorre una lista de direcciones y
-     * se arma el padrón de qué restaurantes usan Itadaki—.
-     *
-     * De paso arregla algo que ya estaba mal: la cuenta quedaba usable sin que
-     * nadie hubiera probado que el mail era suyo, así que un tipeo en la
-     * dirección dejaba a un dueño con un restaurante que no puede recuperar.
-     */
-    return { creado: true };
-  }
+  /*
+   * No hay alta desde afuera.
+   *
+   * Existía `POST /auth/signup`, y entrar con Google con una cuenta nueva
+   * también creaba un restaurante. Los clientes los damos de alta nosotros:
+   * cargamos la carta y las mesas antes de que el dueño entre, así que una
+   * cuenta creada sola arrancaba vacía justo cuando le habíamos prometido lo
+   * contrario. Y esconder el link del panel no alcanzaba — cualquiera podía
+   * llamar al endpoint directo.
+   *
+   * El alta es `npm run alta:restaurante`.
+   */
 
   /** Lets the panel show or hide the Google button without guessing. */
   @Public()
@@ -801,8 +693,6 @@ export class AuthController {
     const parsed = z
       .object({
         idToken: z.string().min(1).max(4000),
-        /** Only used when the address has no account yet. */
-        restaurant: z.string().min(1).max(80).optional(),
       })
       .safeParse(body);
     if (!parsed.success) {
@@ -823,52 +713,14 @@ export class AuthController {
       return this.sessionFor(existing.value);
     }
 
-    // No account: this is a signup, and it needs a restaurant to create.
-    if (parsed.data.restaurant === undefined) {
-      throw new HttpException(
-        { kind: 'NEEDS_RESTAURANT', email: identity.email, name: identity.name },
-        HttpStatus.CONFLICT,
-      );
-    }
-
-    const named = prepareTenant(parsed.data.restaurant);
-    if (named.isErr()) {
-      throw new HttpException(named.error, HttpStatus.BAD_REQUEST);
-    }
-
-    const taken = await this.tenants.store.takenSlugs(named.value.slug);
-    if (taken.isErr()) {
-      throw new HttpException(taken.error, HttpStatus.BAD_GATEWAY);
-    }
-    const slug = uniqueSlug(named.value.slug, taken.value);
-
-    const created = await this.tenants.store.signUp({
-      tenantId: slug,
-      name: named.value.name,
-      slug,
-      currency: 'ARS',
-      staff: {
-        id: crypto.randomUUID(),
-        email: identity.email,
-        displayName: identity.name,
-        // Unguessable filler: this account signs in through Google, and a
-        // password reset is what turns on the email-and-password path.
-        passwordHash: await hashPassword(randomBytes(32).toString('base64url')),
-        role: 'OWNER',
-      },
-    });
-
-    if (created.isErr()) {
-      const status =
-        created.error.kind === 'EMAIL_TAKEN' ? HttpStatus.CONFLICT : HttpStatus.BAD_GATEWAY;
-      throw new HttpException(created.error, status);
-    }
-
-    const { tenant, owner } = created.value;
-    return {
-      ...this.sessionFor(owner),
-      restaurant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
-    };
+    /*
+     * Sin cuenta, no se crea una.
+     *
+     * Antes, con el nombre de un restaurante, esto lo daba de alta. Ahora las
+     * cuentas las crea el equipo de Itadaki, así que un mail de Google que no
+     * está registrado es alguien que todavía no es cliente.
+     */
+    throw new HttpException({ kind: 'SIN_CUENTA' }, HttpStatus.FORBIDDEN);
   }
 
   /** One place that mints a session, so every entry point issues the same shape. */

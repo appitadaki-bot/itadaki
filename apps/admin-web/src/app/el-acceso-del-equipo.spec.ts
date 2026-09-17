@@ -116,13 +116,13 @@ describe('el personal entra con usuario y PIN', () => {
   it('en las apps donde no se registra un restaurante', () => {
     // El salón y la cocina son del equipo: pedirles mail y contraseña los
     // dejaba trabados en un formulario que no pueden completar.
-    expect(LOGIN).toContain('if (!this.allowSignUp())');
+    expect(LOGIN).toContain('if (!this.entraConMail())');
   });
 
   it('sin depender de que el link traiga el local', () => {
     // El usuario es único en toda la base: identifica a la persona sin el
     // restaurante, y si trabaja en varios elige después de poner el PIN.
-    const bloque = LOGIN.slice(LOGIN.indexOf('if (!this.allowSignUp())'));
+    const bloque = LOGIN.slice(LOGIN.indexOf('if (!this.entraConMail())'));
     expect(bloque.slice(0, 120)).toContain('this.conPin.set(true)');
   });
 
