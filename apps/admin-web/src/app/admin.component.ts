@@ -134,11 +134,30 @@ const ROLE_NAMES: Record<string, string> = {
            lo único que se movía en una pantalla que no se mueve. -->
       <h1 class="title">Administración</h1>
       <div class="session">
+        <!--
+          Entrando como soporte, el restaurante va arriba de todo.
+          Sin esto la pantalla decía "Administración" y no había forma de
+          saber en qué local se estaba trabajando — con la carta vacía de un
+          cliente nuevo, era indistinguible de haber entrado al equivocado.
+        -->
+        @if (auth.profile()?.tenantNombre; as local) {
+          <span class="local-actual" title="Estás trabajando en este restaurante">
+            {{ local }}
+          </span>
+        }
         <span class="who">
           {{ auth.profile()?.displayName }}
           <em>{{ roleLabel() }}</em>
         </span>
-        <button type="button" class="signout" (click)="auth.signOut()">Salir</button>
+        @if (auth.profile()?.tenantNombre) {
+          <!-- Cambiar de local es salir: la sesión vale para uno solo, así
+               que volver a elegir es volver a entrar. -->
+          <button type="button" class="signout" (click)="auth.signOut()">
+            Cambiar de restaurante
+          </button>
+        } @else {
+          <button type="button" class="signout" (click)="auth.signOut()">Salir</button>
+        }
       </div>
     </header>
 

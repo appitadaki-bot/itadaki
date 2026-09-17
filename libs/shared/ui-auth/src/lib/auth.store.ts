@@ -5,6 +5,8 @@ export interface StaffProfile {
   readonly displayName: string;
   readonly role: string;
   readonly tenantId: string;
+  /** El nombre del restaurante. Sólo viene al entrar como soporte. */
+  readonly tenantNombre?: string;
   readonly permissions: readonly string[];
 }
 
@@ -70,7 +72,8 @@ export class AuthStore {
       return;
     }
 
-    const saved = localStorage.getItem(STORAGE_KEY);
+    // La de soporte primero: si está, es la de esta pestaña y manda.
+    const saved = sessionStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(STORAGE_KEY);
     if (saved === null) {
       this.ready.set(true);
       return;
@@ -400,7 +403,16 @@ export class AuthStore {
 
       this.token.set(respuesta.token);
       this.profile.set(respuesta.user);
-      localStorage.setItem(STORAGE_KEY, respuesta.token);
+      /*
+       * En `sessionStorage` y no en `localStorage`: la sesión de soporte
+       * muere al cerrar la pestaña.
+       *
+       * Guardada como las demás, al volver al panel caíamos dentro del
+       * último restaurante sin haberlo elegido —y sin saber cuál era—. Que
+       * haya que elegir cada vez es el punto: abrir el local de un cliente
+       * no puede pasar por tener una pestaña vieja abierta.
+       */
+      sessionStorage.setItem(STORAGE_KEY, respuesta.token);
       return true;
     } catch {
       this.error.set('No pudimos conectarnos');
@@ -519,6 +531,8 @@ export class AuthStore {
     this.token.set(null);
     this.profile.set(null);
     localStorage.removeItem(STORAGE_KEY);
+    // También la de soporte, o salir dejaría la pestaña dentro del local.
+    sessionStorage.removeItem(STORAGE_KEY);
   }
 
   can(permission: string): boolean {

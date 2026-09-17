@@ -140,3 +140,49 @@ describe('cuántas veces puede entrar soporte', () => {
     expect(usos).toHaveLength(2);
   });
 });
+
+/**
+ * Saber en qué restaurante se está trabajando.
+ *
+ * Entrando como soporte el panel decía "Administración" y nada más. Con un
+ * local nuevo —carta vacía— esa pantalla es indistinguible de haber entrado
+ * al equivocado.
+ */
+describe('en qué restaurante estoy', () => {
+  const PANEL = readFileSync(
+    join(process.cwd(), 'apps/admin-web/src/app/admin.component.ts'),
+    'utf-8',
+  );
+  const STORE = readFileSync(
+    join(process.cwd(), 'libs/shared/ui-auth/src/lib/auth.store.ts'),
+    'utf-8',
+  );
+
+  it('la API manda el nombre del local', () => {
+    const donde = CONTROLLER.indexOf('async entrarComoSoporte');
+    expect(CONTROLLER.slice(donde, donde + 3000)).toContain('tenantNombre:');
+  });
+
+  it('y el panel lo muestra', () => {
+    expect(PANEL).toContain('auth.profile()?.tenantNombre');
+    expect(PANEL).toContain('Cambiar de restaurante');
+  });
+
+  /**
+   * La sesión de soporte muere con la pestaña: guardada como las demás, al
+   * volver al panel se caía dentro del último local sin haberlo elegido.
+   */
+  it('la sesión de soporte no sobrevive a la pestaña', () => {
+    const donde = STORE.indexOf('async entrarComoSoporte');
+    const cuerpo = STORE.slice(donde, donde + 2500);
+    expect(cuerpo).toContain('sessionStorage.setItem');
+    expect(cuerpo).not.toContain('localStorage.setItem');
+  });
+
+  it('y salir limpia las dos', () => {
+    const donde = STORE.indexOf('signOut(): void');
+    const cuerpo = STORE.slice(donde, donde + 400);
+    expect(cuerpo).toContain('localStorage.removeItem');
+    expect(cuerpo).toContain('sessionStorage.removeItem');
+  });
+});

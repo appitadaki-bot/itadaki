@@ -371,6 +371,10 @@ export class AuthController {
         displayName: quien.value.displayName,
         role: quien.value.role,
         tenantId: parsed.data.local,
+        // El nombre y no sólo el identificador: entrando como soporte, el
+        // panel tiene que decir a qué restaurante se entró. Sin esto la
+        // pantalla dice "Administración" y no hay forma de saber cuál es.
+        tenantNombre: local.value.get(parsed.data.local),
         permissions: permissionsOf(quien.value.role),
       },
     };
