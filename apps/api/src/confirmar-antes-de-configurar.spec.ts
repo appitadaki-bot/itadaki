@@ -16,7 +16,9 @@ const CONTROLLER = readFileSync(join(__dirname, 'auth.controller.ts'), 'utf-8');
 
 describe('confirmar el mail antes de configurar', () => {
   it('el guard lo exige', () => {
-    expect(AUTH).toContain('puedeSinConfirmar(needed');
+    // Por el nombre y no por la llamada entera: partirla en varias líneas
+    // rompía este test sin que nada dejara de funcionar.
+    expect(AUTH).toContain('puedeSinConfirmar(');
     expect(AUTH).toContain('MAIL_SIN_CONFIRMAR');
   });
 
@@ -27,7 +29,7 @@ describe('confirmar el mail antes de configurar', () => {
    */
   it('y lo pregunta después del permiso', () => {
     const permiso = AUTH.indexOf("kind: 'FORBIDDEN'");
-    const confirma = AUTH.indexOf('puedeSinConfirmar(needed');
+    const confirma = AUTH.indexOf('!puedeSinConfirmar(');
     expect(permiso).toBeGreaterThan(-1);
     expect(confirma).toBeGreaterThan(permiso);
   });

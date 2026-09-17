@@ -18,6 +18,8 @@ import {
   canTakeOrders,
   puedeSinConfirmar,
   describeSubscription,
+  esDeSoporte,
+  TENANT_DE_SOPORTE,
 } from '@itadaki/identity/domain';
 import { peekTableToken, verifyToken, verifyTableToken } from '@itadaki/identity/infra';
 import {
@@ -214,8 +216,16 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException({ kind: 'INVALID_SESSION' });
     }
 
-    // Signed and unexpired is not the same as still working here.
-    if (!(await stillEmployed(payload.tenantId, payload.userId))) {
+    /*
+     * Signed and unexpired is not the same as still working here.
+     *
+     * La cuenta de soporte se busca en su propio local y no en el del token:
+     * su fila vive en `soporte`, y el token lleva el restaurante que está
+     * atendiendo. Buscarla donde apunta el token la daría por revocada
+     * siempre — que es exactamente lo que pasaba.
+     */
+    const dondeVive = esDeSoporte(payload.role) ? TENANT_DE_SOPORTE : payload.tenantId;
+    if (!(await stillEmployed(dondeVive, payload.userId))) {
       log.warn('acceso revocado', { tenantId: payload.tenantId, userId: payload.userId, path });
       throw new UnauthorizedException({ kind: 'ACCESS_REVOKED' });
     }
@@ -249,7 +259,13 @@ export class AuthGuard implements CanActivate {
      * cobrarlos siguen andando sin confirmar — un mail que no llegó no puede
      * dejar un restaurante sin sistema en medio de un sábado.
      */
-    if (!puedeSinConfirmar(needed, await tieneElMailConfirmado(payload.tenantId, payload.userId))) {
+    if (
+      !puedeSinConfirmar(
+        needed,
+        await tieneElMailConfirmado(dondeVive, payload.userId),
+        payload.role,
+      )
+    ) {
       log.warn('configuración sin el mail confirmado', {
         tenantId: payload.tenantId,
         userId: payload.userId,

@@ -14,6 +14,7 @@ import {
   nombreDeUsuario,
   pareceUnPin,
   trasElIntento,
+  esDeSoporte,
 } from '@itadaki/identity/domain';
 import {
   RESET_TOKEN_MINUTES,
@@ -284,6 +285,94 @@ export class AuthController {
     }
 
     return { verificado: true, ...this.sessionFor(quien.value) };
+  }
+
+  /**
+   * Entrar a un restaurante como soporte, para armarle la carta.
+   *
+   * La promesa del alta es "cuando entres, tu carta ya va a estar cargada", y
+   * eso exige entrar antes que el dueño. La alternativa era pedirle su
+   * contraseña: viajaría por WhatsApp, quedaría en dos historiales, y después
+   * nadie sabría si un precio lo cambió él o nosotros.
+   *
+   * El token que devuelve vale para **un solo** restaurante, el que se pide
+   * acá. No existe una sesión que valga para todos: el tenant sale del token
+   * firmado y eso es justamente lo que impide leer los datos de otro local
+   * editando la URL. Para entrar a dos, se piden dos.
+   *
+   * Requiere la contraseña en cada pedido, aunque ya haya sesión: es una
+   * llave maestra, y abrir un restaurante ajeno no puede ser algo que pase
+   * por tener una pestaña abierta.
+   */
+  @Public()
+  @RateLimit('login')
+  @Post('soporte')
+  async entrarComoSoporte(@Body() body: unknown) {
+    const parsed = z
+      .object({
+        email: z.string().min(1).max(120),
+        password: z.string().min(1).max(200),
+        local: z.string().min(1).max(80),
+      })
+      .safeParse(body);
+    if (!parsed.success) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const quien = await this.staff.store.findByEmail(normaliseEmail(parsed.data.email));
+    if (quien.isErr()) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const acerto = await verifyPassword(parsed.data.password, quien.value.passwordHash);
+
+    /*
+     * Se verifica la contraseña antes de mirar el rol, y se contesta lo mismo
+     * en los dos casos: responder distinto le diría a cualquiera qué cuentas
+     * son de soporte, que es justo la lista que alguien querría para atacar.
+     */
+    if (!acerto || !esDeSoporte(quien.value.role) || !quien.value.active) {
+      log.warn('intento de entrar como soporte', { email: parsed.data.email });
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const local = await this.tenants.store.nombresDe([parsed.data.local]);
+    if (local.isErr() || !local.value.has(parsed.data.local)) {
+      throw new HttpException({ kind: 'LOCAL_DESCONOCIDO' }, HttpStatus.NOT_FOUND);
+    }
+
+    // Queda en el log qué restaurante se abrió y quién: es una llave maestra,
+    // y su uso tiene que poder auditarse después.
+    log.info('soporte entró a un restaurante', {
+      tenantId: parsed.data.local,
+      userId: quien.value.id,
+    });
+
+    const expiresAt = Date.now() + SESSION_HOURS * 3_600_000;
+    const token = signToken(
+      {
+        userId: quien.value.id,
+        // El local que se pidió, no el de la cuenta de soporte.
+        tenantId: parsed.data.local,
+        role: quien.value.role,
+        displayName: quien.value.displayName,
+        expiresAt,
+      },
+      AUTH_SECRET,
+    );
+
+    return {
+      token,
+      expiresAt,
+      local: { id: parsed.data.local, nombre: local.value.get(parsed.data.local) },
+      user: {
+        id: quien.value.id,
+        displayName: quien.value.displayName,
+        role: quien.value.role,
+        tenantId: parsed.data.local,
+        permissions: permissionsOf(quien.value.role),
+      },
+    };
   }
 
   /**

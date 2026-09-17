@@ -1,4 +1,4 @@
-import { type Permission } from './role';
+import { type Permission, type Role, esDeSoporte } from './role';
 
 /**
  * Qué se puede hacer sin haber confirmado el mail.
@@ -30,8 +30,20 @@ export function necesitaMailConfirmado(permiso: Permission): boolean {
  * agregue mañana queda cubierta sola si pide `menu:write`, sin que nadie se
  * acuerde de sumarla a una lista.
  */
-export function puedeSinConfirmar(permiso: Permission | undefined, confirmado: boolean): boolean {
+export function puedeSinConfirmar(
+  permiso: Permission | undefined,
+  confirmado: boolean,
+  role?: Role,
+): boolean {
   if (confirmado) return true;
+  /*
+   * A soporte no se le pide confirmar nada.
+   *
+   * Es una cuenta nuestra, creada a mano contra la base: no hay ningún mail
+   * de restaurante que verificar, y exigírselo la dejaría inútil justo para
+   * lo único que existe — entrar antes que el dueño a cargarle la carta.
+   */
+  if (role !== undefined && esDeSoporte(role)) return true;
   if (permiso === undefined) return true;
   return !necesitaMailConfirmado(permiso);
 }

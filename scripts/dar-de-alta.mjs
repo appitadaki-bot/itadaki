@@ -93,39 +93,64 @@ console.log(seguir ? `\nRetomando: ${email}\n` : `\nDando de alta: ${nombre}\n`)
  * primera vez no se guardó en ningún lado, y así tiene que ser — una clave
  * escrita en un archivo es una clave filtrada.
  */
-const clave = seguir ? (process.env.CLAVE ?? '') : claveNueva();
-
-if (seguir && clave === '') {
-  console.error('  falta la contraseña: CLAVE="..." npm run alta -- --seguir ...');
-  process.exit(1);
-}
-
+/*
+ * La contraseña del cliente no la elegimos nosotros.
+ *
+ * El alta le manda un mail para que la elija él: ese clic es además la
+ * verificación. Nosotros entramos con la cuenta de soporte, que abre
+ * cualquier restaurante pero sólo puede tocar la carta.
+ */
 if (!seguir) {
   const alta = await pedir('/auth/signup', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ restaurant: nombre, email, password: clave }),
+    body: JSON.stringify({
+      restaurant: nombre,
+      email,
+      // Una clave al azar que nadie va a usar: el cliente elige la suya desde
+      // el mail. El alta la exige, así que va una imposible de adivinar.
+      password: claveNueva() + claveNueva(),
+    }),
   });
 
   if (!alta.ok) {
     console.error('  no se pudo crear la cuenta:', JSON.stringify(alta.datos).slice(0, 200));
     process.exit(1);
   }
-  console.log('  cuenta creada');
+  console.log('  cuenta creada · le llegó el mail para elegir su contraseña');
 }
 
-const entrada = await pedir('/auth/login', {
+const soporteMail = process.env.SOPORTE_MAIL;
+const soporteClave = process.env.SOPORTE_CLAVE;
+if (!soporteMail || !soporteClave) {
+  console.error(`
+  Falta la cuenta de soporte. Se crea una sola vez:
+
+    npm run db:soporte -- soporte@itadaki.app "<una clave larga>"
+
+  Y después:
+
+    SOPORTE_MAIL=soporte@itadaki.app SOPORTE_CLAVE="..." npm run alta -- ...
+`);
+  process.exit(1);
+}
+
+const tenant = nombre
+  ? nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  : (process.env.LOCAL ?? '');
+
+const entrada = await pedir('/auth/soporte', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, password: clave }),
+  body: JSON.stringify({ email: soporteMail, password: soporteClave, local: tenant }),
 });
 if (!entrada.ok || !entrada.datos?.token) {
-  console.error('  la cuenta se creó pero no pude entrar:', JSON.stringify(entrada.datos).slice(0, 200));
+  console.error('  no pude entrar como soporte:', JSON.stringify(entrada.datos).slice(0, 200));
   process.exit(1);
 }
 const token = entrada.datos.token;
-const tenant = entrada.datos.user.tenantId;
-console.log(`  local: ${tenant}`);
+console.log(`  soporte entró a ${entrada.datos.local?.nombre ?? tenant}`);
 
 const auth = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
@@ -143,26 +168,6 @@ const importado = await pedir('/menu/import', {
   headers: auth,
   body: JSON.stringify({ dishes }),
 });
-
-if (importado.status === 403 && importado.datos?.kind === 'MAIL_SIN_CONFIRMAR') {
-  console.log(`
-  ──────────────────────────────────────────────────────────────
-  FALTA QUE CONFIRME EL MAIL
-
-  La cuenta está creada y le llegó un correo a ${email}.
-  Hasta que haga clic en ese link no se puede cargar la carta.
-
-  Pedile que lo confirme y después corré esto, que retoma donde quedó
-  sin volver a crear la cuenta:
-
-    CLAVE="${clave}" npm run alta -- --seguir "${email}" "${carta}" ${mesas}
-
-  Usuario:     ${email}
-  Contraseña:  ${clave}
-  ──────────────────────────────────────────────────────────────
-`);
-  process.exit(2);
-}
 
 if (!importado.ok) {
   console.error('  la carta no se pudo importar:', JSON.stringify(importado.datos).slice(0, 200));
@@ -184,9 +189,13 @@ console.log(`
 ──────────────────────────────────────────────────────────────
 LISTO — para copiar al WhatsApp
 
-Panel:       https://adm.itadaki.app
-Usuario:     ${email}
-Contraseña:  ${clave}
+Tu carta ya está cargada. Para entrar:
+
+Panel:   https://adm.itadaki.app
+Usuario: ${email}
+
+Te llegó un mail para elegir tu contraseña — ese clic también
+confirma tu casilla. Si no lo ves, revisá spam.
 
 Los QR de las mesas salen del panel, en "Mesas y códigos QR".
 ──────────────────────────────────────────────────────────────
