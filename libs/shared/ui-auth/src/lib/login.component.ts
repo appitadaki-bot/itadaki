@@ -18,7 +18,91 @@ import { AuthStore } from './auth.store';
   styleUrl: './login.component.css',
   template: `
     <main class="screen">
-      @if (mode() === 'reset') {
+      @if (mode() === 'soporte') {
+        <!--
+          Entrar a un restaurante de un cliente, para armarle la carta.
+
+          Pide la contraseña dos veces —para buscar y para entrar— porque el
+          servidor la exige en las dos: ni la lista de clientes ni el acceso a
+          uno pueden salir de tener una pestaña abierta.
+        -->
+        <form class="card" (submit)="buscarLocales($event)">
+          <header class="head">
+            <p class="eyebrow">Soporte</p>
+            <h1 class="title">Entrar a un restaurante</h1>
+            <p class="lede">Para cargarle la carta a un local nuevo.</p>
+          </header>
+
+          <label class="field">
+            <span>Tu mail de soporte</span>
+            <input
+              name="email"
+              type="email"
+              autocomplete="username"
+              required
+              [value]="email()"
+              (input)="onEmail($event)"
+            />
+          </label>
+
+          <label class="field">
+            <span>Contraseña</span>
+            <input
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              required
+              [value]="password()"
+              (input)="onPassword($event)"
+            />
+          </label>
+
+          <label class="field">
+            <span>Buscar restaurante</span>
+            <input
+              name="busca"
+              type="text"
+              placeholder="Nombre del local, o vacío para ver los últimos"
+              [value]="busca()"
+              (input)="onBusca($event)"
+            />
+          </label>
+
+          @if (auth.error(); as error) {
+            <p class="error" role="alert">{{ error }}</p>
+          }
+
+          <button class="submit" type="submit" [disabled]="auth.busy()">
+            {{ auth.busy() ? 'Buscando…' : 'Buscar' }}
+          </button>
+
+          @if (locales(); as encontrados) {
+            @if (encontrados.length === 0) {
+              <p class="notice" role="status">Ningún restaurante con ese nombre.</p>
+            } @else {
+              <ul class="locales">
+                @for (local of encontrados; track local.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="local"
+                      [disabled]="auth.busy()"
+                      (click)="entrarA(local.id)"
+                    >
+                      <span class="local-nombre">{{ local.nombre }}</span>
+                      <span class="local-id">{{ local.id }}</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          }
+
+          <p class="switch">
+            <button type="button" class="link" (click)="mode.set('auth')">Volver</button>
+          </p>
+        </form>
+      } @else if (mode() === 'reset') {
         <form class="card" (submit)="submitReset($event)">
           <header class="head">
             <p class="eyebrow">{{ context() }}</p>
@@ -282,6 +366,16 @@ import { AuthStore } from './auth.store';
           }
         }
 
+        <!-- Discreto y sólo donde se registra un restaurante: es la puerta
+             nuestra, no la del cliente. -->
+        @if (allowSignUp()) {
+          <p class="switch soporte-entrada">
+            <button type="button" class="link" (click)="irASoporte()">
+              Entrar como soporte
+            </button>
+          </p>
+        }
+
         @if (allowSignUp()) {
         <p class="switch">
           @if (registering()) {
@@ -338,7 +432,36 @@ export class LoginComponent {
   protected readonly needsRestaurant = signal(false);
   protected readonly googleClientId = signal<string | null>(null);
   /** 'reset' when the page was opened from a reset link. */
-  protected readonly mode = signal<'auth' | 'reset'>('auth');
+  protected readonly mode = signal<'auth' | 'reset' | 'soporte'>('auth');
+
+  /* ── Entrar como soporte ── */
+
+  protected readonly busca = signal('');
+  /** Null hasta la primera búsqueda: así no se muestra "no hay ninguno". */
+  protected readonly locales = signal<readonly { id: string; nombre: string }[] | null>(null);
+
+  protected onBusca(evento: Event): void {
+    this.busca.set((evento.target as HTMLInputElement).value);
+  }
+
+  protected irASoporte(): void {
+    this.locales.set(null);
+    this.mode.set('soporte');
+  }
+
+  protected async buscarLocales(evento: Event): Promise<void> {
+    evento.preventDefault();
+    const encontrados = await this.auth.localesDeSoporte(
+      this.email().trim(),
+      this.password(),
+      this.busca().trim(),
+    );
+    this.locales.set(encontrados);
+  }
+
+  protected async entrarA(local: string): Promise<void> {
+    await this.auth.entrarComoSoporte(this.email().trim(), this.password(), local);
+  }
 
   /**
    * De qué restaurante es quien entra, sacado del link.

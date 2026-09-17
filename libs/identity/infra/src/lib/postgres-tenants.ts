@@ -373,6 +373,37 @@ export class PostgresTenantStore {
    * Sin alcance de restaurante porque justamente cruza varios, y la tabla de
    * locales no lleva datos de nadie: son los nombres que el propio dueño puso.
    */
+  /**
+   * Los restaurantes, para que soporte elija a cuál entrar.
+   *
+   * Es una lista sensible —quiénes son nuestros clientes— así que sólo la
+   * pide el endpoint de soporte, nunca una ruta del panel.
+   *
+   * Con búsqueda y tope: con cincuenta clientes una lista plana no se usa, y
+   * traerlos todos en cada tecla sería una consulta por pulsación.
+   */
+  async buscarLocales(
+    texto: string,
+    tope = 20,
+  ): Promise<Result<readonly { id: string; nombre: string }[], TenantError>> {
+    try {
+      const filas = await this.db.unscoped(async (client) => {
+        const result = await client.query<{ id: string; name: string }>(
+          `SELECT id, name FROM tenants
+            WHERE ($1 = '' OR name ILIKE '%' || $1 || '%' OR id ILIKE '%' || $1 || '%')
+            ORDER BY name
+            LIMIT $2`,
+          [texto, tope],
+        );
+        return result.rows;
+      });
+
+      return ok(filas.map((fila) => ({ id: fila.id, nombre: fila.name })));
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   async nombresDe(ids: readonly string[]): Promise<Result<Map<string, string>, TenantError>> {
     if (ids.length === 0) return ok(new Map());
 

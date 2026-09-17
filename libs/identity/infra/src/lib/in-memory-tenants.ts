@@ -176,6 +176,24 @@ export class InMemoryTenantStore {
    * saludaba sin nombre en todo el desarrollo local y no había forma de ver
    * que el nombre funciona.
    */
+  async buscarLocales(
+    texto: string,
+    tope = 20,
+  ): Promise<Result<readonly { id: string; nombre: string }[], TenantError>> {
+    const busca = texto.toLowerCase();
+    const encontrados = [...InMemoryTenantStore.locales.values()]
+      .map((fila) => ({ id: fila.tenant.id, nombre: fila.tenant.name }))
+      .filter(
+        (local) =>
+          busca === '' ||
+          local.nombre.toLowerCase().includes(busca) ||
+          local.id.toLowerCase().includes(busca),
+      )
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    return ok(encontrados.slice(0, tope));
+  }
+
   async nombresDe(ids: readonly string[]): Promise<Result<Map<string, string>, TenantError>> {
     const nombres = new Map<string, string>();
     for (const id of ids) {

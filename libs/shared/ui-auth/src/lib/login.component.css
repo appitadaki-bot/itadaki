@@ -229,3 +229,42 @@
   height: 48px;
   margin: 0 auto 0.5rem;
 }
+
+/* ── La lista de restaurantes, para soporte ── */
+.locales {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+  /* Con muchos clientes la lista no puede empujar el formulario fuera de
+     la pantalla: se desplaza sola. */
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.local {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--itadaki-border);
+  border-radius: var(--itadaki-radius-action);
+  background: var(--itadaki-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.local:hover { border-color: var(--itadaki-accent); }
+
+.local-nombre { font-weight: 600; color: var(--itadaki-ink-strong); }
+
+/* El identificador, para distinguir dos locales que se llaman parecido. */
+.local-id { font-size: 0.75rem; color: var(--itadaki-ink-subtle); }
+
+/* Nuestra puerta, no la del cliente: se ve sólo si se la busca. */
+.soporte-entrada { opacity: 0.55; font-size: 0.8rem; }
+.soporte-entrada:hover { opacity: 1; }

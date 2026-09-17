@@ -15,6 +15,7 @@ import {
   pareceUnPin,
   trasElIntento,
   esDeSoporte,
+  TENANT_DE_SOPORTE,
 } from '@itadaki/identity/domain';
 import {
   RESET_TOKEN_MINUTES,
@@ -373,6 +374,52 @@ export class AuthController {
         permissions: permissionsOf(quien.value.role),
       },
     };
+  }
+
+  /**
+   * Los restaurantes a los que soporte puede entrar.
+   *
+   * Pide la contraseña igual que el login, y por la misma razón: la lista de
+   * quiénes son nuestros clientes no puede salir de tener una pestaña
+   * abierta. Es el mismo precio que abrir un local.
+   *
+   * No devuelve nada de adentro de cada restaurante — sólo su nombre, que es
+   * lo justo para elegir uno de una lista.
+   */
+  @Public()
+  @RateLimit('login')
+  @Post('soporte/locales')
+  async localesParaSoporte(@Body() body: unknown) {
+    const parsed = z
+      .object({
+        email: z.string().min(1).max(120),
+        password: z.string().min(1).max(200),
+        busca: z.string().max(80).default(''),
+      })
+      .safeParse(body);
+    if (!parsed.success) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const quien = await this.staff.store.findByEmail(normaliseEmail(parsed.data.email));
+    if (quien.isErr()) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const acerto = await verifyPassword(parsed.data.password, quien.value.passwordHash);
+    if (!acerto || !esDeSoporte(quien.value.role) || !quien.value.active) {
+      log.warn('pidieron la lista de locales sin ser soporte', { email: parsed.data.email });
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const locales = await this.tenants.store.buscarLocales(parsed.data.busca.trim());
+    if (locales.isErr()) {
+      throw new HttpException(locales.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    // El propio local de soporte no es un restaurante: no tiene carta que
+    // cargar y verlo en la lista sólo confunde.
+    return { locales: locales.value.filter((local) => local.id !== TENANT_DE_SOPORTE) };
   }
 
   /**

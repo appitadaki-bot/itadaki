@@ -325,6 +325,91 @@ export class AuthStore {
    *
    * `local` sólo va cuando trabaja en varios y ya eligió uno.
    */
+  /**
+   * Los restaurantes a los que soporte puede entrar.
+   *
+   * Pide la contraseña en cada búsqueda porque el servidor la exige: la lista
+   * de quiénes son nuestros clientes no puede salir de tener una pestaña
+   * abierta.
+   */
+  async localesDeSoporte(
+    email: string,
+    password: string,
+    busca: string,
+  ): Promise<readonly { id: string; nombre: string }[] | null> {
+    this.error.set(null);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/soporte/locales`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, busca }),
+      });
+
+      if (!response.ok) {
+        this.error.set(
+          response.status === 429
+            ? 'Demasiados intentos. Esperá unos minutos.'
+            : 'Mail o contraseña incorrectos',
+        );
+        return null;
+      }
+
+      const datos = (await response.json()) as {
+        locales: readonly { id: string; nombre: string }[];
+      };
+      return datos.locales;
+    } catch {
+      this.error.set('No pudimos conectarnos');
+      return null;
+    }
+  }
+
+  /**
+   * Entra a un restaurante como soporte.
+   *
+   * La sesión que queda vale sólo para ese local: para ir a otro hay que
+   * volver a entrar. Es a propósito — abrir el panel de un cliente no puede
+   * ser algo que pase de casualidad.
+   */
+  async entrarComoSoporte(email: string, password: string, local: string): Promise<boolean> {
+    this.busy.set(true);
+    this.error.set(null);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/soporte`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, local }),
+      });
+
+      if (!response.ok) {
+        this.error.set(
+          response.status === 429
+            ? 'Demasiados intentos. Esperá unos minutos.'
+            : 'No pudimos entrar a ese restaurante',
+        );
+        return false;
+      }
+
+      const respuesta = (await response.json()) as { token?: string; user?: StaffProfile };
+      if (respuesta.token === undefined || respuesta.user === undefined) {
+        this.error.set('No pudimos entrar a ese restaurante');
+        return false;
+      }
+
+      this.token.set(respuesta.token);
+      this.profile.set(respuesta.user);
+      localStorage.setItem(STORAGE_KEY, respuesta.token);
+      return true;
+    } catch {
+      this.error.set('No pudimos conectarnos');
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
   async signInConPin(usuario: string, pin: string, local?: string): Promise<boolean> {
     this.busy.set(true);
     this.error.set(null);

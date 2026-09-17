@@ -81,3 +81,39 @@ describe('cómo se entra como soporte', () => {
     expect(esDeSoporte('MANAGER')).toBe(false);
   });
 });
+
+describe('la pantalla para elegir restaurante', () => {
+  const LOGIN = readFileSync(
+    join(process.cwd(), 'libs/shared/ui-auth/src/lib/login.component.ts'),
+    'utf-8',
+  );
+
+  it('existe y se llega desde el login', () => {
+    expect(LOGIN).toContain("mode() === 'soporte'");
+    expect(LOGIN).toContain('Entrar como soporte');
+  });
+
+  /**
+   * Sólo donde se registra un restaurante. En las apps del salón y la cocina
+   * no tiene sentido y sería una puerta de más a la vista.
+   */
+  it('no aparece en las apps del personal', () => {
+    const donde = LOGIN.indexOf('Entrar como soporte');
+    expect(LOGIN.slice(donde - 400, donde)).toContain('allowSignUp()');
+  });
+
+  /** La lista de clientes no puede salir de tener una pestaña abierta. */
+  it('el listado exige la contraseña', () => {
+    expect(CONTROLLER).toContain("@Post('soporte/locales')");
+    const donde = CONTROLLER.indexOf('async localesParaSoporte');
+    const cuerpo = CONTROLLER.slice(donde, donde + 2000);
+    expect(cuerpo).toContain('verifyPassword');
+    expect(cuerpo).toContain('esDeSoporte');
+  });
+
+  /** El local de soporte no es un restaurante: no va en la lista. */
+  it('no se lista a sí mismo', () => {
+    const donde = CONTROLLER.indexOf('async localesParaSoporte');
+    expect(CONTROLLER.slice(donde, donde + 2000)).toContain('!== TENANT_DE_SOPORTE');
+  });
+});
