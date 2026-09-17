@@ -10,6 +10,10 @@ export {
   entraConMail,
 } from './lib/role';
 export {
+  necesitaMailConfirmado,
+  puedeSinConfirmar,
+} from './lib/mail-verificado';
+export {
   type StaffUser,
   type StaffSession,
   type CredentialError,

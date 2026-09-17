@@ -39,7 +39,8 @@
     "start:salon": "ng serve floor-web --port 4600",
     "build:landing": "npm run legal && node scripts/build-landing.mjs",
     "video": "node scripts/grabar-flujo.mjs",
-    "salon-lleno": "node scripts/salon-lleno.mjs"
+    "salon-lleno": "node scripts/salon-lleno.mjs",
+    "alta": "npm run build:api && node scripts/dar-de-alta.mjs"
   },
   "devDependencies": {
     "@angular/build": "^21.2.24",

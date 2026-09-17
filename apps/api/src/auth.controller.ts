@@ -30,7 +30,15 @@ import {
   verifyPassword,
 } from '@itadaki/identity/infra';
 import { z } from 'zod';
-import { ADMIN_APP_URL, AUTH_SECRET, Auth, type AuthContext, Public, SESSION_HOURS } from './auth';
+import {
+  ADMIN_APP_URL,
+  AUTH_SECRET,
+  Auth,
+  type AuthContext,
+  Public,
+  SESSION_HOURS,
+  olvidarMailConfirmado,
+} from './auth';
 import { RateLimit } from './rate-limit.guard';
 import { StaffService } from './staff.service';
 import { TenantsService } from './tenants.service';
@@ -261,6 +269,14 @@ export class AuthController {
     // `verificarMail` devuelve el mail, no la fila: la sesión necesita el
     // usuario, así que se busca con lo que acaba de confirmarse.
     const quien = await this.staff.store.findByEmail(verificado.value);
+
+    // Sin esto, el dueño confirma y sigue sin poder tocar la carta hasta que
+    // venza el minuto de caché del guard — con el mail ya confirmado en la
+    // base. Un minuto mirando un botón que no anda parece que no funcionó.
+    if (quien.isOk()) {
+      olvidarMailConfirmado(quien.value.tenantId, quien.value.id);
+    }
+
     if (quien.isErr()) {
       // Verificado quedó, aunque no podamos abrir la sesión acá: entra con su
       // mail y contraseña, que es lo que la pantalla ofrece si esto falla.

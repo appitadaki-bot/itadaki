@@ -16,6 +16,7 @@ import {
   arrancaElTrial,
   canEditConfiguration,
   canTakeOrders,
+  puedeSinConfirmar,
   describeSubscription,
 } from '@itadaki/identity/domain';
 import { peekTableToken, verifyToken, verifyTableToken } from '@itadaki/identity/infra';
@@ -140,6 +141,49 @@ export async function stillEmployed(
   return active;
 }
 
+/**
+ * Si esta persona ya confirmó su mail.
+ *
+ * Mismo esquema que `stillEmployed`: una consulta por minuto y no una por
+ * request. Acá el margen molesta todavía menos — quien acaba de verificar
+ * espera un minuto para editar la carta, y no es un mozo trabado en medio
+ * de un servicio.
+ */
+const confirmadoCache = new Map<string, { confirmado: boolean; checkedAt: number }>();
+
+/** Borra el estado cacheado, para que verificar valga en el acto. */
+export function olvidarMailConfirmado(tenantId: string, userId: string): void {
+  confirmadoCache.delete(`${tenantId}:${userId}`);
+}
+
+/** Seam para los tests: el real necesita la tabla de personal. */
+export type ConfirmadoLookup = (tenantId: string, userId: string) => Promise<boolean>;
+
+const buscarConfirmado: ConfirmadoLookup = async (tenantId, userId) => {
+  // Sin Postgres no hay dónde preguntarlo, y una instalación local no puede
+  // quedarse sin panel por esto.
+  if (process.env['USE_POSTGRES'] === 'false') return true;
+  return new PostgresStaffStore(database).mailConfirmado(tenantId, userId);
+};
+
+export async function tieneElMailConfirmado(
+  tenantId: string,
+  userId: string,
+  buscar: ConfirmadoLookup = buscarConfirmado,
+): Promise<boolean> {
+  const key = `${tenantId}:${userId}`;
+  const cached = confirmadoCache.get(key);
+  const now = Date.now();
+
+  if (cached !== undefined && now - cached.checkedAt < ACTIVE_CACHE_MS) {
+    return cached.confirmado;
+  }
+
+  const confirmado = await buscar(tenantId, userId);
+  confirmadoCache.set(key, { confirmado, checkedAt: now });
+  return confirmado;
+}
+
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
@@ -192,6 +236,27 @@ export class AuthGuard implements CanActivate {
         path,
       });
       throw new ForbiddenException({ kind: 'FORBIDDEN', permission: needed });
+    }
+
+    /*
+     * Configurar el local exige haber confirmado el mail.
+     *
+     * Va después del permiso, no antes: a quien ni siquiera puede hacer algo
+     * hay que contestarle que no puede, y no pedirle que confirme un mail que
+     * no lo habilitaría igual.
+     *
+     * Sólo alcanza a la carta y al personal. Tomar pedidos, cocinarlos y
+     * cobrarlos siguen andando sin confirmar — un mail que no llegó no puede
+     * dejar un restaurante sin sistema en medio de un sábado.
+     */
+    if (!puedeSinConfirmar(needed, await tieneElMailConfirmado(payload.tenantId, payload.userId))) {
+      log.warn('configuración sin el mail confirmado', {
+        tenantId: payload.tenantId,
+        userId: payload.userId,
+        permission: needed,
+        path,
+      });
+      throw new ForbiddenException({ kind: 'MAIL_SIN_CONFIRMAR' });
     }
 
     return true;
