@@ -306,7 +306,7 @@ export class AuthController {
    * por tener una pestaña abierta.
    */
   @Public()
-  @RateLimit('login')
+  @RateLimit('soporte')
   @Post('soporte')
   async entrarComoSoporte(@Body() body: unknown) {
     const parsed = z
@@ -387,7 +387,7 @@ export class AuthController {
    * lo justo para elegir uno de una lista.
    */
   @Public()
-  @RateLimit('login')
+  @RateLimit('soporte')
   @Post('soporte/locales')
   async localesParaSoporte(@Body() body: unknown) {
     const parsed = z

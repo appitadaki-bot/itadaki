@@ -117,3 +117,26 @@ describe('la pantalla para elegir restaurante', () => {
     expect(CONTROLLER.slice(donde, donde + 2000)).toContain('!== TENANT_DE_SOPORTE');
   });
 });
+
+/**
+ * El cupo de soporte no es el del login.
+ *
+ * Atender cinco consultas seguidas son diez pedidos —uno para buscar y otro
+ * para entrar, por cada local— y con el cupo del login quedábamos trabados a
+ * media tarde con "Demasiados intentos". Pasó de verdad, probando.
+ */
+describe('cuántas veces puede entrar soporte', () => {
+  it('tiene su propio cupo, más ancho que el del login', () => {
+    const limites = readFileSync(join(__dirname, 'rate-limit.guard.ts'), 'utf-8');
+    expect(limites).toContain('soporte: { limit: 60');
+
+    const login = /login: \{ limit: (\d+)/.exec(limites)?.[1];
+    const soporte = /soporte: \{ limit: (\d+)/.exec(limites)?.[1];
+    expect(Number(soporte)).toBeGreaterThan(Number(login));
+  });
+
+  it('y los dos endpoints lo usan', () => {
+    const usos = CONTROLLER.match(/@RateLimit\('soporte'\)/g) ?? [];
+    expect(usos).toHaveLength(2);
+  });
+});

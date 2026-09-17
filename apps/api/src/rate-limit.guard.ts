@@ -19,6 +19,19 @@ import { log } from './logger';
 export const LIMITS = {
   /** Password guessing. Deliberately tight; a real person retypes a few times. */
   login: { limit: 10, windowMs: 15 * 60_000 },
+  /**
+   * Soporte entrando a los restaurantes de los clientes.
+   *
+   * Aparte del login normal porque el uso no se parece: atender cinco
+   * consultas seguidas son diez pedidos —uno para buscar y otro para entrar,
+   * por cada local— y con el cupo de diez quedábamos trabados a media tarde.
+   *
+   * Sigue siendo acotado. Lo que protege es que alguien pruebe contraseñas
+   * contra la cuenta de soporte, y sesenta por hora no le alcanzan a nadie
+   * para adivinar una clave larga; a nosotros nos sobran para un día de
+   * trabajo.
+   */
+  soporte: { limit: 60, windowMs: 60 * 60_000 },
   /** Reset mail floods — each attempt sends an email to someone's inbox. */
   passwordReset: { limit: 5, windowMs: 60 * 60_000 },
   /** Automated restaurant creation, which would fill the tenant table. */
@@ -101,7 +114,7 @@ export class RateLimitGuard implements CanActivate {
    */
   private keyFor(request: AuthedRequest, name: LimitName): string {
     const ip = request.ip ?? request.socket?.remoteAddress ?? 'unknown';
-    if (name === 'login' || name === 'passwordReset') {
+    if (name === 'login' || name === 'passwordReset' || name === 'soporte') {
       const body = request.body as { email?: unknown } | undefined;
       const email = typeof body?.email === 'string' ? body.email.toLowerCase() : '';
       return `${name}:${ip}:${email}`;
