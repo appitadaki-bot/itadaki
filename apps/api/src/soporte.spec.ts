@@ -88,18 +88,42 @@ describe('la pantalla para elegir restaurante', () => {
     'utf-8',
   );
 
-  it('existe y se llega desde el login', () => {
-    expect(LOGIN).toContain("mode() === 'soporte'");
-    expect(LOGIN).toContain('Entrar como soporte');
+  /**
+   * No hay ningún enlace que la anuncie.
+   *
+   * Antes decía "Entrar como soporte" al pie del login, y eso le contaba a
+   * cualquiera que existe una puerta con acceso a todos los restaurantes.
+   * Ahora se llega escribiendo el mail de soporte en el login de siempre:
+   * quien no lo sabe no se entera de que existe.
+   */
+  it('no se anuncia en la pantalla de entrada', () => {
+    expect(LOGIN).not.toContain('Entrar como soporte');
+  });
+
+  /** El login normal la devuelve, después de verificar la contraseña. */
+  it('el login manda la lista al reconocer una cuenta de soporte', () => {
+    const donde = CONTROLLER.indexOf('async login(');
+    const cuerpo = CONTROLLER.slice(donde, donde + 4000);
+    expect(cuerpo).toContain('esDeSoporte(found.value.role)');
+    expect(cuerpo).toContain('elegirLocal');
   });
 
   /**
-   * Sólo donde se registra un restaurante. En las apps del salón y la cocina
-   * no tiene sentido y sería una puerta de más a la vista.
+   * Después de la contraseña y no antes: responder distinto antes de
+   * comprobarla diría qué mails son de soporte.
    */
-  it('no aparece en las apps del personal', () => {
-    const donde = LOGIN.indexOf('Entrar como soporte');
-    expect(LOGIN.slice(donde - 400, donde)).toContain('allowSignUp()');
+  it('y sólo después de verificar la contraseña', () => {
+    const donde = CONTROLLER.indexOf('async login(');
+    const cuerpo = CONTROLLER.slice(donde, donde + 4000);
+    expect(cuerpo.indexOf('verifyPassword')).toBeLessThan(
+      cuerpo.indexOf('esDeSoporte(found.value.role)'),
+    );
+  });
+
+  /** La misma pantalla que usa el mozo que trabaja en varios locales. */
+  it('reusa el elegidor que ya existía', () => {
+    expect(LOGIN).toContain('auth.localesParaElegir()');
+    expect(LOGIN).toContain('entraComoSoporte()');
   });
 
   /** La lista de clientes no puede salir de tener una pestaña abierta. */

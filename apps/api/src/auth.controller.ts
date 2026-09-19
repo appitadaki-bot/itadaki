@@ -97,12 +97,40 @@ export class AuthController {
      * cuenta. Quien es del personal ya tiene su usuario y su PIN anotados del
      * alta; quien no, no tiene por qué enterarse de nada.
      */
-    if (!entraConMail(found.value.role)) {
+    if (!entraConMail(found.value.role) && !esDeSoporte(found.value.role)) {
       log.warn('intento de entrar con mail desde un rol que usa PIN', {
         tenantId: found.value.tenantId,
         role: found.value.role,
       });
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    /*
+     * Soporte no recibe sesión acá: recibe la lista de restaurantes.
+     *
+     * Se responde después de verificar la contraseña, así que esta lista no
+     * le dice nada a quien no la sabe. Antes había un enlace de "entrar como
+     * soporte" en la pantalla de login, y eso le anunciaba a cualquiera que
+     * existe una puerta con acceso a todos los locales — información que no
+     * hacía falta dar.
+     *
+     * Se reusa `elegirLocal`, que el login por PIN ya usa para quien trabaja
+     * en varios restaurantes: es el mismo "elegí antes de entrar", y así la
+     * pantalla no necesita un caso nuevo.
+     */
+    if (esDeSoporte(found.value.role)) {
+      const locales = await this.tenants.store.buscarLocales('');
+      if (locales.isErr()) {
+        throw new HttpException(locales.error, HttpStatus.BAD_GATEWAY);
+      }
+
+      log.info('soporte pidió la lista de restaurantes', { userId: found.value.id });
+
+      return {
+        elegirLocal: locales.value
+          .filter((local) => local.id !== TENANT_DE_SOPORTE)
+          .map((local) => ({ ...local, role: found.value.role })),
+      };
     }
 
     const expiresAt = Date.now() + SESSION_HOURS * 3_600_000;
