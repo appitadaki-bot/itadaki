@@ -14,6 +14,10 @@
  * cargar la carta. El script lo dice y espera — no verifica por él, porque
  * entonces la verificación no verificaría nada.
  */
+// `crypto` existe como global desde Node 18, pero el eslint del proyecto no
+// lo declara para los scripts, así que lo marca como indefinido. Importarlo es
+// además lo que ya hace salon-lleno.mjs.
+import { webcrypto as crypto } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 // Del compilado y no del fuente: Node no ejecuta TypeScript, y `npm run alta`
 // construye antes por eso. Es el mismo parser que usa el panel, así que lo
@@ -55,7 +59,9 @@ function claveNueva() {
 async function pedir(ruta, opciones = {}) {
   const r = await fetch(`${API}${ruta}`, opciones);
   const cuerpo = await r.text();
-  let datos = null;
+  // Sin valor inicial: las dos ramas de abajo le dan uno, y el `null` no lo
+  // leía nadie.
+  let datos;
   try {
     datos = JSON.parse(cuerpo);
   } catch {
