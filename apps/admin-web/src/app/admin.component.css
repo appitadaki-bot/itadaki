@@ -3009,3 +3009,20 @@
 .volver:hover {
   background: var(--itadaki-surface);
 }
+
+/*
+ * El restaurante en el que está trabajando soporte.
+ *
+ * Destacado a propósito: es lo primero que hay que poder confirmar al
+ * entrar, sobre todo cuando el local es nuevo y su carta está vacía — ahí
+ * una pantalla sin nombre es indistinguible de haberse equivocado de local.
+ */
+.local-actual {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--itadaki-accent);
+  border-radius: var(--itadaki-radius-pill);
+  background: var(--itadaki-accent-soft);
+  color: var(--itadaki-ink-strong);
+  font-weight: 700;
+  font-size: 0.85rem;
+}

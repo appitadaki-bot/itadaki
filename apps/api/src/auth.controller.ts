@@ -1,25 +1,23 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Post } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
 import {
   type Role,
   describeSubscription,
   normaliseEmail,
   entraConMail,
   permissionsOf,
-  prepareTenant,
-  uniqueSlug,
   validateCredentials,
   validatePassword,
   estaTrabada,
   nombreDeUsuario,
   pareceUnPin,
   trasElIntento,
+  esDeSoporte,
+  TENANT_DE_SOPORTE,
 } from '@itadaki/identity/domain';
 import {
   RESET_TOKEN_MINUTES,
   digestDeVerificacion,
   digestOf,
-  mailDeIntentoDeAlta,
   mailDeVerificacion,
   nuevoTokenDeVerificacion,
   hashPassword,
@@ -30,7 +28,16 @@ import {
   verifyPassword,
 } from '@itadaki/identity/infra';
 import { z } from 'zod';
-import { ADMIN_APP_URL, AUTH_SECRET, Auth, type AuthContext, Public, SESSION_HOURS } from './auth';
+import {
+  ADMIN_APP_URL,
+  AUTH_SECRET,
+  Auth,
+  type AuthContext,
+  Public,
+  SESSION_HOURS,
+  olvidarMailConfirmado,
+  RequirePermission,
+} from './auth';
 import { RateLimit } from './rate-limit.guard';
 import { StaffService } from './staff.service';
 import { TenantsService } from './tenants.service';
@@ -87,12 +94,40 @@ export class AuthController {
      * cuenta. Quien es del personal ya tiene su usuario y su PIN anotados del
      * alta; quien no, no tiene por qué enterarse de nada.
      */
-    if (!entraConMail(found.value.role)) {
+    if (!entraConMail(found.value.role) && !esDeSoporte(found.value.role)) {
       log.warn('intento de entrar con mail desde un rol que usa PIN', {
         tenantId: found.value.tenantId,
         role: found.value.role,
       });
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    /*
+     * Soporte no recibe sesión acá: recibe la lista de restaurantes.
+     *
+     * Se responde después de verificar la contraseña, así que esta lista no
+     * le dice nada a quien no la sabe. Antes había un enlace de "entrar como
+     * soporte" en la pantalla de login, y eso le anunciaba a cualquiera que
+     * existe una puerta con acceso a todos los locales — información que no
+     * hacía falta dar.
+     *
+     * Se reusa `elegirLocal`, que el login por PIN ya usa para quien trabaja
+     * en varios restaurantes: es el mismo "elegí antes de entrar", y así la
+     * pantalla no necesita un caso nuevo.
+     */
+    if (esDeSoporte(found.value.role)) {
+      const locales = await this.tenants.store.buscarLocales('');
+      if (locales.isErr()) {
+        throw new HttpException(locales.error, HttpStatus.BAD_GATEWAY);
+      }
+
+      log.info('soporte pidió la lista de restaurantes', { userId: found.value.id });
+
+      return {
+        elegirLocal: locales.value
+          .filter((local) => local.id !== TENANT_DE_SOPORTE)
+          .map((local) => ({ ...local, role: found.value.role })),
+      };
     }
 
     const expiresAt = Date.now() + SESSION_HOURS * 3_600_000;
@@ -127,27 +162,6 @@ export class AuthController {
    * have an account. It returns a session so signing up lands the owner
    * straight in the panel rather than at a login form.
    */
-  /**
-   * Le avisa al dueño que alguien intentó anotarse con su mail.
-   *
-   * Sin link de acción: un mail que llega sin que uno lo pidiera y trae un
-   * botón es la forma de todo phishing, y acá no hay nada que hacer — la
-   * cuenta sigue como estaba. Lleva la dirección del panel, que es la que el
-   * dueño ya conoce.
-   *
-   * Su fallo no se propaga: la respuesta al que intentó anotarse tiene que ser
-   * la misma pase lo que pase, o el tiempo que tarda vuelve a delatar cuál de
-   * los dos caminos se tomó.
-   */
-  private async avisarDelIntento(email: string): Promise<void> {
-    try {
-      const { subject, body } = mailDeIntentoDeAlta(ADMIN_APP_URL);
-      await this.resets.mailer.send({ to: email, subject, body });
-    } catch (error) {
-      log.error('no se pudo avisar del intento de alta', { detail: String(error) });
-    }
-  }
-
   /**
    * Manda el link de verificación.
    *
@@ -261,6 +275,14 @@ export class AuthController {
     // `verificarMail` devuelve el mail, no la fila: la sesión necesita el
     // usuario, así que se busca con lo que acaba de confirmarse.
     const quien = await this.staff.store.findByEmail(verificado.value);
+
+    // Sin esto, el dueño confirma y sigue sin poder tocar la carta hasta que
+    // venza el minuto de caché del guard — con el mail ya confirmado en la
+    // base. Un minuto mirando un botón que no anda parece que no funcionó.
+    if (quien.isOk()) {
+      olvidarMailConfirmado(quien.value.tenantId, quien.value.id);
+    }
+
     if (quien.isErr()) {
       // Verificado quedó, aunque no podamos abrir la sesión acá: entra con su
       // mail y contraseña, que es lo que la pantalla ofrece si esto falla.
@@ -268,6 +290,232 @@ export class AuthController {
     }
 
     return { verificado: true, ...this.sessionFor(quien.value) };
+  }
+
+  /**
+   * Entrar a un restaurante como soporte, para armarle la carta.
+   *
+   * La promesa del alta es "cuando entres, tu carta ya va a estar cargada", y
+   * eso exige entrar antes que el dueño. La alternativa era pedirle su
+   * contraseña: viajaría por WhatsApp, quedaría en dos historiales, y después
+   * nadie sabría si un precio lo cambió él o nosotros.
+   *
+   * El token que devuelve vale para **un solo** restaurante, el que se pide
+   * acá. No existe una sesión que valga para todos: el tenant sale del token
+   * firmado y eso es justamente lo que impide leer los datos de otro local
+   * editando la URL. Para entrar a dos, se piden dos.
+   *
+   * Requiere la contraseña en cada pedido, aunque ya haya sesión: es una
+   * llave maestra, y abrir un restaurante ajeno no puede ser algo que pase
+   * por tener una pestaña abierta.
+   */
+  @Public()
+  @RateLimit('soporte')
+  @Post('soporte')
+  async entrarComoSoporte(@Body() body: unknown) {
+    const parsed = z
+      .object({
+        email: z.string().min(1).max(120),
+        password: z.string().min(1).max(200),
+        local: z.string().min(1).max(80),
+      })
+      .safeParse(body);
+    if (!parsed.success) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const quien = await this.staff.store.findByEmail(normaliseEmail(parsed.data.email));
+    if (quien.isErr()) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const acerto = await verifyPassword(parsed.data.password, quien.value.passwordHash);
+
+    /*
+     * Se verifica la contraseña antes de mirar el rol, y se contesta lo mismo
+     * en los dos casos: responder distinto le diría a cualquiera qué cuentas
+     * son de soporte, que es justo la lista que alguien querría para atacar.
+     */
+    if (!acerto || !esDeSoporte(quien.value.role) || !quien.value.active) {
+      log.warn('intento de entrar como soporte', { email: parsed.data.email });
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const local = await this.tenants.store.nombresDe([parsed.data.local]);
+    if (local.isErr() || !local.value.has(parsed.data.local)) {
+      throw new HttpException({ kind: 'LOCAL_DESCONOCIDO' }, HttpStatus.NOT_FOUND);
+    }
+
+    // Queda en el log qué restaurante se abrió y quién: es una llave maestra,
+    // y su uso tiene que poder auditarse después.
+    log.info('soporte entró a un restaurante', {
+      tenantId: parsed.data.local,
+      userId: quien.value.id,
+    });
+
+    const expiresAt = Date.now() + SESSION_HOURS * 3_600_000;
+    const token = signToken(
+      {
+        userId: quien.value.id,
+        // El local que se pidió, no el de la cuenta de soporte.
+        tenantId: parsed.data.local,
+        role: quien.value.role,
+        displayName: quien.value.displayName,
+        expiresAt,
+      },
+      AUTH_SECRET,
+    );
+
+    return {
+      token,
+      expiresAt,
+      local: { id: parsed.data.local, nombre: local.value.get(parsed.data.local) },
+      user: {
+        id: quien.value.id,
+        displayName: quien.value.displayName,
+        role: quien.value.role,
+        tenantId: parsed.data.local,
+        // El nombre y no sólo el identificador: entrando como soporte, el
+        // panel tiene que decir a qué restaurante se entró. Sin esto la
+        // pantalla dice "Administración" y no hay forma de saber cuál es.
+        tenantNombre: local.value.get(parsed.data.local),
+        permissions: permissionsOf(quien.value.role),
+      },
+    };
+  }
+
+  /**
+   * La lista de restaurantes, para quien ya tiene sesión de soporte abierta.
+   *
+   * La otra versión pide la contraseña porque se usa antes de entrar. Ésta
+   * es para volver a elegir sin salir, y ahí la sesión vigente ya prueba
+   * quién es.
+   */
+  @RequirePermission('menu:read')
+  @Get('soporte/mis-locales')
+  async misLocales(@Auth() auth: AuthContext) {
+    if (!esDeSoporte(auth.role)) {
+      throw new HttpException({ kind: 'FORBIDDEN' }, HttpStatus.FORBIDDEN);
+    }
+
+    const locales = await this.tenants.store.buscarLocales('');
+    if (locales.isErr()) {
+      throw new HttpException(locales.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    return { locales: locales.value.filter((local) => local.id !== TENANT_DE_SOPORTE) };
+  }
+
+  /**
+   * Cambiar de restaurante sin volver a escribir la contraseña.
+   *
+   * Antes, cambiar de local era salir y entrar de nuevo, y eso rompía: el
+   * formulario ya se había vaciado, así que el segundo restaurante no abría
+   * nunca y la pantalla quedaba muda.
+   *
+   * Pide la sesión de soporte que ya está abierta —no la contraseña— y emite
+   * otra para el local pedido. Sigue valiendo para uno solo: lo que cambia es
+   * que la prueba de identidad es el token vigente en vez de tipear la clave
+   * cada vez.
+   */
+  @RequirePermission('menu:read')
+  @Post('soporte/cambiar')
+  async cambiarDeRestaurante(@Body() body: unknown, @Auth() auth: AuthContext) {
+    const parsed = z.object({ local: z.string().min(1).max(80) }).safeParse(body);
+    if (!parsed.success) {
+      throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
+    }
+
+    // Sólo soporte: un dueño con sesión no puede saltar a otro restaurante.
+    if (!esDeSoporte(auth.role)) {
+      log.warn('intento de cambiar de restaurante sin ser soporte', {
+        tenantId: auth.tenantId,
+        userId: auth.userId,
+      });
+      throw new HttpException({ kind: 'FORBIDDEN' }, HttpStatus.FORBIDDEN);
+    }
+
+    const local = await this.tenants.store.nombresDe([parsed.data.local]);
+    if (local.isErr() || !local.value.has(parsed.data.local)) {
+      throw new HttpException({ kind: 'LOCAL_DESCONOCIDO' }, HttpStatus.NOT_FOUND);
+    }
+
+    log.info('soporte cambió de restaurante', {
+      desde: auth.tenantId,
+      a: parsed.data.local,
+      userId: auth.userId,
+    });
+
+    const expiresAt = Date.now() + SESSION_HOURS * 3_600_000;
+    const token = signToken(
+      {
+        userId: auth.userId,
+        tenantId: parsed.data.local,
+        role: auth.role,
+        displayName: auth.displayName,
+        expiresAt,
+      },
+      AUTH_SECRET,
+    );
+
+    return {
+      token,
+      expiresAt,
+      user: {
+        id: auth.userId,
+        displayName: auth.displayName,
+        role: auth.role,
+        tenantId: parsed.data.local,
+        tenantNombre: local.value.get(parsed.data.local),
+        permissions: permissionsOf(auth.role),
+      },
+    };
+  }
+
+  /**
+   * Los restaurantes a los que soporte puede entrar.
+   *
+   * Pide la contraseña igual que el login, y por la misma razón: la lista de
+   * quiénes son nuestros clientes no puede salir de tener una pestaña
+   * abierta. Es el mismo precio que abrir un local.
+   *
+   * No devuelve nada de adentro de cada restaurante — sólo su nombre, que es
+   * lo justo para elegir uno de una lista.
+   */
+  @Public()
+  @RateLimit('soporte')
+  @Post('soporte/locales')
+  async localesParaSoporte(@Body() body: unknown) {
+    const parsed = z
+      .object({
+        email: z.string().min(1).max(120),
+        password: z.string().min(1).max(200),
+        busca: z.string().max(80).default(''),
+      })
+      .safeParse(body);
+    if (!parsed.success) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const quien = await this.staff.store.findByEmail(normaliseEmail(parsed.data.email));
+    if (quien.isErr()) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const acerto = await verifyPassword(parsed.data.password, quien.value.passwordHash);
+    if (!acerto || !esDeSoporte(quien.value.role) || !quien.value.active) {
+      log.warn('pidieron la lista de locales sin ser soporte', { email: parsed.data.email });
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
+    const locales = await this.tenants.store.buscarLocales(parsed.data.busca.trim());
+    if (locales.isErr()) {
+      throw new HttpException(locales.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    // El propio local de soporte no es un restaurante: no tiene carta que
+    // cargar y verlo en la lista sólo confunde.
+    return { locales: locales.value.filter((local) => local.id !== TENANT_DE_SOPORTE) };
   }
 
   /**
@@ -407,101 +655,18 @@ export class AuthController {
     };
   }
 
-  @Public()
-  @RateLimit('signUp')
-  @Post('signup')
-  async signUp(@Body() body: unknown) {
-    const parsed = z
-      .object({
-        restaurant: z.string().min(1).max(80),
-        email: z.string().min(1).max(120),
-        password: z.string().min(1).max(200),
-        displayName: z.string().min(1).max(60).optional(),
-      })
-      .safeParse(body);
-    if (!parsed.success) {
-      throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
-    }
-
-    const named = prepareTenant(parsed.data.restaurant);
-    if (named.isErr()) {
-      throw new HttpException(named.error, HttpStatus.BAD_REQUEST);
-    }
-
-    const checked = validateCredentials(parsed.data.email, parsed.data.password);
-    if (checked.isErr()) {
-      throw new HttpException(checked.error, HttpStatus.BAD_REQUEST);
-    }
-
-    const taken = await this.tenants.store.takenSlugs(named.value.slug);
-    if (taken.isErr()) {
-      throw new HttpException(taken.error, HttpStatus.BAD_GATEWAY);
-    }
-    const slug = uniqueSlug(named.value.slug, taken.value);
-
-    const created = await this.tenants.store.signUp({
-      // Slug doubles as the id: it is already unique and stays readable in logs.
-      tenantId: slug,
-      name: named.value.name,
-      slug,
-      currency: 'ARS',
-      staff: {
-        id: crypto.randomUUID(),
-        email: checked.value.email,
-        displayName: parsed.data.displayName?.trim() ?? checked.value.email.split('@')[0] ?? 'dueño',
-        passwordHash: await hashPassword(checked.value.password),
-        role: 'OWNER',
-      },
-    });
-
-    /*
-     * Un mail ya registrado no se contesta distinto.
-     *
-     * Devolver "ese mail ya existe" deja recorrer una lista de direcciones y
-     * armar el padrón de qué restaurantes usan Itadaki y con qué mail — que es
-     * justo lo que hace falta para un phishing dirigido creíble.
-     *
-     * Callarse del todo tampoco sirve: si alguien está probando el mail de un
-     * dueño, ese dueño tiene derecho a enterarse. Así que la respuesta al que
-     * intenta es siempre la misma, y lo que cambia es el mail que llega.
-     */
-    if (created.isErr() && created.error.kind === 'EMAIL_TAKEN') {
-      void this.avisarDelIntento(checked.value.email);
-      return { creado: true };
-    }
-
-    if (created.isErr()) {
-      throw new HttpException(created.error, HttpStatus.BAD_GATEWAY);
-    }
-
-    // Sólo el local: el alta ya no arma la sesión del dueño, así que no hace
-    // falta la fila del usuario acá.
-    const { tenant } = created.value;
-
-    /*
-     * El mail de verificación sale acá, y su fallo no vuelca el alta.
-     *
-     * La cuenta ya está creada: si el proveedor de correo está caído, negarle
-     * la cuenta a alguien que hizo todo bien es peor que dejarla sin verificar
-     * — el mail se puede reenviar, y el alta no se puede rehacer con el mismo
-     * mail porque ya quedó tomado.
-     */
-    void this.mandarVerificacion(checked.value.email, tenant.name);
-
-    /*
-     * El alta no inicia sesión: se entra por el link del mail.
-     *
-     * Es lo que hace que la respuesta pueda ser idéntica para un mail libre y
-     * para uno que ya tiene cuenta. Devolver una sesión sólo en el primer caso
-     * delataba cuál era cuál —y con eso se recorre una lista de direcciones y
-     * se arma el padrón de qué restaurantes usan Itadaki—.
-     *
-     * De paso arregla algo que ya estaba mal: la cuenta quedaba usable sin que
-     * nadie hubiera probado que el mail era suyo, así que un tipeo en la
-     * dirección dejaba a un dueño con un restaurante que no puede recuperar.
-     */
-    return { creado: true };
-  }
+  /*
+   * No hay alta desde afuera.
+   *
+   * Existía `POST /auth/signup`, y entrar con Google con una cuenta nueva
+   * también creaba un restaurante. Los clientes los damos de alta nosotros:
+   * cargamos la carta y las mesas antes de que el dueño entre, así que una
+   * cuenta creada sola arrancaba vacía justo cuando le habíamos prometido lo
+   * contrario. Y esconder el link del panel no alcanzaba — cualquiera podía
+   * llamar al endpoint directo.
+   *
+   * El alta es `npm run alta:restaurante`.
+   */
 
   /** Lets the panel show or hide the Google button without guessing. */
   @Public()
@@ -528,8 +693,6 @@ export class AuthController {
     const parsed = z
       .object({
         idToken: z.string().min(1).max(4000),
-        /** Only used when the address has no account yet. */
-        restaurant: z.string().min(1).max(80).optional(),
       })
       .safeParse(body);
     if (!parsed.success) {
@@ -550,52 +713,14 @@ export class AuthController {
       return this.sessionFor(existing.value);
     }
 
-    // No account: this is a signup, and it needs a restaurant to create.
-    if (parsed.data.restaurant === undefined) {
-      throw new HttpException(
-        { kind: 'NEEDS_RESTAURANT', email: identity.email, name: identity.name },
-        HttpStatus.CONFLICT,
-      );
-    }
-
-    const named = prepareTenant(parsed.data.restaurant);
-    if (named.isErr()) {
-      throw new HttpException(named.error, HttpStatus.BAD_REQUEST);
-    }
-
-    const taken = await this.tenants.store.takenSlugs(named.value.slug);
-    if (taken.isErr()) {
-      throw new HttpException(taken.error, HttpStatus.BAD_GATEWAY);
-    }
-    const slug = uniqueSlug(named.value.slug, taken.value);
-
-    const created = await this.tenants.store.signUp({
-      tenantId: slug,
-      name: named.value.name,
-      slug,
-      currency: 'ARS',
-      staff: {
-        id: crypto.randomUUID(),
-        email: identity.email,
-        displayName: identity.name,
-        // Unguessable filler: this account signs in through Google, and a
-        // password reset is what turns on the email-and-password path.
-        passwordHash: await hashPassword(randomBytes(32).toString('base64url')),
-        role: 'OWNER',
-      },
-    });
-
-    if (created.isErr()) {
-      const status =
-        created.error.kind === 'EMAIL_TAKEN' ? HttpStatus.CONFLICT : HttpStatus.BAD_GATEWAY;
-      throw new HttpException(created.error, status);
-    }
-
-    const { tenant, owner } = created.value;
-    return {
-      ...this.sessionFor(owner),
-      restaurant: { id: tenant.id, name: tenant.name, slug: tenant.slug },
-    };
+    /*
+     * Sin cuenta, no se crea una.
+     *
+     * Antes, con el nombre de un restaurante, esto lo daba de alta. Ahora las
+     * cuentas las crea el equipo de Itadaki, así que un mail de Google que no
+     * está registrado es alguien que todavía no es cliente.
+     */
+    throw new HttpException({ kind: 'SIN_CUENTA' }, HttpStatus.FORBIDDEN);
   }
 
   /** One place that mints a session, so every entry point issues the same shape. */

@@ -8,7 +8,13 @@ export {
   isRole,
   entraConPin,
   entraConMail,
+  esDeSoporte,
+  TENANT_DE_SOPORTE,
 } from './lib/role';
+export {
+  necesitaMailConfirmado,
+  puedeSinConfirmar,
+} from './lib/mail-verificado';
 export {
   type StaffUser,
   type StaffSession,

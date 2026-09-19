@@ -5,6 +5,8 @@ export interface StaffProfile {
   readonly displayName: string;
   readonly role: string;
   readonly tenantId: string;
+  /** El nombre del restaurante. Sólo viene al entrar como soporte. */
+  readonly tenantNombre?: string;
   readonly permissions: readonly string[];
 }
 
@@ -70,7 +72,8 @@ export class AuthStore {
       return;
     }
 
-    const saved = localStorage.getItem(STORAGE_KEY);
+    // La de soporte primero: si está, es la de esta pestaña y manda.
+    const saved = sessionStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(STORAGE_KEY);
     if (saved === null) {
       this.ready.set(true);
       return;
@@ -95,12 +98,6 @@ export class AuthStore {
     }
   }
 
-  /**
-   * Registers a restaurant and signs its owner straight in.
-   *
-   * The server returns a session with the account, so there is no reason to
-   * bounce someone who just typed their password back to a login form.
-   */
   /**
    * Confirma el mail del link y deja al dueño adentro.
    *
@@ -130,50 +127,6 @@ export class AuthStore {
       this.token.set(sesion.token);
       this.profile.set(sesion.user);
       localStorage.setItem(STORAGE_KEY, sesion.token);
-      return true;
-    } catch {
-      this.error.set('No pudimos conectar con el servidor');
-      return false;
-    } finally {
-      this.busy.set(false);
-    }
-  }
-
-  async signUp(restaurant: string, email: string, password: string): Promise<boolean> {
-    this.busy.set(true);
-    this.error.set(null);
-
-    try {
-      const response = await fetch(`${this.baseUrl}/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ restaurant, email, password }),
-      });
-
-      if (!response.ok) {
-        const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
-        this.error.set(
-          detail?.kind === 'PASSWORD_TOO_SHORT'
-              ? 'La contraseña necesita al menos 8 caracteres'
-              : detail?.kind === 'PASSWORD_TOO_COMMON'
-                ? 'Esa contraseña es de las primeras que prueban; elegí otra'
-              : detail?.kind === 'INVALID_EMAIL'
-                ? 'Revisá el email'
-                : detail?.kind === 'NAME_TOO_SHORT' || detail?.kind === 'NAME_NOT_USABLE'
-                  ? 'Poné el nombre del restaurante'
-                  : 'No pudimos crear la cuenta',
-        );
-        return false;
-      }
-
-      /*
-       * El alta ya no inicia sesión: se entra por el link del mail.
-       *
-       * Es lo que permite que el servidor conteste igual para un mail libre y
-       * para uno que ya tiene cuenta. Antes, entrar directo sólo en el primer
-       * caso delataba cuál era cuál, y con eso se podía recorrer una lista de
-       * direcciones para saber qué restaurantes usan Itadaki.
-       */
       return true;
     } catch {
       this.error.set('No pudimos conectar con el servidor');
@@ -266,29 +219,27 @@ export class AuthStore {
   /**
    * Exchanges a Google ID token for a session.
    *
-   * `needsRestaurant` means the address is new and the caller has to ask for a
-   * restaurant name before trying again.
+   * Un mail sin cuenta no se da de alta solo: las cuentas las crea el equipo
+   * de Itadaki, así que es alguien que todavía no es cliente.
    */
-  async signInWithGoogle(
-    idToken: string,
-    restaurant?: string,
-  ): Promise<'ok' | 'needs-restaurant' | 'failed'> {
+  async signInWithGoogle(idToken: string): Promise<'ok' | 'failed'> {
     this.busy.set(true);
     this.error.set(null);
     try {
       const response = await fetch(`${this.baseUrl}/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(restaurant === undefined ? { idToken } : { idToken, restaurant }),
+        body: JSON.stringify({ idToken }),
       });
 
       if (!response.ok) {
         const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
-        if (detail?.kind === 'NEEDS_RESTAURANT') return 'needs-restaurant';
         this.error.set(
-          detail?.kind === 'GOOGLE_NOT_CONFIGURED'
-            ? 'El acceso con Google no está configurado'
-            : 'No pudimos entrar con Google',
+          detail?.kind === 'SIN_CUENTA'
+            ? 'Ese mail no tiene cuenta en Itadaki. Escribinos y te damos de alta.'
+            : detail?.kind === 'GOOGLE_NOT_CONFIGURED'
+              ? 'El acceso con Google no está configurado'
+              : 'No pudimos entrar con Google',
         );
         return 'failed';
       }
@@ -325,6 +276,174 @@ export class AuthStore {
    *
    * `local` sólo va cuando trabaja en varios y ya eligió uno.
    */
+  /**
+   * Los restaurantes a los que soporte puede entrar.
+   *
+   * Pide la contraseña en cada búsqueda porque el servidor la exige: la lista
+   * de quiénes son nuestros clientes no puede salir de tener una pestaña
+   * abierta.
+   */
+  async localesDeSoporte(
+    email: string,
+    password: string,
+    busca: string,
+  ): Promise<readonly { id: string; nombre: string }[] | null> {
+    this.error.set(null);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/soporte/locales`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, busca }),
+      });
+
+      if (!response.ok) {
+        this.error.set(
+          response.status === 429
+            ? 'Demasiados intentos. Esperá unos minutos.'
+            : 'Mail o contraseña incorrectos',
+        );
+        return null;
+      }
+
+      const datos = (await response.json()) as {
+        locales: readonly { id: string; nombre: string }[];
+      };
+      return datos.locales;
+    } catch {
+      this.error.set('No pudimos conectarnos');
+      return null;
+    }
+  }
+
+  /**
+   * Entra a un restaurante como soporte.
+   *
+   * La sesión que queda vale sólo para ese local: para ir a otro hay que
+   * volver a entrar. Es a propósito — abrir el panel de un cliente no puede
+   * ser algo que pase de casualidad.
+   */
+  async entrarComoSoporte(email: string, password: string, local: string): Promise<boolean> {
+    this.busy.set(true);
+    this.error.set(null);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/soporte`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, local }),
+      });
+
+      if (!response.ok) {
+        this.error.set(
+          response.status === 429
+            ? 'Demasiados intentos. Esperá unos minutos.'
+            : 'No pudimos entrar a ese restaurante',
+        );
+        return false;
+      }
+
+      const respuesta = (await response.json()) as { token?: string; user?: StaffProfile };
+      if (respuesta.token === undefined || respuesta.user === undefined) {
+        this.error.set('No pudimos entrar a ese restaurante');
+        return false;
+      }
+
+      this.token.set(respuesta.token);
+      this.profile.set(respuesta.user);
+      /*
+       * En `sessionStorage` y no en `localStorage`: la sesión de soporte
+       * muere al cerrar la pestaña.
+       *
+       * Guardada como las demás, al volver al panel caíamos dentro del
+       * último restaurante sin haberlo elegido —y sin saber cuál era—. Que
+       * haya que elegir cada vez es el punto: abrir el local de un cliente
+       * no puede pasar por tener una pestaña vieja abierta.
+       */
+      sessionStorage.setItem(STORAGE_KEY, respuesta.token);
+      return true;
+    } catch {
+      this.error.set('No pudimos conectarnos');
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  /**
+   * La lista de restaurantes, con la sesión de soporte ya abierta.
+   *
+   * Para volver a elegir sin salir: cambiar de local no puede exigir
+   * escribir la contraseña de nuevo, porque el formulario ya no está.
+   */
+  /** El token de soporte, guardado para poder cambiar de local sin la clave. */
+  private readonly tokenDeSoporte = signal<string | null>(null);
+
+  async volverAElegir(): Promise<boolean> {
+    const previo = this.token();
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/soporte/mis-locales`, {
+        headers: this.headers(),
+      });
+      if (!response.ok) return false;
+
+      const datos = (await response.json()) as {
+        locales: readonly { id: string; nombre: string }[];
+      };
+      this.localesParaElegir.set(datos.locales.map((l) => ({ ...l, role: 'SOPORTE' })));
+      // La sesión se corta acá: la pantalla de elegir es la de entrada, y
+      // dejar el panel detrás mostraría el restaurante viejo.
+      // Se guarda antes de cortar: es con lo que se entra al siguiente local.
+      this.tokenDeSoporte.set(previo);
+      this.token.set(null);
+      this.profile.set(null);
+      sessionStorage.removeItem(STORAGE_KEY);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Entra a otro restaurante con la sesión de soporte que ya estaba abierta.
+   *
+   * No pide la contraseña: la prueba de identidad es el token vigente. Antes
+   * cambiar de local era salir y volver a entrar, y eso no funcionaba — el
+   * formulario ya se había vaciado.
+   */
+  async cambiarDeRestaurante(local: string): Promise<boolean> {
+    const tokenPrevio = this.tokenDeSoporte();
+    if (tokenPrevio === null) return false;
+
+    this.busy.set(true);
+    this.error.set(null);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/soporte/cambiar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenPrevio}` },
+        body: JSON.stringify({ local }),
+      });
+
+      if (!response.ok) {
+        this.error.set('No pudimos entrar a ese restaurante');
+        return false;
+      }
+
+      const respuesta = (await response.json()) as { token: string; user: StaffProfile };
+      this.token.set(respuesta.token);
+      this.profile.set(respuesta.user);
+      sessionStorage.setItem(STORAGE_KEY, respuesta.token);
+      this.localesParaElegir.set([]);
+      return true;
+    } catch {
+      this.error.set('No pudimos conectarnos');
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
   async signInConPin(usuario: string, pin: string, local?: string): Promise<boolean> {
     this.busy.set(true);
     this.error.set(null);
@@ -434,6 +553,8 @@ export class AuthStore {
     this.token.set(null);
     this.profile.set(null);
     localStorage.removeItem(STORAGE_KEY);
+    // También la de soporte, o salir dejaría la pestaña dentro del local.
+    sessionStorage.removeItem(STORAGE_KEY);
   }
 
   can(permission: string): boolean {

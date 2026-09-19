@@ -14,6 +14,7 @@ import {
   nuevoPin,
   nombreDeUsuario,
   usuarioLibre,
+  esDeSoporte,
 } from '@itadaki/identity/domain';
 import { hashPassword } from '@itadaki/identity/infra';
 import { log } from './logger';
@@ -111,7 +112,15 @@ export class StaffController {
   @RequirePermission('staff:manage')
   @Get('roles')
   roles() {
-    return ROLES.filter((role) => role !== 'OWNER');
+    /*
+     * Ni OWNER ni SOPORTE.
+     *
+     * Transferir la propiedad no es una invitación, y soporte es una cuenta
+     * nuestra: si el panel la ofreciera, cualquier dueño podría crearse una
+     * y entrar a cargar cartas en otros restaurantes. Se crean a mano contra
+     * la base, que es donde tiene que costar.
+     */
+    return ROLES.filter((role) => role !== 'OWNER' && !esDeSoporte(role));
   }
 
   @RequirePermission('staff:manage')

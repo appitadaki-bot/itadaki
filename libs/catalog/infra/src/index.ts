@@ -16,3 +16,4 @@ export { MAX_PRODUCTS, PostgresCategoryStore, PostgresPriceAudit, PostgresProduc
 export { PostgresImageStore } from './lib/postgres-images';
 export { type BlobStorage, DiskBlobStorage, S3BlobStorage } from './lib/blob-storage';
 export { PostgresModifierStore, type ModifierStoreError } from './lib/postgres-modifiers';
+export { PostgresBitacora, type Actor, type EntradaDeBitacora } from './lib/postgres-bitacora';

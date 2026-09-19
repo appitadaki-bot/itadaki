@@ -44,7 +44,7 @@ const CALL_LABELS: Record<string, string> = {
     @if (!auth.ready()) {
       <p class="booting">Cargando…</p>
     } @else if (!auth.signedIn()) {
-      <itd-login context="Salón" [allowSignUp]="false" />
+      <itd-login context="Salón" [entraConMail]="false" />
     } @else {
       <header class="head">
         <div>

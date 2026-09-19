@@ -23,12 +23,16 @@ import {
 import { setProductAvailability } from '@itadaki/catalog/application';
 import { uploadImage } from '@itadaki/catalog/application/server';
 import { MAX_PRODUCTS, MAX_UPLOAD_BYTES, validateUpload } from '@itadaki/catalog/infra';
-import { Public, RequirePermission, TenantId } from './auth';
+import { Public, RequirePermission, TenantId,
+  Auth,
+  type AuthContext,
+} from './auth';
 import { fetchImage, fetchPage } from './fetch-page';
 import { CatalogService } from './catalog.service';
 import { ImagesService } from './images.service';
 import { RealtimeGateway } from './realtime.gateway';
 import { Money } from '@itadaki/shared/domain';
+import { type CambioEnLaCarta, comoSeLee, queCambioDelPlato } from '@itadaki/catalog/domain';
 import { z } from 'zod';
 import { availabilitySchema, toMoneyDto } from './contracts';
 import { log } from './logger';
@@ -148,9 +152,53 @@ export class MenuController {
   }
 
   /** Creates a category. Names are free text: not every restaurant is Japanese. */
+  /**
+   * Anota un cambio en la bitácora.
+   *
+   * No se espera el resultado: si el registro falla, el cambio ya se hizo y
+   * no puede deshacerse por eso. Perder una línea de bitácora es malo; dejar
+   * al dueño sin poder cambiar un precio porque la auditoría tuvo un
+   * problema, peor.
+   */
+  /**
+   * Quién tocó la carta últimamente.
+   *
+   * Pide `menu:write` y no `menu:read`: es información de gestión —quién
+   * cambió qué— y no algo que el mozo necesite para trabajar.
+   */
+  @RequirePermission('menu:write')
+  @Get('bitacora')
+  async verBitacora(@TenantId() tenantId: string) {
+    const entradas = (await this.catalog.bitacora?.ultimos(tenantId)) ?? [];
+
+    return {
+      entradas: entradas.map((entrada) => ({
+        id: entrada.id,
+        // El texto ya armado: así la pantalla no repite la lógica de cómo se
+        // lee un cambio, y dos vistas no pueden contar lo mismo distinto.
+        que: comoSeLee(entrada),
+        quien: entrada.actor.nombre,
+        rol: entrada.actor.rol,
+        cuando: entrada.cuando.toISOString(),
+      })),
+    };
+  }
+
+  private anotar(tenantId: string, auth: AuthContext, cambio: CambioEnLaCarta): void {
+    void this.catalog.bitacora?.registrar(tenantId, {
+      ...cambio,
+      actor: { id: auth.userId, nombre: auth.displayName, rol: auth.role },
+      cuando: new Date(),
+    });
+  }
+
   @RequirePermission('menu:write')
   @Post('categories')
-  async createCategory(@Body() body: unknown, @TenantId() tenantId: string) {
+  async createCategory(
+    @Body() body: unknown,
+    @TenantId() tenantId: string,
+    @Auth() auth: AuthContext,
+  ) {
     const parsed = z
       .object({ name: z.string().min(1).max(40) })
       .safeParse(body);
@@ -172,6 +220,14 @@ export class MenuController {
     if (saved.isErr()) {
       throw new HttpException(saved.error, HttpStatus.CONFLICT);
     }
+    this.anotar(tenantId, auth, {
+      entidad: 'CATEGORIA',
+      entidadId: saved.value.id,
+      accion: 'CREO',
+      antes: null,
+      despues: saved.value.name,
+    });
+
     return { id: saved.value.id, name: saved.value.name, sortOrder: saved.value.sortOrder };
   }
 
@@ -237,6 +293,7 @@ export class MenuController {
   async deleteCategory(
     @Param('id') categoryId: string,
     @TenantId() tenantId: string,
+    @Auth() auth: AuthContext,
     @Query('moverA') moverA?: string,
   ) {
     const destino = typeof moverA === 'string' && moverA !== '' ? moverA : undefined;
@@ -245,6 +302,15 @@ export class MenuController {
       const status = result.error.kind === 'NOT_FOUND' ? HttpStatus.NOT_FOUND : HttpStatus.CONFLICT;
       throw new HttpException(result.error, status);
     }
+
+    this.anotar(tenantId, auth, {
+      entidad: 'CATEGORIA',
+      entidadId: categoryId,
+      accion: 'BORRO',
+      antes: categoryId,
+      despues: null,
+    });
+
     return { ok: true };
   }
 
@@ -257,7 +323,16 @@ export class MenuController {
    */
   @RequirePermission('menu:write')
   @Delete('products/:id')
-  async deleteProduct(@Param('id') productId: string, @TenantId() tenantId: string) {
+  async deleteProduct(
+    @Param('id') productId: string,
+    @TenantId() tenantId: string,
+    @Auth() auth: AuthContext,
+  ) {
+    // El nombre antes de borrarlo: después ya no hay a quién preguntárselo, y
+    // "borró un plato" sin decir cuál no sirve de nada en la bitácora.
+    const antes = await this.catalog.products.findById(tenantId, productId);
+    const nombreBorrado = antes.isOk() ? antes.value.name : productId;
+
     const result = await this.catalog.products.remove(tenantId, productId);
     if (result.isErr()) {
       const status = result.error.kind === 'NOT_FOUND' ? HttpStatus.NOT_FOUND : HttpStatus.CONFLICT;
@@ -281,6 +356,14 @@ export class MenuController {
       });
     }
 
+    this.anotar(tenantId, auth, {
+      entidad: 'PLATO',
+      entidadId: productId,
+      accion: 'BORRO',
+      antes: nombreBorrado,
+      despues: null,
+    });
+
     return { id: productId, removed: true };
   }
 
@@ -291,6 +374,7 @@ export class MenuController {
     @Param('id') productId: string,
     @Body() body: unknown,
     @TenantId() tenantId: string,
+    @Auth() auth: AuthContext,
   ) {
     const parsed = z
       .object({
@@ -334,6 +418,32 @@ export class MenuController {
     if (saved.isErr()) {
       throw new HttpException(saved.error, HttpStatus.CONFLICT);
     }
+
+    // Sólo si cambió algo que se note: guardar sin tocar nada no deja rastro.
+    const cambio = queCambioDelPlato(
+      {
+        nombre: current.name,
+        precioMinor: current.price.amountInMinorUnits,
+        currency: current.price.currency,
+        disponible: current.available,
+      },
+      {
+        nombre: saved.value.name,
+        precioMinor: saved.value.price.amountInMinorUnits,
+        currency: saved.value.price.currency,
+        disponible: saved.value.available,
+      },
+    );
+    if (cambio !== null) {
+      this.anotar(tenantId, auth, {
+        entidad: 'PLATO',
+        entidadId: saved.value.id,
+        accion: 'CAMBIO',
+        antes: cambio.antes,
+        despues: cambio.despues,
+      });
+    }
+
     return {
       id: saved.value.id,
       name: saved.value.name,
@@ -347,7 +457,11 @@ export class MenuController {
   /** Creates a dish from the admin panel. */
   @RequirePermission('menu:write')
   @Post('products')
-  async createProduct(@Body() body: unknown, @TenantId() tenantId: string) {
+  async createProduct(
+    @Body() body: unknown,
+    @TenantId() tenantId: string,
+    @Auth() auth: AuthContext,
+  ) {
     const schema = z.object({
       name: z.string().min(1).max(60),
       description: z.string().max(140).default(''),
@@ -391,6 +505,14 @@ export class MenuController {
     if (saved.isErr()) {
       throw new HttpException(saved.error, HttpStatus.CONFLICT);
     }
+    this.anotar(tenantId, auth, {
+      entidad: 'PLATO',
+      entidadId: saved.value.id,
+      accion: 'CREO',
+      antes: null,
+      despues: saved.value.name,
+    });
+
     return { id: saved.value.id, name: saved.value.name };
   }
 
@@ -401,6 +523,7 @@ export class MenuController {
     @Param('id') productId: string,
     @Body() body: unknown,
     @TenantId() tenantId: string,
+    @Auth() auth: AuthContext,
   ) {
     const parsed = availabilitySchema.safeParse(body);
     if (!parsed.success) {
@@ -416,6 +539,14 @@ export class MenuController {
     if (result.isErr()) {
       throw new HttpException(result.error, HttpStatus.NOT_FOUND);
     }
+
+    this.anotar(tenantId, auth, {
+      entidad: 'PLATO',
+      entidadId: result.value.id,
+      accion: 'CAMBIO',
+      antes: parsed.data.available ? 'sin stock' : 'disponible',
+      despues: parsed.data.available ? 'disponible' : 'sin stock',
+    });
 
     return { id: result.value.id, available: result.value.available };
   }
@@ -564,7 +695,11 @@ export class MenuController {
    */
   @RequirePermission('menu:write')
   @Post('import')
-  async importMenu(@Body() body: unknown, @TenantId() tenantId: string) {
+  async importMenu(
+    @Body() body: unknown,
+    @TenantId() tenantId: string,
+    @Auth() auth: AuthContext,
+  ) {
     const schema = z.object({
       // Los mismos topes que el importador ya aplicó en el navegador: acá se
       // vuelven a exigir porque esto es el borde, y el borde no confía.
@@ -666,6 +801,20 @@ export class MenuController {
         }
       }
     }
+
+    /*
+     * Una sola línea para toda la importación.
+     *
+     * Una por plato llenaría la bitácora de setenta renglones iguales y
+     * taparía los cambios de a uno, que son los que alguien busca.
+     */
+    this.anotar(tenantId, auth, {
+      entidad: 'CARTA',
+      entidadId: null,
+      accion: 'IMPORTO',
+      antes: null,
+      despues: `${imported.length} platos`,
+    });
 
     // Que la carta entre sin fotos y nadie sepa por qué es peor que decirlo.
     return {

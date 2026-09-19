@@ -309,6 +309,29 @@ export class PostgresStaffStore {
     }
   }
 
+  /**
+   * Si esta persona confirmó su mail.
+   *
+   * Ante un fallo de lectura devuelve `true`, igual que `isActive`: no poder
+   * averiguarlo no es lo mismo que saber que no confirmó, y bloquear el panel
+   * de un local que hizo todo bien por un problema de base es peor que dejar
+   * pasar una configuración de más.
+   */
+  async mailConfirmado(tenantId: string, userId: string): Promise<boolean> {
+    try {
+      return await this.db.withTenant(tenantId, async (client) => {
+        const result = await client.query<{ email_verified_at: string | null }>(
+          'SELECT email_verified_at FROM staff_users WHERE id = $1',
+          [userId],
+        );
+        const fila = result.rows[0];
+        return fila === undefined ? true : fila.email_verified_at !== null;
+      });
+    } catch {
+      return true;
+    }
+  }
+
   async isActive(tenantId: string, userId: string): Promise<boolean> {
     try {
       return await this.db.withTenant(tenantId, async (client) => {

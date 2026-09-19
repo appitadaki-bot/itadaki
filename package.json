@@ -23,6 +23,7 @@
     "db:migrate": "npm run build:api && node dist/api/apps/api/src/migrate-cli.js",
     "db:down": "docker compose down",
     "db:staff": "npm run build:api && node dist/api/apps/api/src/create-staff.js",
+    "alta:restaurante": "npm run build:api && node dist/api/apps/api/src/alta-restaurante.js",
     "db:trial": "npm run build:api && node dist/api/apps/api/src/manage-trial.js",
     "avisos:vencimiento": "npm run build:api && node dist/api/apps/api/src/avisar-vencimientos.js",
     "db:reset": "docker compose down -v && npm run db:up && npm run db:seed",
@@ -39,7 +40,9 @@
     "start:salon": "ng serve floor-web --port 4600",
     "build:landing": "npm run legal && node scripts/build-landing.mjs",
     "video": "node scripts/grabar-flujo.mjs",
-    "salon-lleno": "node scripts/salon-lleno.mjs"
+    "salon-lleno": "node scripts/salon-lleno.mjs",
+    "alta": "npm run build:api && node scripts/dar-de-alta.mjs",
+    "db:soporte": "npm run build:api && node dist/api/apps/api/src/crear-soporte.js"
   },
   "devDependencies": {
     "@angular/build": "^21.2.24",

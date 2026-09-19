@@ -49,9 +49,9 @@ describe('una puerta por rol', () => {
   it('la pantalla del personal no ofrece el mail', () => {
     const donde = LOGIN.indexOf('Entrar con mail y contraseña');
     expect(donde).toBeGreaterThan(-1);
-    // Envuelto en `allowSignUp`, que es lo que distingue el panel del dueño
+    // Envuelto en `entraConMail`, que es lo que distingue el panel del dueño
     // de las apps del salón y la cocina.
-    expect(LOGIN.slice(donde - 300, donde)).toContain('@if (allowSignUp())');
+    expect(LOGIN.slice(donde - 300, donde)).toContain('@if (entraConMail())');
   });
 
   /**
@@ -68,8 +68,8 @@ describe('una puerta por rol', () => {
       'utf-8',
     );
 
-    expect(salon).toContain('[allowSignUp]="false"');
+    expect(salon).toContain('[entraConMail]="false"');
     // El panel no lo apaga: usa el valor por defecto, que es true.
-    expect(admin).not.toContain('[allowSignUp]="false"');
+    expect(admin).not.toContain('[entraConMail]="false"');
   });
 });

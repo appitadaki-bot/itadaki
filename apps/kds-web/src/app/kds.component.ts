@@ -71,7 +71,7 @@ const SLA_LATE = 15;
     } @else if (!auth.signedIn()) {
       <!-- Kitchen staff are created by the owner; signing up here would make
            a second restaurant by mistake. -->
-      <itd-login context="Cocina" [allowSignUp]="false" />
+      <itd-login context="Cocina" [entraConMail]="false" />
     } @else {
     <header class="head">
       <div class="head-left">

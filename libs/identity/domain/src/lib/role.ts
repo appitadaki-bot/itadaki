@@ -1,4 +1,4 @@
-export const ROLES = ['OWNER', 'MANAGER', 'KITCHEN', 'WAITER'] as const;
+export const ROLES = ['OWNER', 'MANAGER', 'KITCHEN', 'WAITER', 'SOPORTE'] as const;
 export type Role = (typeof ROLES)[number];
 
 export const PERMISSIONS = [
@@ -42,6 +42,19 @@ const GRANTS: Record<Role, readonly Permission[]> = {
   ],
   KITCHEN: ['menu:read', 'orders:read', 'orders:advance'],
   WAITER: ['menu:read', 'orders:read', 'orders:advance', 'bills:read', 'bills:close'],
+  /*
+   * Nosotros, para armarle la carta a un local nuevo.
+   *
+   * La promesa del alta es "cuando entres, tu carta ya va a estar cargada", y
+   * eso exige entrar antes que el dueño. La alternativa era que él nos dictara
+   * su contraseña, que es peor: la clave viaja por WhatsApp, queda en dos
+   * historiales, y después nadie sabe si un precio lo cambió él o nosotros.
+   *
+   * Sólo la carta y las mesas, que es para lo que se usa. No ve la
+   * facturación ni las ventas, y no puede tocar al personal: si esta cuenta
+   * se filtra, lo peor que puede pasar es una carta mal cargada.
+   */
+  SOPORTE: ['menu:read', 'menu:write'],
 };
 
 export function can(role: Role, permission: Permission): boolean {
@@ -69,6 +82,26 @@ export function permissionsOf(role: Role): readonly Permission[] {
 export function entraConPin(role: Role): boolean {
   return role === 'WAITER' || role === 'KITCHEN';
 }
+
+/**
+ * Si este rol es nuestro y no del restaurante.
+ *
+ * Se usa para no ofrecerlo en el panel —el dueño no puede crear cuentas de
+ * soporte— y para dejar dicho en el historial quién tocó qué.
+ */
+export function esDeSoporte(role: Role): boolean {
+  return role === 'SOPORTE';
+}
+
+/**
+ * Dónde vive la cuenta de soporte.
+ *
+ * No es un restaurante: es el local al que pertenece su fila, para que tenga
+ * dónde apoyarse. El token, en cambio, lleva el restaurante que está
+ * atendiendo — por eso comprobar si sigue habilitada hay que hacerlo acá y no
+ * donde apunta el token.
+ */
+export const TENANT_DE_SOPORTE = 'soporte';
 
 /** Si este rol puede entrar con mail y contraseña. */
 export function entraConMail(role: Role): boolean {
