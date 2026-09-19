@@ -73,3 +73,27 @@ describe('una puerta por rol', () => {
     expect(admin).not.toContain('[entraConMail]="false"');
   });
 });
+
+/**
+ * Que el salón y la cocina pidan usuario y PIN, no mail.
+ *
+ * La lógica existía pero corría en el constructor, donde `entraConMail()`
+ * todavía devuelve su valor por defecto —`true`— porque los inputs del
+ * template llegan después. El resultado era una pantalla pidiendo mail y
+ * contraseña: justo lo que el mozo y el cocinero no tienen.
+ */
+describe('el modo PIN se enciende cuando corresponde', () => {
+  const LOGIN_TS = readFileSync(
+    join(process.cwd(), 'libs/shared/ui-auth/src/lib/login.component.ts'),
+    'utf-8',
+  );
+
+  it('se decide en un effect y no en el constructor', () => {
+    const donde = LOGIN_TS.indexOf('this.conPin.set(true)');
+    expect(donde).toBeGreaterThan(-1);
+
+    // El `effect` tiene que envolverlo: leerlo suelto es leer el default.
+    const antes = LOGIN_TS.slice(Math.max(0, donde - 400), donde);
+    expect(antes).toContain('effect(()');
+  });
+});

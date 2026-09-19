@@ -7,6 +7,7 @@ import {
   input,
   signal,
   viewChild,
+  effect,
 } from '@angular/core';
 import { AuthStore } from './auth.store';
 
@@ -378,9 +379,18 @@ export class LoginComponent {
      * panel del dueño: donde no se entra con mail, quien entra es alguien del
      * equipo.
      */
-    if (!this.entraConMail()) {
-      this.conPin.set(true);
-    }
+    /*
+     * En un `effect` y no acá suelto: en el constructor `entraConMail()`
+     * todavía devuelve su valor por defecto —`true`— porque los inputs del
+     * template llegan después. Leerlo directo dejaba al salón y a la cocina
+     * pidiendo mail y contraseña, que es justo lo que no tienen: el cocinero
+     * escribía su usuario en un campo que exige un mail y quedaba trabado.
+     */
+    effect(() => {
+      if (!this.entraConMail()) {
+        this.conPin.set(true);
+      }
+    });
 
     // El local del link, cuando viene: no hace falta para entrar, pero sirve
     // para los links viejos que ya se repartieron.
