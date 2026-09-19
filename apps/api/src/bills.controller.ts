@@ -28,7 +28,15 @@ import {
 import { Money, type CurrencyCode, type MoneyError, ok } from '@itadaki/shared/domain';
 import { z } from 'zod';
 import { InMemoryTableStore, PostgresTableStore } from '@itadaki/identity/infra';
-import { type DinerScope, Public, RequirePermission, Scope, TableScoped } from './auth';
+import {
+  Auth,
+  type AuthContext,
+  type DinerScope,
+  Public,
+  RequirePermission,
+  Scope,
+  TableScoped,
+} from './auth';
 import { database } from './database';
 import { descuentoDelLocal } from './descuento-del-local';
 import { BillsService } from './bills.service';
@@ -261,6 +269,7 @@ export class BillsController {
     @Param('sessionId') sessionId: string,
     @Body() body: unknown,
     @Scope() scope: DinerScope,
+    @Auth() quien: AuthContext | undefined,
   ) {
     /*
      * Con qué se cobró, según el mozo.
@@ -332,6 +341,27 @@ export class BillsController {
     });
     if (settled.isErr()) {
       throw new HttpException(settled.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    /*
+     * Quién cobró, además de cuánto.
+     *
+     * La cuenta guardaba el monto, el medio y la hora. Si al otro día faltaba
+     * plata, las métricas decían que había entrado y no había forma de saber
+     * qué persona cerró esa mesa.
+     *
+     * No se espera: la mesa ya está cobrada y el cliente está parado ahí. Un
+     * fallo del registro queda en el log, no en la cara del cajero.
+     */
+    if (quien !== undefined) {
+      void this.bills.cierres?.registrar(scope.tenantId, {
+        sessionId,
+        tableId: state.session.tableId,
+        queHizo: 'COBRO',
+        quien: { id: quien.userId, nombre: quien.displayName, rol: quien.role },
+        montoMinor: subtotal.amountInMinorUnits - yaAcordado,
+        medio: cobradoCon,
+      });
     }
 
     // Paying is what ends the meal, so the table is released here. Without it

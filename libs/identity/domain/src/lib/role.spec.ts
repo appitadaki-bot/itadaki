@@ -52,9 +52,18 @@ describe('los permisos de cada rol', () => {
     expect(can('KITCHEN', 'metrics:read')).toBe(false);
   });
 
-  it('el mozo cobra pero no edita la carta', () => {
-    expect(can('WAITER', 'bills:close')).toBe(true);
+  it('el mozo ve las cuentas pero no las cierra ni edita la carta', () => {
+    // Cerrar la plata es de la caja: un mozo que podía cobrar también podía
+    // liberar la mesa sin cobrarla, y nada guardaba quién había sido.
+    expect(can('WAITER', 'bills:read')).toBe(true);
+    expect(can('WAITER', 'bills:close')).toBe(false);
     expect(can('WAITER', 'menu:write')).toBe(false);
+  });
+
+  it('la caja cierra la plata y nada más', () => {
+    expect(can('CAJA', 'bills:close')).toBe(true);
+    expect(can('CAJA', 'menu:write')).toBe(false);
+    expect(can('CAJA', 'metrics:read')).toBe(false);
   });
 
   it('todos pueden leer la carta', () => {

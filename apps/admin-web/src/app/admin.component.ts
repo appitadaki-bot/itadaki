@@ -111,6 +111,7 @@ const ROLE_NAMES: Record<string, string> = {
   MANAGER: 'Encargado',
   KITCHEN: 'Cocina',
   WAITER: 'Mozo',
+  CAJA: 'Caja',
 };
 
 @Component({
@@ -1378,7 +1379,8 @@ const ROLE_NAMES: Record<string, string> = {
               <span>Puesto</span>
               <select name="role" required>
                 <option value="KITCHEN">Cocina — ve y avanza los pedidos</option>
-                <option value="WAITER">Mozo — pedidos y cuentas</option>
+                <option value="WAITER">Mozo — atiende las mesas, no cobra</option>
+                <option value="CAJA">Caja — cobra y libera mesas</option>
                 <option value="MANAGER">Encargado — todo menos el equipo</option>
               </select>
             </label>
@@ -2310,6 +2312,7 @@ export class AdminComponent {
       MANAGER: 'Encargado',
       KITCHEN: 'Cocina',
       WAITER: 'Mozo',
+      CAJA: 'Caja',
     };
     return labels[this.auth.profile()?.role ?? ''] ?? '';
   }
@@ -3062,6 +3065,8 @@ export class AdminComponent {
     const subdominio: Record<string, string> = {
       KITCHEN: 'cocina',
       WAITER: 'salon',
+      // La caja trabaja sobre el mismo tablero que el mozo.
+      CAJA: 'salon',
       MANAGER: 'admin',
       OWNER: 'admin',
     };

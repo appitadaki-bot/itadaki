@@ -217,7 +217,15 @@ const CALL_LABELS: Record<string, string> = {
                   }
                   <!-- Cobrar es la acción normal y cierra la cuenta; liberar sin
                        cobrar existe para la mesa que pagó por fuera del sistema. -->
-                  @if (cobrando() !== mesa.sessionId && confirming() !== mesa.sessionId) {
+                  <!-- Cobrar y liberar son de la caja, no del mozo. Sin el
+                       permiso no se muestran: un botón que siempre falla es
+                       peor que no tenerlo, y el mozo igual necesita ver la
+                       mesa para saber que sigue abierta. -->
+                  @if (
+                    auth.can('bills:close') &&
+                    cobrando() !== mesa.sessionId &&
+                    confirming() !== mesa.sessionId
+                  ) {
                     <!-- El total, y aparte cuánto sale en efectivo. El monto
                          exacto se decide al elegir con qué pagaron: la mesa
                          dice cómo piensa pagar antes de que llegue el mozo, y
@@ -252,7 +260,7 @@ const CALL_LABELS: Record<string, string> = {
                 Lo declara quien tuvo la plata en la mano: la mesa dice cómo
                 *piensa* pagar antes de que el mozo llegue, y eso cambia.
               -->
-              @if (cobrando() === mesa.sessionId) {
+              @if (auth.can('bills:close') && cobrando() === mesa.sessionId) {
                 <div class="cobro-zona">
                   <!-- Sin el monto en la pregunta: depende de lo que toquen.
                        Cada botón dice el suyo, así lo que se guarda es lo que
@@ -281,7 +289,7 @@ const CALL_LABELS: Record<string, string> = {
                 </div>
               }
 
-              @if (confirming() === mesa.sessionId) {
+              @if (auth.can('bills:close') && confirming() === mesa.sessionId) {
                 <!-- La confirmación es una pregunta con dos salidas. Un solo
                      botón que cambiaba de texto a "Debe $X · liberar igual" se
                      leía como un cartel sobre la deuda y no como algo que había
