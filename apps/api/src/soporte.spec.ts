@@ -210,3 +210,49 @@ describe('en qué restaurante estoy', () => {
     expect(cuerpo).toContain('sessionStorage.removeItem');
   });
 });
+
+/**
+ * Cambiar de restaurante sin escribir la contraseña de nuevo.
+ *
+ * Antes cambiar de local era salir y volver a entrar, y el segundo
+ * restaurante no abría nunca: el formulario ya se había vaciado, así que no
+ * quedaba con qué probar quién era. La pantalla se quedaba muda.
+ */
+describe('cambiar de restaurante', () => {
+  const STORE = readFileSync(
+    join(process.cwd(), 'libs/shared/ui-auth/src/lib/auth.store.ts'),
+    'utf-8',
+  );
+
+  it('hay un endpoint que usa la sesión vigente', () => {
+    expect(CONTROLLER).toContain("@Post('soporte/cambiar')");
+    const donde = CONTROLLER.indexOf('async cambiarDeRestaurante');
+    const cuerpo = CONTROLLER.slice(donde, donde + 2000);
+    // Con el token, no con la contraseña.
+    expect(cuerpo).not.toContain('verifyPassword');
+    expect(cuerpo).toContain('tenantId: parsed.data.local');
+  });
+
+  /** Un dueño con sesión no puede saltar al restaurante de otro. */
+  it('sólo soporte puede usarlo', () => {
+    const donde = CONTROLLER.indexOf('async cambiarDeRestaurante');
+    expect(CONTROLLER.slice(donde, donde + 2000)).toContain('!esDeSoporte(auth.role)');
+  });
+
+  it('y el cambio queda registrado', () => {
+    const donde = CONTROLLER.indexOf('async cambiarDeRestaurante');
+    expect(CONTROLLER.slice(donde, donde + 2000)).toContain(
+      "log.info('soporte cambió de restaurante'",
+    );
+  });
+
+  /** El token anterior se guarda antes de cortar la sesión, o no hay con qué. */
+  it('el panel conserva el token para el siguiente local', () => {
+    const donde = STORE.indexOf('async volverAElegir');
+    const cuerpo = STORE.slice(donde, donde + 1200);
+    expect(cuerpo).toContain('const previo = this.token()');
+    expect(cuerpo.indexOf('tokenDeSoporte.set(previo)')).toBeLessThan(
+      cuerpo.indexOf('this.token.set(null)'),
+    );
+  });
+});

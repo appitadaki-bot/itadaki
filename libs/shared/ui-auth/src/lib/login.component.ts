@@ -394,7 +394,18 @@ export class LoginComponent {
      * servidor ya mandó — no hace falta recordar por qué puerta se entró.
      */
     if (this.entraComoSoporte()) {
-      await this.auth.entrarComoSoporte(this.email().trim(), this.password(), local);
+      /*
+       * Con la clave si es la primera vez; con el token si ya había sesión.
+       *
+       * Al volver desde el panel —"Cambiar de restaurante"— el formulario
+       * está vacío: la contraseña se escribió en la pantalla anterior y ya
+       * no está. Por eso el segundo restaurante no abría nunca.
+       */
+      const exito = this.password() !== ''
+        ? await this.auth.entrarComoSoporte(this.email().trim(), this.password(), local)
+        : await this.auth.cambiarDeRestaurante(local);
+
+      if (!exito) this.auth.error.set('No pudimos entrar a ese restaurante');
       return;
     }
 

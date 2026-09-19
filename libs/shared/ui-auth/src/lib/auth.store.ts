@@ -422,6 +422,80 @@ export class AuthStore {
     }
   }
 
+  /**
+   * La lista de restaurantes, con la sesión de soporte ya abierta.
+   *
+   * Para volver a elegir sin salir: cambiar de local no puede exigir
+   * escribir la contraseña de nuevo, porque el formulario ya no está.
+   */
+  /** El token de soporte, guardado para poder cambiar de local sin la clave. */
+  private readonly tokenDeSoporte = signal<string | null>(null);
+
+  async volverAElegir(): Promise<boolean> {
+    const previo = this.token();
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/soporte/mis-locales`, {
+        headers: this.headers(),
+      });
+      if (!response.ok) return false;
+
+      const datos = (await response.json()) as {
+        locales: readonly { id: string; nombre: string }[];
+      };
+      this.localesParaElegir.set(datos.locales.map((l) => ({ ...l, role: 'SOPORTE' })));
+      // La sesión se corta acá: la pantalla de elegir es la de entrada, y
+      // dejar el panel detrás mostraría el restaurante viejo.
+      // Se guarda antes de cortar: es con lo que se entra al siguiente local.
+      this.tokenDeSoporte.set(previo);
+      this.token.set(null);
+      this.profile.set(null);
+      sessionStorage.removeItem(STORAGE_KEY);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Entra a otro restaurante con la sesión de soporte que ya estaba abierta.
+   *
+   * No pide la contraseña: la prueba de identidad es el token vigente. Antes
+   * cambiar de local era salir y volver a entrar, y eso no funcionaba — el
+   * formulario ya se había vaciado.
+   */
+  async cambiarDeRestaurante(local: string): Promise<boolean> {
+    const tokenPrevio = this.tokenDeSoporte();
+    if (tokenPrevio === null) return false;
+
+    this.busy.set(true);
+    this.error.set(null);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/soporte/cambiar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenPrevio}` },
+        body: JSON.stringify({ local }),
+      });
+
+      if (!response.ok) {
+        this.error.set('No pudimos entrar a ese restaurante');
+        return false;
+      }
+
+      const respuesta = (await response.json()) as { token: string; user: StaffProfile };
+      this.token.set(respuesta.token);
+      this.profile.set(respuesta.user);
+      sessionStorage.setItem(STORAGE_KEY, respuesta.token);
+      this.localesParaElegir.set([]);
+      return true;
+    } catch {
+      this.error.set('No pudimos conectarnos');
+      return false;
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
   async signInConPin(usuario: string, pin: string, local?: string): Promise<boolean> {
     this.busy.set(true);
     this.error.set(null);

@@ -152,7 +152,7 @@ const ROLE_NAMES: Record<string, string> = {
         @if (auth.profile()?.tenantNombre) {
           <!-- Cambiar de local es salir: la sesión vale para uno solo, así
                que volver a elegir es volver a entrar. -->
-          <button type="button" class="signout" (click)="auth.signOut()">
+          <button type="button" class="signout" (click)="auth.volverAElegir()">
             Cambiar de restaurante
           </button>
         } @else {

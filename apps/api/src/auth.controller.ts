@@ -40,6 +40,7 @@ import {
   Public,
   SESSION_HOURS,
   olvidarMailConfirmado,
+  RequirePermission,
 } from './auth';
 import { RateLimit } from './rate-limit.guard';
 import { StaffService } from './staff.service';
@@ -404,6 +405,94 @@ export class AuthController {
         // pantalla dice "Administración" y no hay forma de saber cuál es.
         tenantNombre: local.value.get(parsed.data.local),
         permissions: permissionsOf(quien.value.role),
+      },
+    };
+  }
+
+  /**
+   * La lista de restaurantes, para quien ya tiene sesión de soporte abierta.
+   *
+   * La otra versión pide la contraseña porque se usa antes de entrar. Ésta
+   * es para volver a elegir sin salir, y ahí la sesión vigente ya prueba
+   * quién es.
+   */
+  @RequirePermission('menu:read')
+  @Get('soporte/mis-locales')
+  async misLocales(@Auth() auth: AuthContext) {
+    if (!esDeSoporte(auth.role)) {
+      throw new HttpException({ kind: 'FORBIDDEN' }, HttpStatus.FORBIDDEN);
+    }
+
+    const locales = await this.tenants.store.buscarLocales('');
+    if (locales.isErr()) {
+      throw new HttpException(locales.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    return { locales: locales.value.filter((local) => local.id !== TENANT_DE_SOPORTE) };
+  }
+
+  /**
+   * Cambiar de restaurante sin volver a escribir la contraseña.
+   *
+   * Antes, cambiar de local era salir y entrar de nuevo, y eso rompía: el
+   * formulario ya se había vaciado, así que el segundo restaurante no abría
+   * nunca y la pantalla quedaba muda.
+   *
+   * Pide la sesión de soporte que ya está abierta —no la contraseña— y emite
+   * otra para el local pedido. Sigue valiendo para uno solo: lo que cambia es
+   * que la prueba de identidad es el token vigente en vez de tipear la clave
+   * cada vez.
+   */
+  @RequirePermission('menu:read')
+  @Post('soporte/cambiar')
+  async cambiarDeRestaurante(@Body() body: unknown, @Auth() auth: AuthContext) {
+    const parsed = z.object({ local: z.string().min(1).max(80) }).safeParse(body);
+    if (!parsed.success) {
+      throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
+    }
+
+    // Sólo soporte: un dueño con sesión no puede saltar a otro restaurante.
+    if (!esDeSoporte(auth.role)) {
+      log.warn('intento de cambiar de restaurante sin ser soporte', {
+        tenantId: auth.tenantId,
+        userId: auth.userId,
+      });
+      throw new HttpException({ kind: 'FORBIDDEN' }, HttpStatus.FORBIDDEN);
+    }
+
+    const local = await this.tenants.store.nombresDe([parsed.data.local]);
+    if (local.isErr() || !local.value.has(parsed.data.local)) {
+      throw new HttpException({ kind: 'LOCAL_DESCONOCIDO' }, HttpStatus.NOT_FOUND);
+    }
+
+    log.info('soporte cambió de restaurante', {
+      desde: auth.tenantId,
+      a: parsed.data.local,
+      userId: auth.userId,
+    });
+
+    const expiresAt = Date.now() + SESSION_HOURS * 3_600_000;
+    const token = signToken(
+      {
+        userId: auth.userId,
+        tenantId: parsed.data.local,
+        role: auth.role,
+        displayName: auth.displayName,
+        expiresAt,
+      },
+      AUTH_SECRET,
+    );
+
+    return {
+      token,
+      expiresAt,
+      user: {
+        id: auth.userId,
+        displayName: auth.displayName,
+        role: auth.role,
+        tenantId: parsed.data.local,
+        tenantNombre: local.value.get(parsed.data.local),
+        permissions: permissionsOf(auth.role),
       },
     };
   }
