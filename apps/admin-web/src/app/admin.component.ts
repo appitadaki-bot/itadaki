@@ -280,11 +280,17 @@ const ROLE_NAMES: Record<string, string> = {
           <!-- Crear abre su propia pantalla: pegado a la lista hacía
                dudar si el formulario editaba un plato o creaba otro. -->
           <div class="panel-actions">
-            <!-- Cargar sesenta platos de a uno es lo que hace abandonar la
-                 prueba antes de empezar. -->
-            <button type="button" class="secondary" (click)="openImport()">
-              Traer mi carta
-            </button>
+            <!--
+              "Traer mi carta" no se ofrece por ahora.
+
+              Pedía pegar la carta en un formato que hay que entender, y el
+              dueño llegaba ahí sin saber qué esperaba el campo. Hoy la carta
+              se la cargamos nosotros desde soporte antes de darle la cuenta,
+              así que el botón prometía un camino que nadie recorría bien.
+
+              El importador sigue existiendo —lo usa el alta— y el modal
+              también: volver a mostrarlo es descomentar esto.
+            -->
             <!-- Sin categorías el formulario no se puede completar: su select
                  sale vacío y guardar falla. Se dice antes de tocar, y el botón
                  lleva a lo que sí hay que hacer primero. -->

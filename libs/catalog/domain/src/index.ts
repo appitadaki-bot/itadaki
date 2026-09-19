@@ -41,3 +41,13 @@ export {
   htmlToMenuText,
   parseMenuText,
 } from './lib/menu-import';
+export {
+  type Accion,
+  type CambioEnLaCarta,
+  type Entidad,
+  ACCIONES,
+  ENTIDADES,
+  comoSeLee,
+  precioComoTexto,
+  queCambioDelPlato,
+} from './lib/bitacora';
