@@ -1,5 +1,5 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, resolve, sep } from 'node:path';
 
 /**
  * Where image bytes live.
@@ -31,8 +31,23 @@ export interface BlobStorage {
 export class DiskBlobStorage implements BlobStorage {
   constructor(private readonly rootDir: string) {}
 
+  /**
+   * La ruta de una clave, siempre adentro del directorio raíz.
+   *
+   * `join` resuelve los `..` antes de devolver la ruta, así que una clave con
+   * `../` sale del árbol de imágenes y llega a cualquier archivo que el
+   * proceso pueda leer. Quien arma la clave ya valida lo que recibe; esto está
+   * para que un llamador nuevo no lo vuelva a abrir sin darse cuenta.
+   */
   private pathFor(key: string): string {
-    return join(this.rootDir, key);
+    const raiz = resolve(this.rootDir);
+    const destino = resolve(raiz, key);
+
+    if (destino !== raiz && !destino.startsWith(raiz + sep)) {
+      throw new Error(`clave fuera del directorio de imágenes: ${key}`);
+    }
+
+    return destino;
   }
 
   async put(key: string, data: Buffer): Promise<void> {

@@ -36,6 +36,15 @@ const reeditSchema = z.object({
   params: editParamsSchema,
 });
 
+/**
+ * Lo único que se acepta como nombre de variante: letras, números, guiones y
+ * una de las tres extensiones que el servidor genera.
+ */
+const NOMBRE_DE_VARIANTE = /^[A-Za-z0-9_-]+\.(avif|webp|jpeg)$/;
+
+/** Lo mismo para el id, que también se concatena a la ruta del archivo. */
+const ES_UN_ID = /^[A-Za-z0-9_-]+$/;
+
 @Controller('images')
 export class ImagesController {
   constructor(private readonly images: ImagesService) {}
@@ -119,10 +128,23 @@ export class ImagesController {
     @Res() response: Response,
     @TenantId({ publicFallback: true }) tenantId: string,
   ): Promise<void> {
-    const extension = file.split('.').pop() ?? '';
-    if (!['avif', 'webp', 'jpeg'].includes(extension)) {
+    /*
+     * Un nombre de archivo y nada más.
+     *
+     * Mirar sólo la extensión no alcanzaba: `../../../etc/passwd.jpeg` también
+     * termina en `.jpeg`. Y el `/` llega hasta acá aunque la ruta declare un
+     * solo segmento, porque Express compara la URL sin decodificar —`%2F` no
+     * es `/` todavía— y recién después convierte el parámetro, ya con las
+     * barras adentro.
+     *
+     * Por eso se enumera lo que vale en vez de descartar `..`: contra una
+     * lista de lo prohibido siempre queda otra forma de escribir lo mismo.
+     */
+    if (!NOMBRE_DE_VARIANTE.test(file) || !ES_UN_ID.test(imageId)) {
       throw new HttpException('unsupported variant', HttpStatus.BAD_REQUEST);
     }
+
+    const extension = file.split('.').pop() ?? '';
 
     const bytes = await this.images.store.readVariant(tenantId, imageId, file);
     if (bytes.isErr()) {
