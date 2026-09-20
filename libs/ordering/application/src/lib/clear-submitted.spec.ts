@@ -83,7 +83,15 @@ describe('clearSubmittedLines', () => {
     const events: SessionEvent[] = [];
 
     const run = clearSubmittedLines({ sessions: store, events: publisherWith(events) });
-    const result = await run({ tenantId: 't1', sessionId: 's1', lineIds: ['l1', 'l2'] });
+    const result = await run({
+      tenantId: 't1',
+      sessionId: 's1',
+      lineIds: ['l1', 'l2'],
+      enviados: [
+        { productId: 'gyoza', quantity: 1 },
+        { productId: 'ramen', quantity: 1 },
+      ],
+    });
 
     expect(result.isOk()).toBe(true);
     expect(current().cart.lines).toHaveLength(0);
@@ -96,7 +104,12 @@ describe('clearSubmittedLines', () => {
     const { store, current } = storeWith({ currency: 'ARS', lines: [sent, late] });
 
     const run = clearSubmittedLines({ sessions: store, events: publisherWith([]) });
-    await run({ tenantId: 't1', sessionId: 's1', lineIds: ['l1'] });
+    await run({
+      tenantId: 't1',
+      sessionId: 's1',
+      lineIds: ['l1'],
+      enviados: [{ productId: 'gyoza', quantity: 1 }],
+    });
 
     expect(current().cart.lines.map((l) => l.id)).toEqual(['l3']);
   });
@@ -106,10 +119,58 @@ describe('clearSubmittedLines', () => {
     const { store, current } = storeWith({ currency: 'ARS', lines: [mine] });
 
     const run = clearSubmittedLines({ sessions: store, events: publisherWith([]) });
-    await run({ tenantId: 't1', sessionId: 's1', lineIds: ['l1'] });
-    const again = await run({ tenantId: 't1', sessionId: 's1', lineIds: ['l1'] });
+    const envio = {
+      tenantId: 't1',
+      sessionId: 's1',
+      lineIds: ['l1'],
+      enviados: [{ productId: 'gyoza', quantity: 1 }],
+    };
+    await run(envio);
+    const again = await run(envio);
 
     expect(again.isOk()).toBe(true);
+    expect(current().cart.lines).toHaveLength(0);
+  });
+
+  /*
+   * El ataque que esto cierra: `lines` y `lineIds` son dos listas sueltas del
+   * mismo cuerpo. Se mandaba un café y se listaban los ids de los platos de
+   * los demás; se cocinaba el café y el resto desaparecía del carrito sin
+   * haberse cocinado ni cobrado, mientras la mesa esperaba comida que nunca
+   * llegó a la cocina.
+   */
+  it('no borra platos que no entraron a la comanda', async () => {
+    const cafe = line('l1', 'd1', 'cafe');
+    const ajeno = line('l2', 'd2', 'ramen');
+    const { store, current } = storeWith({ currency: 'ARS', lines: [cafe, ajeno] });
+
+    const run = clearSubmittedLines({ sessions: store, events: publisherWith([]) });
+    await run({
+      tenantId: 't1',
+      sessionId: 's1',
+      lineIds: ['l1', 'l2'],
+      enviados: [{ productId: 'cafe', quantity: 1 }],
+    });
+
+    expect(current().cart.lines.map((l) => l.id)).toEqual(['l2']);
+  });
+
+  it('dos platos iguales consumen dos líneas, no una sola dos veces', async () => {
+    const uno = line('l1', 'd1', 'gyoza');
+    const otro = line('l2', 'd2', 'gyoza');
+    const { store, current } = storeWith({ currency: 'ARS', lines: [uno, otro] });
+
+    const run = clearSubmittedLines({ sessions: store, events: publisherWith([]) });
+    await run({
+      tenantId: 't1',
+      sessionId: 's1',
+      lineIds: ['l1', 'l2'],
+      enviados: [
+        { productId: 'gyoza', quantity: 1 },
+        { productId: 'gyoza', quantity: 1 },
+      ],
+    });
+
     expect(current().cart.lines).toHaveLength(0);
   });
 });
