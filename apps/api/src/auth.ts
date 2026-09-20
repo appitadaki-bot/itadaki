@@ -572,6 +572,24 @@ export const Scope = createParamDecorator((_data: unknown, context: ExecutionCon
  * with `@TenantId({ publicFallback: true })`, so the exception is visible at
  * the route rather than inherited silently by the next one written.
  */
+/**
+ * Nombres de restaurante que nadie puede pedir desde afuera.
+ *
+ * `app.tenant_id` no lleva sólo restaurantes: el login usa `__login__` como
+ * seña para abrir las funciones que miran más allá de un local, y la política
+ * que lo habilita no compara tenant. Acá el valor llega sin verificar —de la
+ * query o del cuerpo de un token sin firma— y termina en `set_config`, así que
+ * la seña se pedía desde una URL. Hoy ninguna carta pública lee esas tablas y
+ * no sale un dato; lo que se cierra es que eso dependa de qué consulta cada
+ * ruta.
+ *
+ * Se descarta el prefijo entero y no sólo esa palabra: si mañana hace falta
+ * otra seña, va a llamarse igual.
+ */
+function esReservado(tenantId: string): boolean {
+  return tenantId.startsWith('__');
+}
+
 export const TenantId = createParamDecorator(
   (options: { publicFallback?: boolean } | undefined, context: ExecutionContext) => {
     const request = context.switchToHttp().getRequest<AuthedRequest>();
@@ -607,10 +625,12 @@ export const TenantId = createParamDecorator(
     const tableToken = request.headers['x-table-token'];
     if (typeof tableToken === 'string' && tableToken !== '') {
       const spied = peekTableToken(tableToken);
-      if (spied !== null) return spied.tenantId;
+      if (spied !== null && !esReservado(spied.tenantId)) return spied.tenantId;
     }
 
     const fromQuery = request.query['tenant'];
-    return typeof fromQuery === 'string' && fromQuery !== '' ? fromQuery : DEFAULT_TENANT;
+    return typeof fromQuery === 'string' && fromQuery !== '' && !esReservado(fromQuery)
+      ? fromQuery
+      : DEFAULT_TENANT;
   },
 );

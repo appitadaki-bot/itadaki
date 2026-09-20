@@ -26,9 +26,20 @@ DROP VIEW IF EXISTS staff_login_lookup CASCADE;
 -- El único acceso a staff_users que no lleva restaurante.
 --
 -- La política reusa app.tenant_id, el mismo parámetro que ya usa el resto del
--- esquema, con un valor reservado que la aplicación nunca fija: sólo lo pone
--- la función de abajo, y sólo mientras dura la llamada. Un parámetro nuevo no
--- sirve — Postgres no deja que un usuario sin privilegios lo declare.
+-- esquema, con un valor reservado que sólo pone la función de abajo, y sólo
+-- mientras dura la llamada. Un parámetro nuevo no sirve — Postgres no deja que
+-- un usuario sin privilegios lo declare.
+--
+-- Decía "que la aplicación nunca fija", y no era cierto: el tenant de la carta
+-- pública llega de la URL y terminaba en set_config sin que nadie lo mirara,
+-- así que `?tenant=__login__` prendía esta política desde afuera. No salía
+-- ningún dato porque ninguna ruta pública lee estas tablas, pero eso es
+-- casualidad, no diseño. Ahora el prefijo `__` se rechaza en la frontera
+-- (esReservado, en apps/api/src/auth.ts).
+--
+-- Quien agregue a la carta pública algo que salga de restaurant_tables o de
+-- staff_users: la seguridad de esto depende de esa validación, no de esta
+-- política, que no compara tenant.
 --
 -- Restringida a SELECT: iniciar sesión lee, nunca escribe.
 DROP POLICY IF EXISTS login_lookup ON staff_users;
