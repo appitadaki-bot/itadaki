@@ -176,6 +176,24 @@ export class CallsController {
   @TableScoped()
   @Get(':sessionId')
   async forSession(@Param('sessionId') sessionId: string, @Scope() scope: DinerScope) {
+    /*
+     * Que la sesión sea de esta mesa, igual que en `raise` y en `cancel`.
+     *
+     * Faltaba sólo acá, y el token de la mesa no lo cubre: prueba qué QR se
+     * escaneó, no a qué sesión corresponde el id de la URL. Sin esto, el único
+     * límite era el restaurante, y con el id de otra mesa se leían sus
+     * llamados —incluida la nota, que la escriben los comensales.
+     *
+     * Saber un id no alcanza, que es lo que ya hace el WebSocket.
+     */
+    const session = await this.sessions.store.findById(scope.tenantId, sessionId);
+    if (session.isErr()) {
+      throw new HttpException(session.error, HttpStatus.NOT_FOUND);
+    }
+    if (scope.tableId !== null && session.value.session.tableId !== scope.tableId) {
+      throw new HttpException({ kind: 'WRONG_TABLE' }, HttpStatus.FORBIDDEN);
+    }
+
     const found = await this.calls.store.listForSession(scope.tenantId, sessionId);
     if (found.isErr()) {
       throw new HttpException(found.error, HttpStatus.BAD_GATEWAY);
