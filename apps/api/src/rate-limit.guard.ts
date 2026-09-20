@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RateLimiter, type RateLimitRule } from '@itadaki/shared/domain';
+import { normaliseEmail } from '@itadaki/identity/domain';
 import { createHash } from 'node:crypto';
 import { type AuthedRequest } from './auth';
 import { log } from './logger';
@@ -116,7 +117,12 @@ export class RateLimitGuard implements CanActivate {
     const ip = request.ip ?? request.socket?.remoteAddress ?? 'unknown';
     if (name === 'login' || name === 'passwordReset' || name === 'soporte') {
       const body = request.body as { email?: unknown } | undefined;
-      const email = typeof body?.email === 'string' ? body.email.toLowerCase() : '';
+      // La misma función que usa el login para encontrar al usuario, y no un
+      // `toLowerCase()` parecido: con sólo bajar mayúsculas, "ana@local.com"
+      // y "ana@local.com " —un espacio al final— eran el mismo usuario para
+      // entrar y dos cuentas distintas para el tope, así que cada variante de
+      // espaciado regalaba diez intentos más.
+      const email = typeof body?.email === 'string' ? normaliseEmail(body.email) : '';
       return `${name}:${ip}:${email}`;
     }
 
