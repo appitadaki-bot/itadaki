@@ -31,7 +31,10 @@ describe('lo que el salón tiene que cobrar', () => {
   });
 
   it('la pregunta ya no dice un monto, porque depende de lo que toquen', () => {
-    expect(SALON).toContain('<p class="cobro-ask">¿Con qué pagaron?</p>');
+    // Cada botón dice el suyo, así que lo que se guarda es lo que el mozo vio
+    // antes de tocarlo.
+    expect(SALON).toContain('¿Con qué pagaron?');
+    expect(SALON).not.toMatch(/¿Con qué pagaron[^<]*\{\{/);
   });
 
   it('la tarjeta avisa cuánto sale en efectivo', () => {

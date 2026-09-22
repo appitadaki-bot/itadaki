@@ -1,1035 +1,1100 @@
-/* Built for a phone held one-handed while walking, not a mounted tablet. */
+/**
+ * La pantalla del salón.
+ *
+ * Se usa de dos maneras y las dos importan: en el teléfono, caminando y con
+ * una mano; y en la tablet apoyada en la caja, mirada de lejos. Por eso el
+ * layout es de una columna que se abre a tres, y no una pantalla de escritorio
+ * encogida ni una de teléfono estirada.
+ *
+ * El color es neutro a propósito. En la carta del comensal el crema y el
+ * terracota son la marca; acá adentro son ruido: quien mira esto está
+ * trabajando y necesita distinguir estados de un vistazo, no reconocer un
+ * logo. Así que el color queda reservado para estado —rojo espera, verde
+ * listo, ámbar plata— sobre grises. Las variables de marca se siguen usando
+ * para tipografía, radios y movimiento, que sí son el sistema.
+ */
+
 :host {
+  /*
+   * Los grises. Neutros de verdad, con una pizca de azul en los oscuros para
+   * que no se lean sucios contra el blanco.
+   */
+  --piso: oklch(96.5% 0.002 250);
+  --panel: white;
+  --panel-hundido: oklch(98% 0.002 250);
+  --linea: oklch(91% 0.004 250);
+  --linea-suave: oklch(94.5% 0.003 250);
+
+  --texto: oklch(25% 0.008 250);
+  --texto-medio: oklch(46% 0.008 250);
+  --texto-tenue: oklch(58% 0.008 250);
+
+  /*
+   * Los estados. Tres y nada más, cada uno con un significado fijo:
+   * rojo alguien espera, verde hay algo listo, ámbar hay plata sin cobrar.
+   * Un cuarto color obligaría a recordar qué significa.
+   */
+  --alarma: oklch(55% 0.19 25);
+  --alarma-tenue: oklch(96% 0.03 25);
+  --alarma-linea: oklch(88% 0.07 25);
+
+  --listo: oklch(52% 0.13 155);
+  --listo-tenue: oklch(96% 0.03 155);
+  --listo-linea: oklch(88% 0.06 155);
+
+  --plata: oklch(58% 0.12 75);
+  --plata-tenue: oklch(96.5% 0.035 85);
+  --plata-linea: oklch(89% 0.07 85);
+
   display: block;
   min-height: 100dvh;
-  background: var(--itadaki-surface);
-  padding: 1rem 1rem calc(2rem + env(safe-area-inset-bottom));
+  background: var(--piso);
+  color: var(--texto);
+  font-family: var(--itadaki-font-body);
+
   /*
-   * Antes eran 640px fijos: en la tablet apoyada en el salón quedaban dos
-   * tercios de pantalla vacíos y el mozo scrolleaba para ver si le faltaba
-   * algo. Ahora crece hasta donde el ojo todavía alcanza a barrer una fila.
+   * Hasta 1600 y no más: pasado eso, tres columnas quedan tan anchas que
+   * volvería el problema que esto vino a arreglar —texto pegado a los bordes
+   * con un pozo en el medio.
    */
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
-}
-
-.head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-
-.eyebrow {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 1.4px;
-  text-transform: uppercase;
-  color: var(--itadaki-ink-faint);
-  margin: 0;
-}
-
-.title {
-  font-family: var(--itadaki-font-display);
-  font-weight: 700;
-  font-size: 1.3rem;
-  color: var(--itadaki-ink-strong);
-  margin: 0.15rem 0 0;
-  letter-spacing: var(--itadaki-tracking-title);
-}
-
-.head-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.4rem;
-}
-
-.live {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--itadaki-ink-subtle);
-}
-
-.dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--itadaki-live);
-  animation: itadaki-pulse-dot 1.6s ease-in-out infinite;
-}
-
-.live.off .dot {
-  background: var(--itadaki-status-cooking);
-  animation: none;
-}
-
-.signout {
-  border: 1px solid var(--itadaki-border);
-  background: transparent;
-  color: var(--itadaki-ink-subtle);
-  border-radius: var(--itadaki-radius-action);
-  padding: 0.4rem 0.9rem;
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
+  padding: 0 1rem calc(2rem + env(safe-area-inset-bottom));
 }
 
 .booting {
-  min-height: 100dvh;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--texto-tenue);
+}
+
+/* ---------------------------------------------------------------- barra --- */
+
+/*
+ * Pegada arriba: el estado de conexión tiene que poder consultarse en
+ * cualquier momento. Si el salón dejó de actualizarse, lo que se ve es
+ * mentira, y eso hay que poder verlo sin volver al principio.
+ */
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--itadaki-ink-subtle);
-  margin: 0;
-}
-
-/*
- * Cada bloque, una zona con borde propio.
- *
- * Antes eran cinco listas separadas sólo por un margen: todo pesaba igual, y
- * en un salón lleno el mozo tenía que leer para saber dónde terminaba una cosa
- * y empezaba la otra. Con un contenedor visible, el ojo salta al bloque que
- * busca sin leer nada.
- */
-.block {
-  background: var(--itadaki-surface-raised);
-  border: 1px solid var(--itadaki-border);
-  border-radius: var(--itadaki-radius-card);
-  padding: 0.9rem 1rem 1rem;
-  /* Se rompe entre columnas si no: media tarjeta arriba y media abajo. */
-  break-inside: avoid;
-}
-
-/*
- * Las dos cosas que no pueden esperar, arriba y juntas.
- *
- * Alguien levantó la mano, y hay platos listos enfriándose en el pase. Todo
- * lo demás —códigos, qué se está cocinando— es consulta: se mira cuando hace
- * falta, no cada vez que se levanta la vista.
- */
-.urgente {
-  display: grid;
+  justify-content: space-between;
   gap: 1rem;
+  padding: 0.85rem 0;
+  background: color-mix(in oklch, var(--piso) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--linea);
   margin-bottom: 1rem;
 }
 
-/* Lo de consulta, debajo y en columnas cuando hay lugar. */
-.consulta {
-  display: grid;
-  gap: 1rem;
+.marca {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  min-width: 0;
 }
 
-@media (min-width: 900px) {
-  .urgente,
+.titulo {
+  font-family: var(--itadaki-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: var(--itadaki-tracking-title);
+  margin: 0;
+  color: var(--texto);
+}
+
+.quien {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--texto-tenue);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barra-estado {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.vivo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--texto-medio);
+}
+
+.punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--listo);
+  flex-shrink: 0;
+}
+
+/* Late al respirar: dice "esto está vivo" sin pedir atención. */
+@media (prefers-reduced-motion: no-preference) {
+  .punto {
+    animation: itadaki-pulse-dot 2.4s var(--itadaki-ease) infinite;
+  }
+}
+
+.vivo.caido {
+  color: var(--alarma);
+}
+
+.vivo.caido .punto {
+  background: var(--alarma);
+}
+
+.cola {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--plata);
+  background: var(--plata-tenue);
+  border: 1px solid var(--plata-linea);
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--itadaki-radius-chip);
+  white-space: nowrap;
+}
+
+.salir {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--texto-medio);
+  background: transparent;
+  border: 1px solid var(--linea);
+  border-radius: var(--itadaki-radius-action);
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  transition: background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.salir:hover {
+  background: var(--panel);
+  border-color: var(--texto-tenue);
+}
+
+/* En pantalla angosta el texto sobra: el punto ya dice si está vivo. */
+@media (max-width: 400px) {
+  .vivo-texto {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------- turno --- */
+
+.turno {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.85rem;
+  margin-bottom: 0.85rem;
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: var(--itadaki-radius-action);
+}
+
+.turno.filtrado {
+  border-left: 3px solid var(--texto-medio);
+}
+
+.turno-texto {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.turno-estado {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-medio);
+}
+
+.turno-mesas {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.turno-mesa {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-medio);
+  background: var(--panel-hundido);
+  border: 1px solid var(--linea);
+  border-radius: 6px;
+  padding: 0.1rem 0.4rem;
+  min-width: 1.6rem;
+  text-align: center;
+}
+
+.turno-cambiar {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--texto);
+  background: var(--panel-hundido);
+  border: 1px solid var(--linea);
+  border-radius: var(--itadaki-radius-action);
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.turno-cambiar:hover {
+  background: var(--linea-suave);
+}
+
+/* ---------------------------------------------------------------- error --- */
+
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0 0 0.85rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--alarma-tenue);
+  border: 1px solid var(--alarma-linea);
+  border-radius: var(--itadaki-radius-action);
+  color: var(--alarma);
+  font-size: 0.87rem;
+  font-weight: 500;
+}
+
+.error-cerrar {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--alarma);
+  background: transparent;
+  border: 1px solid var(--alarma-linea);
+  border-radius: var(--itadaki-radius-action);
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------- carriles --- */
+
+/*
+ * Una columna en el teléfono, tres en la tablet.
+ *
+ * `align-items: start` es lo que hace que un carril lleno no estire a los
+ * otros dos: cada uno mide lo que tiene. Sin eso, "Nadie debe nada" ocupaba
+ * el alto de dieciséis llamados, que era medio problema de la pantalla vieja.
+ */
+.carriles {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  align-items: start;
+}
+
+@media (min-width: 720px) {
+  .carriles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1080px) {
+  .carriles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+/*
+ * Un carril lleno con dos vacíos al lado.
+ *
+ * Tres columnas iguales funcionan con el salón parejo y se ven rotas cuando
+ * no lo está: dieciséis llamados scrolleando en un tercio de pantalla,
+ * mientras "Nadie debe nada" ocupa otro tercio. Ese es el desbalance que se
+ * veía —texto amontonado de un lado y vacío del otro.
+ *
+ * Con `:has()` el carril vacío se encoge a lo que mide su frase, y los que
+ * tienen trabajo se reparten lo que sobra. El orden nunca cambia: cambia
+ * cuánto mide cada uno, así que la pantalla no se reordena bajo la mano de
+ * nadie mientras la está usando.
+ */
+@media (min-width: 1080px) {
+  .carriles:has(.vacio) {
+    /*
+     * `auto` para el vacío y `1fr` para el lleno, en el orden en que están.
+     * Se enumeran los tres casos en vez de calcularlos: son tres, y una regla
+     * por caso se lee de un vistazo.
+     */
+    grid-template-columns:
+      minmax(0, var(--c1, 1fr))
+      minmax(0, var(--c2, 1fr))
+      minmax(0, var(--c3, 1fr));
+  }
+
+  .carriles:has(.carril:nth-child(1) .vacio) {
+    --c1: 0.5fr;
+  }
+
+  .carriles:has(.carril:nth-child(2) .vacio) {
+    --c2: 0.5fr;
+  }
+
+  .carriles:has(.carril:nth-child(3) .vacio) {
+    --c3: 0.5fr;
+  }
+}
+
+.carril {
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: var(--itadaki-radius-card);
+  overflow: hidden;
+}
+
+.carril-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--linea-suave);
+  background: var(--panel-hundido);
+}
+
+.carril-titulo {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--texto-medio);
+}
+
+/*
+ * La cuenta, al lado del título.
+ *
+ * Tabular para que no salte de ancho al pasar de 9 a 10, que en una pantalla
+ * que se actualiza sola se nota como un tirón.
+ */
+.carril-cuenta {
+  font-size: 0.74rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--itadaki-radius-chip);
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.carril-cuenta.urgente {
+  color: var(--alarma);
+  background: var(--alarma-tenue);
+  border: 1px solid var(--alarma-linea);
+}
+
+.carril-cuenta.listo {
+  color: var(--listo);
+  background: var(--listo-tenue);
+  border: 1px solid var(--listo-linea);
+}
+
+.carril-cuenta.cobro {
+  color: var(--plata);
+  background: var(--plata-tenue);
+  border: 1px solid var(--plata-linea);
+}
+
+.carril-cuerpo {
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * Un tope de alto en pantalla ancha, con scroll adentro.
+ *
+ * En la tablet los tres carriles tienen que verse a la vez: si uno crece sin
+ * límite empuja a los otros fuera de la pantalla, y vuelve el scroll infinito
+ * que esto vino a sacar. En el teléfono no se aplica, porque ahí el scroll de
+ * la página es el gesto natural y cortar la lista sería pelearse con él.
+ */
+@media (min-width: 1080px) {
+  .carril-cuerpo {
+    max-height: min(62vh, 640px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /*
+     * Que el scroll pare en el borde de una ficha y no por la mitad de una.
+     * Una fila cortada al medio se lee como que la pantalla se rompió.
+     */
+    scroll-snap-type: y proximity;
+  }
+
+  .carril-cuerpo > .ficha {
+    scroll-snap-align: start;
+  }
+}
+
+/*
+ * El carril sin nada.
+ *
+ * Corto a propósito: un carril vacío no tiene por qué ocupar el alto de uno
+ * lleno. Antes "Nada esperando en la barra" se estiraba media pantalla al
+ * lado de una lista que scrolleaba, y esa asimetría era justo lo que se veía
+ * como desbalance.
+ */
+.vacio {
+  margin: 0;
+  padding: 1.1rem 0.9rem;
+  text-align: center;
+  font-size: 0.83rem;
+  color: var(--texto-tenue);
+}
+
+/* ---------------------------------------------------------------- ficha --- */
+
+/*
+ * La unidad de todo: número de mesa, qué pasa, qué hacer.
+ *
+ * Tres columnas pegadas y no `space-between`: antes el número quedaba contra
+ * el borde izquierdo y el botón contra el derecho, con medio metro de blanco
+ * en el medio, así que leer una fila era cruzar la pantalla con los ojos.
+ * Ahora los datos arrancan junto al número y la acción queda a la derecha, a
+ * distancia de pulgar pero sin pozo.
+ */
+.ficha {
+  display: grid;
+  /*
+   * Tres columnas y un tope de ancho, en vez de estirarse hasta el borde.
+   *
+   * Con `1fr` en el medio, la columna de datos se comía todo el sobrante y
+   * empujaba el botón contra el borde derecho: número a la izquierda, botón a
+   * la derecha, y medio metro de blanco en el medio. Con `max-content` el
+   * botón quedaba pegado al texto y la columna de botones se desalineaba
+   * entre filas, que es peor: el ojo pierde dónde tocar.
+   *
+   * Un ancho fijo para los datos resuelve las dos cosas — el bloque queda
+   * junto y todos los botones caen a plomo — y el `max-width` de la ficha
+   * evita que el carril ancho vuelva a abrir el pozo.
+   */
+  grid-template-columns: auto minmax(0, 22rem) auto;
+  justify-content: start;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--linea-suave);
+  transition: background var(--itadaki-quick) var(--itadaki-ease);
+}
+
+/*
+ * En el teléfono se estira: ahí el ancho es escaso, no sobra nada, y el botón
+ * tiene que quedar contra el borde donde cae el pulgar.
+ */
+@media (max-width: 719px) {
+  .ficha {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    justify-content: stretch;
+  }
+}
+
+.ficha:last-child {
+  border-bottom: none;
+}
+
+@media (hover: hover) {
+  .ficha:hover {
+    background: var(--panel-hundido);
+  }
+}
+
+/*
+ * El número de mesa: lo único que el mozo busca para saber a dónde caminar.
+ *
+ * Solo y grande, sin la palabra "Mesa" repetida en cada fila — con dieciséis
+ * fichas esa palabra se dice dieciséis veces y no aporta nada. El lector de
+ * pantalla sí la recibe, por el aria-label.
+ */
+.ficha-mesa {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  font-family: var(--itadaki-font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--texto);
+  background: var(--panel-hundido);
+  border: 1px solid var(--linea);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.ficha-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.ficha-que {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--texto);
+  line-height: 1.25;
+}
+
+.ficha-monto {
+  font-family: var(--itadaki-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--texto);
+  line-height: 1.2;
+}
+
+.ficha-marcas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.ficha-marcas:empty {
+  display: none;
+}
+
+.marca {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.08rem 0.4rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.marca.gente {
+  color: var(--texto-tenue);
+  background: var(--panel-hundido);
+  border: 1px solid var(--linea);
+}
+
+/* Los tres que cambian lo que el mozo lleva o hace. */
+.marca.posnet,
+.marca.piden {
+  color: var(--alarma);
+  background: var(--alarma-tenue);
+  border: 1px solid var(--alarma-linea);
+}
+
+.marca.caja,
+.marca.efectivo {
+  color: var(--plata);
+  background: var(--plata-tenue);
+  border: 1px solid var(--plata-linea);
+}
+
+/*
+ * Cuánto sale en efectivo, cuando el local hace descuento.
+ *
+ * En el color de la plata y no en el del texto común: es un número que el
+ * mozo va a decir en voz alta, y tiene que encontrarse sin buscarlo.
+ */
+.ficha-efectivo {
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--plata);
+}
+
+.ficha-nota {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--texto-tenue);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.ficha-accion {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  /*
+   * Ancho fijo para toda la columna de acciones.
+   *
+   * Sin esto cada ficha mide lo que mide su botón —"Voy", "Llevé", "Cobré"—
+   * y los bordes izquierdos quedan escalonados entre fichas vecinas. Con un
+   * ancho común, la columna de botones cae a plomo y el ojo la encuentra en
+   * el mismo lugar en todas las filas.
+   */
+  min-width: 5.5rem;
+}
+
+/*
+ * Cuánto hace que esperan.
+ *
+ * Tabular y con ancho fijo para que la columna de botones quede alineada
+ * entre fichas: sin eso, "recién" y "12 min" corren el botón unos píxeles y
+ * la lista se ve temblorosa.
+ */
+.espera {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--texto-tenue);
+}
+
+/* --------------------------------------------------------------- espera --- */
+
+/*
+ * Que la espera se vea, no sólo se lea.
+ *
+ * El orden por sí solo no alcanza: en una lista de dieciséis, la primera y la
+ * novena se ven igual. A los diez minutos la ficha se tiñe y el tiempo se
+ * pinta; a los quince el borde izquierdo se marca. Es progresivo a propósito
+ * — si todo grita, nada grita.
+ */
+.ficha.espera-larga {
+  background: var(--alarma-tenue);
+}
+
+.ficha.espera-larga .espera {
+  color: var(--alarma);
+  font-weight: 700;
+}
+
+.ficha.espera-critica {
+  box-shadow: inset 3px 0 0 var(--alarma);
+}
+
+@media (hover: hover) {
+  .ficha.espera-larga:hover {
+    background: color-mix(in oklch, var(--alarma-tenue) 80%, var(--alarma) 4%);
+  }
+}
+
+/* --------------------------------------------------------------- platos --- */
+
+.platos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+/*
+ * Un plato por línea, con su nota al lado.
+ *
+ * En grilla y no en `flex-wrap`: con wrap, una nota que no entraba caía a la
+ * línea siguiente pegada al margen izquierdo, debajo de la cantidad del plato
+ * de abajo, y parecía una nota de ese otro plato. Con la grilla la nota cae
+ * siempre en la columna del nombre, así que se lee de quién es.
+ */
+.plato {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0 0.4rem;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.plato .ficha-nota {
+  grid-column: 2;
+}
+
+/*
+ * La cantidad, adelante y fija.
+ *
+ * El mozo carga una bandeja: lo primero que necesita es cuántos, y recién
+ * después qué. Ancho fijo para que los nombres arranquen alineados.
+ */
+.plato-cuanto {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto-medio);
+  min-width: 1.1rem;
+  flex-shrink: 0;
+}
+
+.plato-nombre {
+  font-weight: 500;
+  color: var(--texto);
+}
+
+/* -------------------------------------------------------------- botones --- */
+
+.boton {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: var(--itadaki-radius-action);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  /*
+   * 44px de alto mínimo: es el objetivo táctil por debajo del cual el dedo
+   * falla, y acá se toca caminando y con una bandeja en la otra mano.
+   */
+  min-height: 44px;
+  padding: 0 0.9rem;
+  transition: background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease),
+    transform var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.boton.principal {
+  background: var(--texto);
+  color: white;
+}
+
+.boton.principal:hover {
+  background: oklch(35% 0.008 250);
+}
+
+.boton.tenue {
+  background: var(--panel);
+  color: var(--texto-medio);
+  border-color: var(--linea);
+}
+
+.boton.tenue:hover {
+  background: var(--panel-hundido);
+  border-color: var(--texto-tenue);
+  color: var(--texto);
+}
+
+.boton.peligro {
+  background: var(--alarma);
+  color: white;
+}
+
+.boton.peligro:hover {
+  background: oklch(48% 0.19 25);
+}
+
+.boton.chico {
+  min-height: 34px;
+  font-size: 0.78rem;
+  padding: 0 0.6rem;
+}
+
+.boton.ancho {
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------- panel --- */
+
+/*
+ * Lo que se despliega dentro de una ficha: elegir el medio, o confirmar.
+ *
+ * Ocupa las tres columnas de la ficha, porque cinco medios de pago no entran
+ * en la columna del botón — antes se desbordaban encima del número de mesa y
+ * del monto, justo lo que hay que leer para cobrar.
+ */
+.panel {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  padding: 0.75rem;
+  background: var(--panel-hundido);
+  border: 1px solid var(--linea);
+  border-radius: var(--itadaki-radius-action);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .panel {
+    animation: itadaki-rise var(--itadaki-smooth) var(--itadaki-ease-out) both;
+  }
+}
+
+.ficha.abierta {
+  background: var(--panel-hundido);
+}
+
+.panel-pregunta {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+/*
+ * Los medios, en una grilla que se acomoda sola.
+ *
+ * `auto-fit` con mínimo de 8rem: en el teléfono caen de a dos, en la tablet
+ * de a cuatro o cinco, sin un breakpoint por cada caso.
+ */
+.medios {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.4rem;
+}
+
+.medio {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  font: inherit;
+  min-height: 52px;
+  padding: 0.45rem 0.6rem;
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: var(--itadaki-radius-action);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--itadaki-quick) var(--itadaki-ease),
+    background var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.medio:hover {
+  border-color: var(--texto-tenue);
+  background: var(--panel-hundido);
+}
+
+/* Efectivo primero y marcado: es el que lleva descuento, y el que el mozo
+   más toca. */
+.medio.efectivo {
+  border-color: var(--plata-linea);
+  background: var(--plata-tenue);
+}
+
+.medio.efectivo:hover {
+  border-color: var(--plata);
+}
+
+.medio-nombre {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--texto-medio);
+}
+
+.medio-monto {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto);
+}
+
+.dos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+/* ------------------------------------------------------------- consulta --- */
+
+/*
+ * Lo que se mira cuando hace falta, no todo el turno.
+ *
+ * Abajo de los carriles y plegado. En pantalla ancha van uno al lado del otro
+ * para no dejar una franja vacía a la derecha.
+ */
+.consulta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+  align-items: start;
+}
+
+@media (min-width: 720px) {
   .consulta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/*
- * En la pantalla ancha —la tablet de la caja— lo urgente ocupa el ancho
- * completo en dos columnas grandes, y lo de consulta se reparte en tres.
- */
-@media (min-width: 1250px) {
-  .consulta {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.block-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.7px;
-  color: var(--itadaki-ink-subtle);
-  margin: 0 0 0.6rem;
-}
-
-.count {
-  display: grid;
-  place-items: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 0.4rem;
-  border-radius: var(--itadaki-radius-pill);
-  background: var(--itadaki-accent);
-  color: white;
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.count.ready {
-  background: var(--itadaki-status-ready);
-}
-
-.card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem;
+.plegable {
+  background: var(--panel);
+  border: 1px solid var(--linea);
   border-radius: var(--itadaki-radius-card);
-  background: var(--itadaki-surface-raised);
-  box-shadow: var(--itadaki-shadow-card);
-  margin-bottom: 0.55rem;
-}
-
-/* Someone is waiting: this outranks everything else on the screen. */
-.card.call {
-  border-left: 5px solid var(--itadaki-accent);
-}
-
-.card.pickup {
-  border-left: 5px solid var(--itadaki-status-ready);
-}
-
-.card-main {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.card-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.35rem;
-  flex-shrink: 0;
-}
-
-.table {
-  font-family: var(--itadaki-font-display);
-  font-weight: 800;
-  /* Es el único dato que el mozo busca de verdad: el resto lo lee ya sabiendo
-     de qué mesa es. */
-  font-size: 1.2rem;
-  color: var(--itadaki-ink-strong);
-  letter-spacing: -0.02em;
-}
-
-.table.small {
-  font-size: 0.875rem;
-}
-
-.reason,
-.dish {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--itadaki-ink-muted);
-}
-
-/* Read across a room, before the waiter leaves the bar. */
-/* Reassurance, not an alarm: the work is saved and leaves on its own. */
-.queued {
-  margin: 0;
-  padding: 0.35rem 0.7rem;
-  border-radius: var(--itadaki-radius-action);
-  background: #fef3c7;
-  color: #92400e;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-/* Pagan en la caja: es lo único que el sistema no puede confirmar solo, así
-   que pesa más que el resto de los avisos. */
-.counter {
-  align-self: flex-start;
-  margin-top: 0.25rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: var(--itadaki-radius-pill);
-  background: #92400e;
-  color: #fff;
-  font-size: 0.8rem;
-  font-weight: 700;
-}
-
-.posnet {
-  align-self: flex-start;
-  margin-top: 0.25rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: var(--itadaki-radius-action);
-  background: #1d4ed8;
-  color: #fff;
-  font-size: 0.875rem;
-  font-weight: 700;
-}
-
-.paying {
-  align-self: flex-start;
-  margin-top: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #4b5563;
-}
-
-.note {
-  font-size: 0.8rem;
-  font-style: italic;
-  color: var(--itadaki-accent);
-}
-
-.waited {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--itadaki-ink-subtle);
-  white-space: nowrap;
-}
-
-/* Por qué el número es menor que la suma de los platos. Debajo del botón y
-   en chico: el mozo cobra lo que dice el botón, y esto es la explicación por
-   si el cliente pregunta. */
-.con-descuento {
-  font-size: 0.72rem;
-  line-height: 1.4;
-  color: var(--itadaki-ink-subtle);
-  text-align: right;
-  max-width: 16rem;
-}
-
-/* Thumb-sized: tapped while carrying plates. */
-.action {
-  border: none;
-  border-radius: var(--itadaki-radius-action);
-  background: var(--itadaki-ink);
-  color: white;
-  padding: 0.6rem 1.2rem;
-  font-family: var(--itadaki-font-body);
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  min-height: 44px;
-  flex-shrink: 0;
-}
-
-/* Plata que se puede ir caminando: se lee de un vistazo desde lejos. */
-/* Deber plata no es pedir la cuenta: el contador sólo se enciende cuando
-   alguna de esas mesas de verdad está esperando para pagar. */
-.count.owed {
-  background: var(--itadaki-ink-soft);
-}
-
-.block.owing.piden .count.owed {
-  background: var(--itadaki-status-late);
-}
-
-/*
- * La franja roja, sólo en la mesa que la pidió.
- *
- * La llevaban todas: al entregar el último plato la mesa aparecía marcada
- * igual que una que llamó, y el mozo iba a cobrarle a gente que estaba con el
- * postre. Sin pedirla, la tarjeta es un recordatorio de que esa mesa sigue
- * abierta, no una alerta.
- */
-.card.owing-card {
-  border-left: 5px solid var(--itadaki-border);
-}
-
-.card.owing-card.piden {
-  border-left-color: var(--itadaki-status-late);
-}
-
-.owing-card .piden-aviso {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--itadaki-status-late);
-}
-
-/* Dos acciones apiladas y el monto largo: la columna necesita más aire que
-   una tarjeta de un solo botón. */
-.owing-card .card-side {
-  align-items: flex-end;
-  gap: 0.4rem;
-}
-
-/* Liberar sin cobrar es la salida de excepción: disponible, no destacada. */
-.owing-card .release {
-  border: none;
-  background: none;
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  min-height: 44px;
-  padding: 0.25rem 0;
-  font-family: inherit;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--itadaki-ink-subtle);
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.amount {
-  font-family: var(--itadaki-font-display);
-  font-size: 1.05rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--itadaki-ink);
-}
-
-/* Liberar debiendo se confirma en dos toques, con el monto en el botón: es
-   lo último que ve el mozo antes de que la mesa deje de existir. */
-/* La pregunta y sus dos salidas, cuando se va a liberar sin cobrar. */
-.owing-card .release-ask {
-  margin: 0.35rem 0 0.3rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--itadaki-ink-soft);
-  text-align: right;
-}
-
-.owing-card .release-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-/*
- * El toque que libera plata sin cobrarla.
- *
- * Estaba pintado con un token que no existe, así que quedaba con fondo
- * transparente y letras blancas: invisible sobre la tarjeta blanca. El único
- * botón de la pantalla que perdona una deuda era el que no se veía.
- */
-.owing-card .release.confirm {
-  background: var(--itadaki-status-late);
-  color: white;
-  border: 1px solid var(--itadaki-status-late);
-  border-radius: var(--itadaki-radius-action);
-  padding: 0.6rem 1rem;
-  font-family: var(--itadaki-font-body);
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-  min-height: 44px;
-  flex-shrink: 0;
-}
-
-/* Se dicta en voz alta cruzando el salón: grande y con los dígitos separados. */
-.join-code {
-  margin-left: auto;
-  font-family: var(--itadaki-font-display);
-  font-size: 1rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.14em;
-  color: var(--itadaki-ink-strong);
-  white-space: nowrap;
-}
-
-.quiet {
-  font-size: 0.875rem;
-  color: var(--itadaki-ink-subtle);
-  margin: 0;
-  padding: 0.6rem 0.2rem;
-
-  padding: 0.5rem 0;
-  margin: 0;
-}
-
-.quiet-title {
-  color: var(--itadaki-ink-faint);
-
-  opacity: 0.75;
-}
-
-/* Reference, not a task list — no buttons, quieter type. */
-.cooking-row {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  margin: 0 0 0.4rem;
-  padding: 0.4rem 0.2rem;
-  border-bottom: 1px dashed var(--itadaki-border-dashed);
-}
-
-.cooking-items {
-  font-size: 0.8rem;
-  color: var(--itadaki-ink-subtle);
-  min-width: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .dot { animation: none; }
-}
-
-/* ---- Un viaje a la mesa, no una lista de platos ---- */
-
-/*
- * El bloque de lo listo es lo único que exige acción ahora, así que pesa
- * visualmente más que los llamados y mucho más que "en cocina", que es
- * contexto. Antes los tres bloques se veían igual y todo era una lista.
- */
-.trip {
-  margin-bottom: 0.85rem;
-  border-radius: var(--itadaki-radius-card);
-  border: 1px solid var(--itadaki-border);
-  border-left: 6px solid var(--itadaki-status-ready, #15803d);
-  background: var(--itadaki-surface);
   overflow: hidden;
 }
 
-.trip-head {
+.plegable-head {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.75rem 0.9rem 0.5rem;
-}
-
-/* El número de mesa es lo que el mozo busca al levantar la vista. */
-.trip-table {
-  font-family: var(--itadaki-font-display);
-  font-size: 1.35rem;
-  letter-spacing: var(--itadaki-tracking-title);
-  font-weight: 800;
-  line-height: 1;
-}
-
-.trip-count {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--itadaki-ink-soft);
-}
-
-.trip-dishes {
-  margin: 0;
-  padding: 0 0.9rem 0.6rem;
-  list-style: none;
-  display: grid;
-  gap: 0.3rem;
-}
-
-.trip-dish {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem;
-  font-size: 0.95rem;
-}
-
-.trip-qty {
-  min-width: 1.3rem;
-  padding: 0.05rem 0.3rem;
-  border-radius: var(--itadaki-radius-chip);
-  background: var(--itadaki-surface-sunken);
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-align: center;
-}
-
-.trip-name {
-  font-weight: 600;
-}
-
-/* Una sola acción por viaje, del ancho del pulgar: el mozo tiene una mano
-   libre y la otra con la bandeja. */
-.trip-action {
-  display: block;
   width: 100%;
-  min-height: 52px;
-  border: none;
-  border-top: 1px solid var(--itadaki-border);
-  background: var(--itadaki-ink);
-  color: white;
   font: inherit;
-  font-weight: 700;
-  font-size: 0.95rem;
-  cursor: pointer;
-}
-
-.trip-action:active {
-  background: var(--itadaki-accent);
-}
-
-/* "En cocina" es para contestar "¿falta mucho?", no una tarea: se apaga para
-   que no compita con lo que sí hay que hacer. */
-/* "En cocina" plegado: una línea en vez de una fila por mesa. Con trece
-   mesas activas ocupaba media pantalla compitiendo con lo que sí hay que
-   hacer, siendo que sólo sirve para contestar "¿falta mucho?". */
-.cooking-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  width: 100%;
-  padding: 0.6rem 0;
-  border: none;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.cooking-count {
-  flex: 1;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--itadaki-ink-soft);
-}
-
-.cooking-chevron {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--itadaki-ink-soft);
-}
-
-/* Liberar una mesa que pagó en la caja y se fue.
-   Discreto a propósito: es la excepción, no la acción principal — la mesa se
-   libera sola al cerrar la cuenta. Y borra el pedido de quien todavía podría
-   estar comiendo, así que no debe invitar al toque distraído. */
-.release {
-  margin-left: auto;
-  flex: 0 0 auto;
-  padding: 0.3rem 0.7rem;
-  border: 1px solid var(--itadaki-border);
-  border-radius: var(--itadaki-radius-action);
-  background: transparent;
-  color: var(--itadaki-ink-soft);
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* El segundo toque sí se ve, porque es el que hace algo irreversible. */
-.release.confirm {
-  border-color: var(--itadaki-accent);
-  background: var(--itadaki-accent);
-  color: white;
-  font-weight: 700;
-}
-
-/* Lo que falló, dicho donde el mozo ya está mirando. */
-.action-error {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin: 0 0 0.9rem;
   padding: 0.7rem 0.9rem;
-  border-radius: var(--itadaki-radius-chip);
-  background: var(--itadaki-accent-soft);
-  color: var(--itadaki-ink-strong);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.action-error .dismiss {
-  flex-shrink: 0;
-  min-height: 44px;
-  padding: 0.35rem 0.9rem;
-  border: 1px solid var(--itadaki-border);
-  border-radius: var(--itadaki-radius-action);
   background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-/*
- * Qué está viendo el mozo, y cómo cambiarlo.
- *
- * Antes el salón filtraba en silencio: "nadie está llamando" no distinguía
- * entre un salón tranquilo y una pantalla recortada por el sector.
- */
-.shift {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 0 0 1rem;
-  padding: 0.8rem 1rem;
-  border: 1px solid var(--itadaki-border);
-  border-radius: var(--itadaki-radius-card);
-  background: var(--itadaki-surface-raised);
-}
-
-/* En turno se ve distinto: es el estado en el que la pantalla está recortada. */
-.shift.on {
-  border-color: var(--itadaki-status-ready);
-  background: var(--itadaki-status-ready-bg);
-}
-
-.shift-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  min-width: 0;
-}
-
-.shift-state {
-  font-family: var(--itadaki-font-display);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--itadaki-status-ready-fg);
-}
-
-.shift-state.off {
-  color: var(--itadaki-ink-subtle);
-}
-
-.shift-tables {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  font-size: 0.875rem;
-  color: var(--itadaki-ink-soft);
-}
-
-/* El número del cartelito, que es como el mozo llama a la mesa. */
-.shift-table {
-  padding: 0.1rem 0.5rem;
-  border-radius: var(--itadaki-radius-action);
-  background: var(--itadaki-surface);
-  font-weight: 700;
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.shift-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-left: auto;
-}
-
-.shift-btn {
-  padding: 0.55rem 1rem;
   border: none;
-  border-radius: var(--itadaki-radius-action);
-  background: var(--itadaki-ink-strong);
-  color: white;
-  font: inherit;
-  font-weight: 700;
-  font-size: 0.875rem;
   cursor: pointer;
-  min-height: 44px;
-}
-
-.shift-toggle {
-  padding: 0.5rem 0.85rem;
-  border: 1px solid var(--itadaki-border);
-  border-radius: var(--itadaki-radius-action);
-  background: transparent;
-  color: var(--itadaki-ink-soft);
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  min-height: 44px;
-}
-
-@media (max-width: 560px) {
-  .shift-actions {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .shift-btn,
-  .shift-toggle {
-    flex: 1;
-  }
-}
-
-/* El título cuando además es el botón que pliega la sección. */
-.block-title.as-toggle {
-  margin: 0;
   text-align: left;
+  transition: background var(--itadaki-quick) var(--itadaki-ease);
 }
 
+.plegable-head:hover {
+  background: var(--panel-hundido);
+}
+
+.plegable-titulo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--texto-medio);
+}
+
+.plegable-cuenta {
+  font-size: 0.78rem;
+  color: var(--texto-tenue);
+  margin-right: auto;
+}
 
 /*
- * Que las cosas se muevan, no que salten.
+ * El chevron, dibujado en CSS.
  *
- * El salón tampoco tenía transiciones: una mesa que llama aparecía de golpe en
- * la lista, y el mozo no distinguía entre algo nuevo y la pantalla
- * refrescándose.
+ * Era un "+" y un "−" de texto, que saltaban de ancho al cambiar y no decían
+ * hacia dónde se abre. Una flecha que gira sí lo dice.
  */
-.card,
-.trip,
-.cooking-row {
-  transition:
-    border-color var(--itadaki-smooth) var(--itadaki-ease),
-    background var(--itadaki-smooth) var(--itadaki-ease);
+.chevron {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--texto-tenue);
+  border-bottom: 2px solid var(--texto-tenue);
+  transform: rotate(45deg);
+  transform-origin: center;
+  margin-bottom: 3px;
+  flex-shrink: 0;
+  transition: transform var(--itadaki-smooth) var(--itadaki-ease);
 }
 
-button {
-  transition:
-    background var(--itadaki-quick) var(--itadaki-ease),
-    border-color var(--itadaki-quick) var(--itadaki-ease),
-    color var(--itadaki-quick) var(--itadaki-ease),
-    transform var(--itadaki-quick) var(--itadaki-ease);
+.chevron.abierto {
+  transform: rotate(-135deg);
+  margin-bottom: -3px;
+}
+
+.plegable-cuerpo {
+  border-top: 1px solid var(--linea-suave);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .card,
-  .trip {
-    animation: salon-entra var(--itadaki-settle) var(--itadaki-ease-out);
+  .plegable-cuerpo {
+    animation: itadaki-rise var(--itadaki-smooth) var(--itadaki-ease-out) both;
   }
 }
 
-@keyframes salon-entra {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
+.pista {
+  margin: 0;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.8rem;
+  color: var(--texto-tenue);
+  border-bottom: 1px solid var(--linea-suave);
 }
 
-/*
- * Con qué se cobró.
- *
- * Un toque más antes de cerrar la mesa, y es el que convierte una intención
- * en un dato: la mesa dice cómo piensa pagar antes de que el mozo llegue, y
- * eso cambia. El que tuvo la plata en la mano es quien puede declararlo.
- */
-.cobro-ask {
-  /* A la izquierda: encabeza la grilla de medios, que ocupa el ancho. */
-  margin: 0 0 0.6rem;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--itadaki-ink-strong);
-  text-align: start;
-}
-
-/*
- * Los medios, en grilla y no en fila.
- *
- * Cinco botones en una fila obligan a que cada uno sea angosto, y ahí
- * "Transferencia" se parte o se sale. En grilla se acomodan solos: tres arriba
- * y dos abajo en el teléfono, los cinco en una línea en la tablet.
- */
-.cobro-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
-  gap: 0.5rem;
-}
-
-.cobro {
-  /* El ancho lo reparte la grilla: con un máximo fijo, "Transferencia" se
-     partía o se salía del botón. */
-  padding: 0.7rem 0.9rem;
-  /* Y si aun así no entra, que corte por donde se pueda leer. */
-  overflow-wrap: break-word;
-  border-radius: var(--itadaki-radius-action);
-  border: 1px solid var(--itadaki-border);
-  background: var(--itadaki-surface-raised);
-  font-family: var(--itadaki-font-body);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--itadaki-ink-strong);
-  cursor: pointer;
-  /* Grande: se toca de parado, con una bandeja en la otra mano. */
-  min-height: 48px;
-  transition:
-    background var(--itadaki-quick) var(--itadaki-ease),
-    border-color var(--itadaki-quick) var(--itadaki-ease);
-}
-
-/*
- * El medio arriba y cuánto se cobra con él abajo.
- *
- * Tocar el botón cobra en el acto, así que el monto tiene que estar en el
- * botón mismo y no en una pregunta antes: el de efectivo dice el número con
- * el descuento, los otros el total, y lo que queda guardado es lo que el mozo
- * leyó antes de tocar.
- */
-.cobro {
+.fila {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.6rem;
+  padding: 0.5rem 0.9rem;
+  border-bottom: 1px solid var(--linea-suave);
 }
 
-.cobro-monto {
-  font-size: 0.82rem;
+.fila:last-child {
+  border-bottom: none;
+}
+
+.fila-mesa {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  font-size: 0.85rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  opacity: 0.8;
+  color: var(--texto-medio);
+  background: var(--panel-hundido);
+  border: 1px solid var(--linea);
+  border-radius: 7px;
+  flex-shrink: 0;
 }
 
-/* El efectivo primero y marcado: es el que lleva descuento, así que es el que
-   hay que acertar. */
-.cobro.efectivo {
-  border-color: var(--itadaki-status-ready);
-  background: var(--itadaki-status-ready-bg);
-  color: var(--itadaki-status-ready-fg);
-}
-
-.cobro:active {
-  transform: scale(0.97);
-}
-
-/* 44px es lo que se toca sin errarle con el pulgar, y acá se toca de parado,
-   con una mano y el salón lleno. Los tres que quedaban abajo son además los
-   de arrepentirse: volver del cobro, liberar la mesa, cerrar el error. */
-.cobro-volver {
-  align-self: flex-end;
-  margin-top: 0.6rem;
-  border: none;
-  background: none;
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0.4rem 0.6rem;
-  font-family: inherit;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--itadaki-ink-subtle);
-  cursor: pointer;
-
-  font-family: var(--itadaki-font-body);
-  font-weight: 600;
-}
-
-/* ═══ QUE SE LEA DE PARADO ═══
- *
- * El mozo no está sentado mirando la pantalla: la mira de paso, con las manos
- * ocupadas, a medio metro y en diagonal. Lo que sigue es lo que hace que cada
- * bloque se reconozca sin leerlo. */
-
-/*
- * El título de cada zona, con su línea.
- *
- * Antes los cinco títulos eran gris claro y del mismo tamaño que el resto:
- * había que leerlos para saber dónde estaba parado uno. La línea de color los
- * ancla y da el borde superior que separa una zona de la siguiente.
- */
-.block-title.as-toggle::before,
-.block-title:not(.as-toggle)::before {
-  content: '';
-  width: 3px;
-  height: 0.95rem;
-  border-radius: 2px;
-  background: var(--itadaki-border);
-  flex: 0 0 auto;
-}
-
-/* Alguien esperando: la marca en el color de la marca. */
-.block:has(.card.call) .block-title::before,
-.block.owing.piden .block-title::before {
-  background: var(--itadaki-accent);
-}
-
-/* Platos listos: el verde de "salió", el mismo del contador. */
-.block:has(.count.ready) .block-title::before {
-  background: var(--itadaki-status-ready);
+.fila-texto {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--texto-medio);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /*
- * El número de mesa, más grande.
+ * El código, para dictarlo en voz alta.
  *
- * Es el único dato que el mozo busca de verdad —el resto lo lee ya sabiendo a
- * qué mesa pertenece— así que tiene que poder encontrarlo sin acercarse.
+ * Monoespaciado y espaciado: se lee de a un dígito mientras se camina hacia
+ * la mesa, que es exactamente cómo se usa.
  */
-/*
- * El bloque que no tiene nada.
- *
- * "Nadie está llamando ahora" en gris tenue: dice que se miró y que está
- * vacío, sin ocupar el peso visual de algo que hay que atender.
- */
-/*
- * La zona urgente, contra el resto.
- *
- * Un fondo apenas distinto y un borde más marcado: el ojo la encuentra antes
- * de leer, que es lo que hace falta cuando se levanta la vista entre dos
- * mesas.
- */
-.urgente > .block {
-  border-color: var(--itadaki-accent-line);
+.codigo {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--texto);
+  background: var(--panel-hundido);
+  border: 1px solid var(--linea);
+  border-radius: 6px;
+  padding: 0.15rem 0.45rem;
+  flex-shrink: 0;
 }
 
-.urgente > .block.owing.piden {
-  background: var(--itadaki-accent-tint);
-}
+/* ----------------------------------------------------------- pantallita --- */
 
 /*
- * En pantalla ancha, la zona urgente respira más.
+ * Teléfono angosto: se achica lo que decora, no lo que se toca.
  *
- * Es la tablet de la caja o del pase: hay lugar, y estos dos bloques son los
- * que se miran a distancia.
+ * Los botones conservan sus 44px — es lo último que hay que sacrificar en una
+ * pantalla que se usa caminando.
  */
-@media (min-width: 900px) {
-  .urgente > .block {
-    padding: 1.1rem 1.2rem 1.2rem;
+@media (max-width: 420px) {
+  :host {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 
-  .urgente .table {
-    font-size: 1.35rem;
-  }
-}
-
-/* ═══ QUE SE LEA, Y QUE ENTRE ═══
- *
- * Dos problemas que se veían como uno.
- *
- * El primero: los cinco medios de pago vivían en la columna angosta de la
- * derecha, junto al botón de cobrar. No entraban, así que se desbordaban
- * encima del nombre de la mesa y del monto —justo lo que hay que leer para
- * cobrar—. Ahora esa elección ocupa el ancho de la tarjeta.
- *
- * El segundo: los botones usaban la tipografía de los títulos. Unbounded es
- * ancha y decorativa a propósito, buena para "ITADAKI" arriba de todo y mala
- * para una palabra como "Transferencia" dentro de un botón. Los botones y los
- * datos pasan a la de texto, que es más angosta y se lee mejor en cuerpo
- * chico; los títulos y los números grandes se quedan con la de siempre. */
-
-/* La tarjeta, en filas: los datos arriba, lo que se elige debajo. */
-.owing-card {
-  display: block;
-}
-
-.card-fila {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-/*
- * La zona donde se elige, separada de los datos por una línea.
- *
- * Es un momento distinto: primero se lee cuánto debe la mesa, después se elige
- * con qué pagó. Pegados, la pregunta parecía parte del monto.
- */
-.cobro-zona {
-  margin-top: 0.85rem;
-  padding-top: 0.85rem;
-  border-top: 1px dashed var(--itadaki-border-dashed);
-}
-
-/* Los que no la declaraban: que ninguno quede con la de títulos por herencia. */
-.release,
-/* El monto y el número de mesa se quedan con la de títulos: son lo que el mozo
-   busca de un vistazo, y ahí lo ancho ayuda. */
-/*
- * En el teléfono la tarjeta se apila.
- *
- * "Mesa 1" y "$ 9.000" al lado de dos botones no entran en 390px: el nombre se
- * partía en dos líneas y el monto quedaba encimado.
- */
-@media (max-width: 560px) {
-  .card-fila {
-    flex-direction: column;
+  .ficha {
     gap: 0.6rem;
+    padding: 0.65rem 0.7rem;
   }
 
-  .owing-card .card-side {
-    align-items: stretch;
-    width: 100%;
+  .ficha-mesa {
+    width: 2.2rem;
+    height: 2.2rem;
+    font-size: 1rem;
+  }
+
+  .carril-head,
+  .plegable-head,
+  .fila {
+    padding-left: 0.7rem;
+    padding-right: 0.7rem;
   }
 }

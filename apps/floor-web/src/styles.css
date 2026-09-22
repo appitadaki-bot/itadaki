@@ -1,7 +1,15 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; min-height: 100%; }
+/*
+ * El gris del salón, no el crema de la marca.
+ *
+ * Esta pantalla es una herramienta de trabajo: el color queda reservado para
+ * estado —rojo espera, verde listo, ámbar plata— y el fondo se corre del
+ * camino. El mismo valor que `--piso` en el componente, para que no se vea
+ * una franja distinta arriba y abajo del contenido.
+ */
 body {
-  background: var(--itadaki-ink);
+  background: oklch(96.5% 0.002 250);
   font-family: var(--itadaki-font-body);
   -webkit-font-smoothing: antialiased;
 }
