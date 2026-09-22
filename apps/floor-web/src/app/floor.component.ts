@@ -53,8 +53,11 @@ const CUANTAS_CRITICAS = 3;
 /** Y lo mismo para el nivel de aviso, que puede tapar la pantalla igual. */
 const CUANTAS_LARGAS = 6;
 
-/** Los tres carriles, para poder plegarlos por nombre. */
+/** Los tres carriles, para poder filtrarlos por nombre. */
 type Carril = 'llamados' | 'pase' | 'cobro';
+
+/** Lo que la barra puede estar mostrando: un carril, o los tres. */
+type Vista = Carril | 'todo';
 
 /**
  * The waiter's screen.
@@ -153,6 +156,34 @@ type Carril = 'llamados' | 'pase' | 'cobro';
       }
 
       <!--
+        La barra de secciones.
+
+        Filtra en vez de desplazar: tocar "Llaman" deja los llamados solos en
+        pantalla, sin los otros dos abajo. En el teléfono eso es la diferencia
+        entre scrollear tres listas y mirar una.
+
+        Cada pestaña lleva su cuenta, con el color de su carril, así se sabe
+        dónde hay trabajo sin entrar a mirar. La de "Todo" no lleva número:
+        sería la suma de las otras tres y no dice nada que no esté ya.
+      -->
+      <nav class="barra-secciones" aria-label="Secciones del salón">
+        @for (p of pestanas(); track p.clave) {
+          <button
+            type="button"
+            class="pestana"
+            [class.activa]="viendo() === p.clave"
+            [attr.aria-current]="viendo() === p.clave ? 'true' : null"
+            (click)="ver(p.clave)"
+          >
+            <span class="pestana-nombre">{{ p.nombre }}</span>
+            @if (p.cuenta > 0) {
+              <span class="pestana-cuenta" [class]="p.tono">{{ p.cuenta }}</span>
+            }
+          </button>
+        }
+      </nav>
+
+      <!--
         Los tres carriles.
 
         Mismo ancho y mismo peso: ninguno es más importante que otro, y cuál
@@ -162,28 +193,15 @@ type Carril = 'llamados' | 'pase' | 'cobro';
       <div class="carriles">
         <!-- 1. Quién levantó la mano. Una persona esperando gana sobre un
              plato en el pase: el plato se enfría, la persona se va. -->
+        @if (mostrar('llamados')) {
         <section class="carril" aria-labelledby="carril-llamados">
-          <!--
-            El encabezado es el botón de plegar, y sigue diciendo cuántos hay
-            aunque esté cerrado: es lo que decide si vale la pena abrirlo.
-          -->
-          <h2 class="carril-head-titulo">
-            <button
-              type="button"
-              class="carril-head"
-              id="carril-llamados"
-              [attr.aria-expanded]="abierto('llamados')"
-              (click)="plegar('llamados')"
-            >
-              <span class="carril-titulo">Te llaman</span>
-              @if (store.misLlamados().length > 0) {
-                <span class="carril-cuenta urgente">{{ store.misLlamados().length }}</span>
-              }
-              <span class="chevron" [class.abierto]="abierto('llamados')" aria-hidden="true"></span>
-            </button>
-          </h2>
+          <header class="carril-head">
+            <h2 class="carril-titulo" id="carril-llamados">Te llaman</h2>
+            @if (store.misLlamados().length > 0) {
+              <span class="carril-cuenta urgente">{{ store.misLlamados().length }}</span>
+            }
+          </header>
 
-          @if (abierto('llamados')) {
           <div class="carril-cuerpo">
             @for (call of store.misLlamados(); track call.id) {
               <article
@@ -234,33 +252,20 @@ type Carril = 'llamados' | 'pase' | 'cobro';
               <p class="vacio">Nadie está llamando.</p>
             }
           </div>
-          }
         </section>
+        }
 
         <!-- 2. Lo que está listo y nadie llevó. Una tarjeta por mesa, no por
              plato: es un viaje. -->
+        @if (mostrar('pase')) {
         <section class="carril" aria-labelledby="carril-pase">
-          <!--
-            El encabezado es el botón de plegar, y sigue diciendo cuántos hay
-            aunque esté cerrado: es lo que decide si vale la pena abrirlo.
-          -->
-          <h2 class="carril-head-titulo">
-            <button
-              type="button"
-              class="carril-head"
-              id="carril-pase"
-              [attr.aria-expanded]="abierto('pase')"
-              (click)="plegar('pase')"
-            >
-              <span class="carril-titulo">Listo para llevar</span>
-              @if (store.pickups().length > 0) {
-                <span class="carril-cuenta listo">{{ store.pickups().length }}</span>
-              }
-              <span class="chevron" [class.abierto]="abierto('pase')" aria-hidden="true"></span>
-            </button>
-          </h2>
+          <header class="carril-head">
+            <h2 class="carril-titulo" id="carril-pase">Listo para llevar</h2>
+            @if (store.pickups().length > 0) {
+              <span class="carril-cuenta listo">{{ store.pickups().length }}</span>
+            }
+          </header>
 
-          @if (abierto('pase')) {
           <div class="carril-cuerpo">
             @for (mesa of store.pickupsByTable(); track mesa.tableId) {
               <article class="ficha viaje itd-rise">
@@ -296,8 +301,8 @@ type Carril = 'llamados' | 'pase' | 'cobro';
               <p class="vacio">Nada esperando en la barra.</p>
             }
           </div>
-          }
         </section>
+        }
 
         <!--
           3. Quién debe plata.
@@ -305,28 +310,15 @@ type Carril = 'llamados' | 'pase' | 'cobro';
           Deber no es pedir la cuenta: una mesa que acaba de comer debe y sigue
           sentada. El color de alarma se guarda para cuando de verdad piden.
         -->
+        @if (mostrar('cobro')) {
         <section class="carril" aria-labelledby="carril-cobro">
-          <!--
-            El encabezado es el botón de plegar, y sigue diciendo cuántos hay
-            aunque esté cerrado: es lo que decide si vale la pena abrirlo.
-          -->
-          <h2 class="carril-head-titulo">
-            <button
-              type="button"
-              class="carril-head"
-              id="carril-cobro"
-              [attr.aria-expanded]="abierto('cobro')"
-              (click)="plegar('cobro')"
-            >
-              <span class="carril-titulo">Por cobrar</span>
-              @if (store.misImpagas().length > 0) {
-                <span class="carril-cuenta cobro">{{ store.misImpagas().length }}</span>
-              }
-              <span class="chevron" [class.abierto]="abierto('cobro')" aria-hidden="true"></span>
-            </button>
-          </h2>
+          <header class="carril-head">
+            <h2 class="carril-titulo" id="carril-cobro">Por cobrar</h2>
+            @if (store.misImpagas().length > 0) {
+              <span class="carril-cuenta cobro">{{ store.misImpagas().length }}</span>
+            }
+          </header>
 
-          @if (abierto('cobro')) {
           <div class="carril-cuerpo">
             @for (mesa of store.misImpagas(); track mesa.sessionId) {
               <article
@@ -448,8 +440,8 @@ type Carril = 'llamados' | 'pase' | 'cobro';
               <p class="vacio">Nadie debe nada.</p>
             }
           </div>
-          }
         </section>
+        }
       </div>
 
       <!--
@@ -572,8 +564,6 @@ export class FloorComponent implements OnDestroy {
    */
   private readonly tick = signal(Date.now());
   private readonly timer: ReturnType<typeof setInterval>;
-  private anchoCambia?: MediaQueryList;
-  private miraElAncho: (evento: MediaQueryListEvent) => void = () => undefined;
 
   /**
    * Cuáles se marcan, y con qué fuerza.
@@ -615,40 +605,62 @@ export class FloorComponent implements OnDestroy {
   });
 
   /**
-   * Qué carriles están cerrados.
+   * Qué se está mirando: un carril solo, o los tres.
    *
-   * Por nombre y no un booleano por carril: son tres y podrían ser cuatro, y
-   * un conjunto no obliga a tocar tres lugares para agregar uno.
-   *
-   * Arrancan todos abiertos. Plegar es para el teléfono —tres carriles
-   * apilados son mucho scroll cuando sólo importa uno— y en la tablet el CSS
-   * ignora el estado, porque ahí los tres se ven a la vez y cerrarlos no
-   * ahorra nada.
+   * Reemplaza al plegado de a uno, que ahorraba alto pero no evitaba el
+   * scroll: para llegar al tercer carril había que pasar por los dos de
+   * arriba igual, plegados o no. Filtrar los saca de la pantalla.
    */
-  private readonly cerrados = signal<ReadonlySet<Carril>>(new Set());
+  protected readonly viendo = signal<Vista>('todo');
+
+  protected mostrar(carril: Carril): boolean {
+    return this.viendo() === 'todo' || this.viendo() === carril;
+  }
+
+  protected ver(vista: Vista): void {
+    this.viendo.set(vista);
+
+    /*
+     * Y arriba de todo.
+     *
+     * Al cambiar de pestaña, lo primero de la lista nueva tiene que quedar
+     * bajo el pulgar. Sin esto, quien venía scrolleando el final de una lista
+     * larga aterriza en el medio de la siguiente, o peor, en el vacío que hay
+     * debajo de una corta.
+     */
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
 
   /**
-   * Si la pantalla es angosta.
+   * Las pestañas de la barra, con lo que cada una lleva encima.
    *
-   * El mismo corte que usa el CSS para pasar a tres columnas. Se mira acá
-   * también porque el plegado vive en la lógica: a partir de ese ancho los
-   * tres carriles se muestran abiertos sin importar qué se haya plegado en el
-   * teléfono, y sin perder ese estado por si se vuelve.
+   * Los mismos números que los carriles —no otra cuenta que pueda quedar
+   * desfasada— y el mismo color de estado, para que la pestaña y su sección
+   * se lean como lo mismo.
    */
-  private readonly angosta = signal(
-    typeof window === 'undefined' ? true : !window.matchMedia('(min-width: 1080px)').matches,
-  );
-
-  protected abierto(carril: Carril): boolean {
-    if (!this.angosta()) return true;
-    return !this.cerrados().has(carril);
-  }
-
-  protected plegar(carril: Carril): void {
-    const ahora = new Set(this.cerrados());
-    if (!ahora.delete(carril)) ahora.add(carril);
-    this.cerrados.set(ahora);
-  }
+  protected readonly pestanas = computed(() => [
+    { clave: 'todo' as const, nombre: 'Todo', cuenta: 0, tono: '' },
+    {
+      clave: 'llamados' as const,
+      nombre: 'Llaman',
+      cuenta: this.store.misLlamados().length,
+      tono: 'urgente',
+    },
+    {
+      clave: 'pase' as const,
+      nombre: 'Listo',
+      cuenta: this.store.pickups().length,
+      tono: 'listo',
+    },
+    {
+      clave: 'cobro' as const,
+      nombre: 'Cobrar',
+      cuenta: this.store.misImpagas().length,
+      tono: 'cobro',
+    },
+  ]);
 
   /** "En cocina" arranca plegado: es contexto, no trabajo pendiente. */
   protected readonly showCooking = signal(false);
@@ -689,20 +701,10 @@ export class FloorComponent implements OnDestroy {
 
     // Waiting times age on their own, with no event to trigger a redraw.
     this.timer = setInterval(() => this.tick.set(Date.now()), 20_000);
-
-    /*
-     * Girar el teléfono, o abrir la ventana en la tablet, cambia si hay algo
-     * que plegar. Sin escuchar esto, un carril plegado en vertical seguía
-     * plegado en horizontal con los tres al lado, y ahí la flecha ya no se ve.
-     */
-    this.anchoCambia = window.matchMedia('(min-width: 1080px)');
-    this.miraElAncho = (evento: MediaQueryListEvent) => this.angosta.set(!evento.matches);
-    this.anchoCambia.addEventListener('change', this.miraElAncho);
   }
 
   ngOnDestroy(): void {
     clearInterval(this.timer);
-    this.anchoCambia?.removeEventListener('change', this.miraElAncho);
     this.store.disconnect();
   }
 

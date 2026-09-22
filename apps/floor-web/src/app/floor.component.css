@@ -318,6 +318,176 @@
 
 /* ------------------------------------------------------------- carriles --- */
 
+/* ------------------------------------------------------ barra secciones --- */
+
+/*
+ * Las pestañas que filtran.
+ *
+ * Pegadas debajo del encabezado y no al pie: el pulgar llega igual con el
+ * teléfono en la mano, y arriba no tapan la última ficha de una lista —que es
+ * justo la que cuesta alcanzar.
+ *
+ * Se deslizan si no entran, así no hay que achicar el texto hasta que deje de
+ * leerse en un salón con poca luz.
+ */
+.barra-secciones {
+  position: sticky;
+  /* Justo debajo de la barra de arriba, que también es pegajosa. */
+  top: 3.25rem;
+  z-index: 9;
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.5rem 0;
+  margin-bottom: 0.85rem;
+  background: color-mix(in oklch, var(--piso) 92%, transparent);
+  backdrop-filter: blur(12px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  /*
+   * Un respiro al final, para que la última pestaña no quede pegada al borde
+   * cuando la barra se desliza: sin esto parece cortada en vez de deslizable.
+   */
+  scroll-padding-inline: 0.25rem;
+}
+
+.barra-secciones::-webkit-scrollbar {
+  display: none;
+}
+
+.barra-secciones::after {
+  content: '';
+  flex: 0 0 0.25rem;
+}
+
+.pestana {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--texto-medio);
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: var(--itadaki-radius-pill);
+  /* El mismo mínimo que los botones: se toca caminando. */
+  min-height: 44px;
+  padding: 0 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--itadaki-quick) var(--itadaki-ease),
+    border-color var(--itadaki-quick) var(--itadaki-ease),
+    color var(--itadaki-quick) var(--itadaki-ease);
+}
+
+.pestana:hover {
+  border-color: var(--texto-tenue);
+  color: var(--texto);
+}
+
+/*
+ * La activa se invierte.
+ *
+ * Con un borde de color no alcanzaba: entre cuatro píldoras claras, la que
+ * tiene el borde un tono más oscuro no se distingue de un vistazo, y menos de
+ * lejos. Invertida se ve desde la otra punta del salón.
+ */
+.pestana.activa {
+  background: var(--texto);
+  border-color: var(--texto);
+  color: white;
+}
+
+.pestana-cuenta {
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--itadaki-radius-chip);
+  min-width: 1.45rem;
+  text-align: center;
+}
+
+/* Los mismos tres colores que las cuentas de cada carril. */
+.pestana-cuenta.urgente {
+  color: var(--alarma);
+  background: var(--alarma-tenue);
+  border: 1px solid var(--alarma-linea);
+}
+
+.pestana-cuenta.listo {
+  color: var(--listo);
+  background: var(--listo-tenue);
+  border: 1px solid var(--listo-linea);
+}
+
+.pestana-cuenta.cobro {
+  color: var(--plata);
+  background: var(--plata-tenue);
+  border: 1px solid var(--plata-linea);
+}
+
+/*
+ * Sobre la pestaña activa, que es oscura, los fondos claros de la cuenta
+ * quedan como un parche brillante. Se invierten: color pleno sobre el oscuro.
+ */
+.pestana.activa .pestana-cuenta {
+  background: color-mix(in oklch, white 22%, transparent);
+  border-color: transparent;
+  color: white;
+}
+
+/*
+ * Una sola sección a la vista.
+ *
+ * En el teléfono alcanza con que ocupe el ancho. En la tablet no: una lista
+ * de fichas angostas a la izquierda deja mil píxeles vacíos a la derecha, que
+ * es exactamente el desbalance que el rediseño vino a sacar. Ahí las fichas
+ * pasan a acomodarse en columnas, y el filtro sirve para ver más de una
+ * sección a la vez en vez de para ver menos.
+ */
+.carriles:has(> .carril:only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 1080px) {
+  .carriles:has(> .carril:only-child) .carril-cuerpo {
+    display: grid;
+    /*
+     * Celdas del ancho de una ficha cómoda, no de media pantalla.
+     *
+     * Con celdas grandes —26rem y `1fr`— entraban dos de 1000px y adentro de
+     * cada una volvía el pozo entre el texto y el botón: el mismo defecto,
+     * una escala más chico. `auto-fill` sobre 21rem mete tres o cuatro
+     * columnas y cada ficha queda del tamaño que se lee de un tirón.
+     */
+    grid-template-columns: repeat(auto-fill, minmax(21rem, 1fr));
+    /* Sin tope de alto: si hay una sola sección, que use la pantalla entera. */
+    max-height: none;
+    overflow: visible;
+  }
+
+  /*
+   * Los bordes pasan a ser de celda, no de fila: en grilla, un borde inferior
+   * corta a la mitad de la columna de al lado.
+   */
+  .carriles:has(> .carril:only-child) .ficha {
+    border-bottom: none;
+    border-right: 1px solid var(--linea-suave);
+    border-top: 1px solid var(--linea-suave);
+  }
+
+  /* El panel de cobro cruza su celda, no la grilla entera. */
+  .carriles:has(> .carril:only-child) .ficha.abierta {
+    grid-column: auto;
+  }
+
+  .carriles:has(> .carril:only-child) .vacio {
+    grid-column: 1 / -1;
+  }
+}
+
 /*
  * Una columna en el teléfono, tres en la tablet.
  *
@@ -391,89 +561,13 @@
   overflow: hidden;
 }
 
-/*
- * El encabezado es un botón que pliega el carril.
- *
- * El `<h2>` sigue existiendo alrededor para que el lector de pantalla lo
- * anuncie como título y se pueda saltar de carril en carril; el botón adentro
- * es lo que se toca. Al revés —un botón con rol de título— pierde una de las
- * dos cosas.
- */
-.carril-head-titulo {
-  margin: 0;
-  font-size: inherit;
-  font-weight: inherit;
-}
-
 .carril-head {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  width: 100%;
-  font: inherit;
   padding: 0.75rem 0.9rem;
-  border: none;
   border-bottom: 1px solid var(--linea-suave);
   background: var(--panel-hundido);
-  text-align: left;
-  cursor: pointer;
-  transition: background var(--itadaki-quick) var(--itadaki-ease);
-}
-
-.carril-head:hover {
-  background: var(--linea-suave);
-}
-
-/*
- * Cerrado, el encabezado es toda la sección.
- *
- * La línea de abajo separaba de un cuerpo que ya no está, y quedaba colgando
- * dentro de la píldora. El fondo vuelve al del panel para que los tres se
- * vean iguales estén abiertos o cerrados: uno gris entre dos blancos parecía
- * deshabilitado.
- */
-.carril-head[aria-expanded='false'] {
-  border-bottom-color: transparent;
-  background: var(--panel);
-}
-
-.carril-head[aria-expanded='false']:hover {
-  background: var(--panel-hundido);
-}
-
-/*
- * El chevron del carril se va al final, para que quede contra el borde
- * derecho en vez de pegado a la cuenta.
- */
-.carril-head .chevron {
-  margin-left: auto;
-}
-
-/*
- * En la tablet no se pliega.
- *
- * Ahí los tres carriles se ven a la vez y cerrarlos no ahorra nada: el valor
- * de esa pantalla es justamente tener el salón entero de un vistazo. Plegar
- * es para el teléfono, donde los tres apilados son mucho scroll cuando sólo
- * importa uno.
- *
- * El botón sigue funcionando: apagarlo con `pointer-events` dejaría trabado
- * un carril que alguien plegó en el teléfono, sin forma de reabrirlo. Lo que
- * se esconde es la flecha, porque en esta pantalla no hay nada que plegar —de
- * eso se encarga la lógica, que reporta todo abierto a partir de este ancho.
- */
-@media (min-width: 1080px) {
-  .carril-head {
-    cursor: default;
-  }
-
-  .carril-head .chevron {
-    display: none;
-  }
-
-  .carril-head:hover {
-    background: var(--panel-hundido);
-  }
 }
 
 .carril-titulo {
