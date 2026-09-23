@@ -24,6 +24,28 @@ import { conexionPostgres } from './db-url';
 const ADMIN_URL =
   process.env['DATABASE_ADMIN_URL'] ?? 'postgres://itadaki:itadaki@localhost:5433/itadaki';
 
+/**
+ * A qué base apunta esto, en una línea legible.
+ *
+ * Sin el host a la vista, `DATABASE_ADMIN_URL` sin definir manda la cuenta a
+ * la base local y el script dice "cuenta creada" igual, que es verdad y a la
+ * vez engañoso: quien creyó estar escribiendo en producción se entera recién
+ * cuando esa persona no puede entrar, y para entonces ya no sabe por qué.
+ *
+ * Pasa fácil con una terminal nueva, donde la variable no viajó.
+ *
+ * Sin la contraseña, obviamente: esto se imprime en pantalla y queda en el
+ * historial de la consola.
+ */
+function aDondeApunta(url: string): string {
+  try {
+    const { hostname, port, pathname } = new URL(url);
+    return `${hostname}${port === '' ? '' : `:${port}`}${pathname}`;
+  } catch {
+    return '(no se pudo leer DATABASE_ADMIN_URL)';
+  }
+}
+
 async function main(): Promise<void> {
   const [tenantId, email, password, rolPedido = 'OWNER'] = process.argv.slice(2);
 
@@ -48,6 +70,12 @@ async function main(): Promise<void> {
   if (checked.isErr()) {
     console.error('credenciales inválidas:', checked.error.kind);
     process.exit(1);
+  }
+
+  const esLocal = ADMIN_URL.includes('localhost') || ADMIN_URL.includes('127.0.0.1');
+  console.log(`base: ${aDondeApunta(ADMIN_URL)}${esLocal ? '  (LOCAL)' : ''}`);
+  if (esLocal && process.env['DATABASE_ADMIN_URL'] === undefined) {
+    console.log('  DATABASE_ADMIN_URL no está definida, así que va a la base local.');
   }
 
   const client = new Client(conexionPostgres(ADMIN_URL));
