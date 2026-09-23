@@ -2,6 +2,7 @@ import { Body, Controller, HttpException, HttpStatus, Post } from '@nestjs/commo
 import { COMO_TIENE_LA_CARTA, validarInteresado } from '@itadaki/identity/domain';
 import { z } from 'zod';
 import { Public } from './auth';
+import { RateLimit } from './rate-limit.guard';
 import { InteresadosService } from './interesados.service';
 
 const schema = z.object({
@@ -25,7 +26,13 @@ const schema = z.object({
 export class InteresadosController {
   constructor(private readonly interesados: InteresadosService) {}
 
+  // Público y sin sesión: lo llama la landing. Cada alta guarda una fila y
+  // dispara un mail a cada dirección del equipo, así que sin tope es spam a
+  // la base y una avalancha de correos —abuso económico— desde una sola
+  // máquina. Se cuenta como el signup, que es el mismo tipo de escritura
+  // pública que no tiene por qué repetirse decenas de veces por hora.
   @Public()
+  @RateLimit('signUp')
   @Post()
   async registrar(@Body() body: unknown) {
     const parsed = schema.safeParse(body);

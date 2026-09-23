@@ -88,6 +88,34 @@ async function bootstrap(): Promise<void> {
     next();
   });
 
+  /*
+   * Un tope de tamaño por ruta, antes de que el parser bufferee nada.
+   *
+   * El parser acepta 25 MB porque la subida de fotos manda el original en
+   * base64. Pero ese tope regía para todo: un POST de 25 MB a /api/auth/login
+   * se bufferaba entero en una instancia de 512 MB antes de que nadie mirara
+   * el cuerpo, y unas pocas conexiones así la voltean. Sólo /api/images tiene
+   * por qué recibir algo grande; el resto son formularios de kilobytes.
+   *
+   * Se mira el Content-Length y se corta ahí: no cubre un cuerpo chunked sin
+   * largo declarado, pero eso lo acota igual el tope por IP, y esto frena el
+   * caso barato —declarar 25 MB y mandarlos— sin tocar el parser ni la subida.
+   */
+  const MAX_CUERPO_IMAGENES = 25 * 1024 * 1024;
+  const MAX_CUERPO_GENERAL = 256 * 1024;
+  app.use((request: { originalUrl?: string; url?: string; headers: Record<string, unknown> }, respuesta: ServerResponse, next: () => void) => {
+    const url = request.originalUrl ?? request.url ?? '';
+    const tope = url.startsWith('/api/images') ? MAX_CUERPO_IMAGENES : MAX_CUERPO_GENERAL;
+    const largo = Number(request.headers['content-length'] ?? 0);
+    if (Number.isFinite(largo) && largo > tope) {
+      respuesta.statusCode = 413;
+      respuesta.setHeader('Content-Type', 'application/json');
+      respuesta.end(JSON.stringify({ kind: 'PAYLOAD_TOO_LARGE' }));
+      return;
+    }
+    next();
+  });
+
   // Un tope de pedidos por IP, antes de que nada mire la base.
   app.use(limitadorPorIp());
 

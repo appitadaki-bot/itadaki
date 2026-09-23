@@ -24,6 +24,22 @@ export interface TablaSinAislar {
  * `FORCE` además de `ENABLE`: sin él, el dueño de la tabla ve todas las filas,
  * y la API se conecta con un rol que en Neon y en Render es el dueño.
  */
+/**
+ * Dos tablas con `tenant_id` que a propósito no llevan el candado.
+ *
+ * `password_resets` y `billing_events` se leen y escriben antes de saber a
+ * qué tenant pertenecen —un link de reset se busca por su digest, un webhook
+ * de Mercado Pago por su referencia— así que no pueden pedir `app.tenant_id`
+ * puesto. Su seguridad es que ese digest o esa referencia son imposibles de
+ * adivinar, no row level security. Ver la migración 044.
+ *
+ * Sin esta exclusión, el chequeo las marca como "sin aislar" apenas se les
+ * saca el candado, y en producción eso rompe el arranque por un motivo que no
+ * es tal: ese arreglo es justamente el que hace que ninguna de las dos vuelva
+ * a fallar en silencio.
+ */
+const SIN_TENANT_A_PROPOSITO = ['password_resets', 'billing_events'];
+
 const CONSULTA = `
   SELECT c.relname AS tabla,
          c.relrowsecurity AS activo,
@@ -40,6 +56,7 @@ const CONSULTA = `
               AND col.column_name = 'tenant_id'
          )
      AND (c.relrowsecurity IS NOT TRUE OR c.relforcerowsecurity IS NOT TRUE)
+     AND c.relname != ALL (ARRAY[${SIN_TENANT_A_PROPOSITO.map((tabla) => `'${tabla}'`).join(', ')}])
    ORDER BY c.relname
 `;
 

@@ -1,5 +1,6 @@
-import { DiskBlobStorage } from '@itadaki/catalog/infra';
+import { DiskBlobStorage, claveSeguraDeBlob } from '@itadaki/catalog/infra';
 import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -68,5 +69,52 @@ describe('el almacenamiento en disco', () => {
 
     expect((await disco.get('demo/img1/thumb.jpeg')).toString()).toBe('una foto');
     expect((await readFile(join(raiz, 'demo', 'img1', 'thumb.jpeg'))).toString()).toBe('una foto');
+  });
+});
+
+/**
+ * El bucket no resuelve rutas como el disco: la clave viaja tal cual dentro de
+ * la URL, y `new URL` colapsa los `../` antes de firmar. Sin este control,
+ * subir con `imageId: "../otro-local/plato"` escribía sobre la foto de otro
+ * restaurante en producción, que es donde corre S3/R2 y no el disco.
+ */
+describe('la clave de un objeto en el bucket', () => {
+  it('acepta la forma que arma el servidor', () => {
+    for (const buena of ['demo/img1/original', 'demo/img1/640.webp', 'a-b/c_d/thumb.jpeg']) {
+      expect(() => claveSeguraDeBlob(buena)).not.toThrow();
+    }
+  });
+
+  it('rechaza la que se sale de la carpeta del restaurante', () => {
+    for (const mala of [
+      'demo/../otro/original',
+      '../otro/img1/640.webp',
+      'demo//img1/original',
+      '/etc/passwd',
+      'demo/img1/../../secreto',
+      'demo/img\\1/original',
+    ]) {
+      expect(() => claveSeguraDeBlob(mala)).toThrow(/fuera del directorio de imágenes/);
+    }
+  });
+});
+
+/**
+ * La subida y la reedición eligen el id, y ese id se concatena a la clave. El
+ * GET de variantes ya lo validaba; el borde de escritura lo hacía pasar con
+ * sólo un largo máximo.
+ */
+describe('el borde de escritura de imágenes', () => {
+  const CONTROLLER = readFileSync(join(__dirname, 'images.controller.ts'), 'utf-8');
+
+  it('valida el id que se sube con la misma forma que el que se lee', () => {
+    expect(CONTROLLER).toContain('ES_UN_ID_DE_IMAGEN');
+    expect(CONTROLLER).toContain('.regex(ES_UN_ID_DE_IMAGEN)');
+  });
+
+  it('valida el id de la reedición, que llega por la ruta sin schema', () => {
+    const donde = CONTROLLER.indexOf('async reedit(');
+    const cuerpo = CONTROLLER.slice(donde, donde + 400);
+    expect(cuerpo).toContain('ES_UN_ID_DE_IMAGEN.test(imageId)');
   });
 });
