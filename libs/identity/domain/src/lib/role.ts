@@ -1,4 +1,4 @@
-export const ROLES = ['OWNER', 'MANAGER', 'KITCHEN', 'WAITER', 'SOPORTE'] as const;
+export const ROLES = ['OWNER', 'MANAGER', 'KITCHEN', 'WAITER', 'CAJA', 'SOPORTE'] as const;
 export type Role = (typeof ROLES)[number];
 
 export const PERMISSIONS = [
@@ -41,7 +41,26 @@ const GRANTS: Record<Role, readonly Permission[]> = {
     'metrics:read',
   ],
   KITCHEN: ['menu:read', 'orders:read', 'orders:advance'],
-  WAITER: ['menu:read', 'orders:read', 'orders:advance', 'bills:read', 'bills:close'],
+  /*
+   * El mozo atiende, no cobra.
+   *
+   * Tenía `bills:close`, que es cobrar una mesa y también liberarla sin
+   * cobrarla. Con eso, cualquiera del salón podía a las tres de la mañana
+   * marcar mesas como pagadas o hacerlas desaparecer, desde su teléfono y sin
+   * estar en el local. Cobrar pasa a ser de la caja.
+   */
+  WAITER: ['menu:read', 'orders:read', 'orders:advance', 'bills:read'],
+  /*
+   * Quien maneja la plata, y nada más.
+   *
+   * Cobra, libera una mesa sin cobrarla y ve las cuentas. No toca la carta ni
+   * al personal, y no ve las métricas: cuánto vende el local es del dueño.
+   *
+   * Mueve comandas como el mozo porque comparte pantalla con él —el tablero
+   * del salón— y porque en un local chico la misma persona hace las dos cosas
+   * con dos cuentas distintas.
+   */
+  CAJA: ['menu:read', 'orders:read', 'orders:advance', 'bills:read', 'bills:close'],
   /*
    * Nosotros, para armarle la carta a un local nuevo.
    *

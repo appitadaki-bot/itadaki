@@ -25,6 +25,8 @@ import { type PostgresInviteStore } from '@itadaki/ordering/infra';
 import { z } from 'zod';
 import {
   type DinerScope,
+  Auth,
+  type AuthContext,
   Public,
   RequirePermission,
   Scope,
@@ -38,6 +40,7 @@ import { database } from './database';
 import { CatalogService } from './catalog.service';
 import { OrdersService } from './orders.service';
 import { CallsService } from './calls.service';
+import { BillsService } from './bills.service';
 import { descuentoDelLocal } from './descuento-del-local';
 import { TenantsService } from './tenants.service';
 import { montoDelDescuento } from '@itadaki/billing/domain';
@@ -165,6 +168,8 @@ export class SessionsController {
     private readonly realtime: RealtimeGateway,
     private readonly calls: CallsService,
     private readonly tenants: TenantsService,
+    // Sólo para registrar quién liberó una mesa sin cobrarla.
+    private readonly bills: BillsService,
   ) {}
 
   /** El código de cada mesa vive acá, no en la sesión. */
@@ -747,12 +752,20 @@ export class SessionsController {
    * queda ocupada hasta que corre el barrido: el grupo siguiente escanea el
    * QR y cae en el pedido de los anteriores.
    *
-   * Gated en `orders:advance`, el mismo permiso que mueve comandas: quien
-   * atiende el salón es quien sabe que la mesa se fue.
+   * Gated en `bills:close`, el mismo permiso que cobrar.
+   *
+   * Estaba en `orders:advance`, con el argumento de que quien atiende el salón
+   * es quien sabe que la mesa se fue. Pero liberar sin cobrar hace desaparecer
+   * una mesa sin registrar un peso: es la otra puerta a la plata, y bloquear
+   * sólo "cobré" habría dejado ésta abierta.
    */
-  @RequirePermission('orders:advance')
+  @RequirePermission('bills:close')
   @Post(':id/release')
-  async release(@Param('id') sessionId: string, @TenantId() tenantId: string) {
+  async release(
+    @Param('id') sessionId: string,
+    @TenantId() tenantId: string,
+    @Auth() quien: AuthContext | undefined,
+  ) {
     // Antes de cerrarla, de qué mesa era: después la sesión ya no la nombra.
     const before = await this.sessions.store.findById(tenantId, sessionId);
 
@@ -771,6 +784,24 @@ export class SessionsController {
     // lo lleva anotado y puede volver a sentarse desde afuera esta noche.
     if (before.isOk()) {
       await this.tables.rotateJoinCode(tenantId, before.value.session.tableId);
+    }
+
+    /*
+     * Queda registrado, como el cobro.
+     *
+     * Es el cierre que menos rastro dejaba: no escribe ninguna cuenta, así que
+     * la mesa simplemente desaparecía del tablero y nadie sabía quién la sacó
+     * ni por cuánto.
+     */
+    if (quien !== undefined && before.isOk()) {
+      void this.bills.cierres?.registrar(tenantId, {
+        sessionId,
+        tableId: before.value.session.tableId,
+        queHizo: 'LIBERO',
+        quien: { id: quien.userId, nombre: quien.displayName, rol: quien.role },
+        montoMinor: null,
+        medio: null,
+      });
     }
 
     // Cerrar no devuelve la mesa: ya no hay nada que mostrar de ella.

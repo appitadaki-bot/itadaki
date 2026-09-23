@@ -361,7 +361,17 @@ type Vista = Carril | 'todo';
                   }
                 </div>
 
-                @if (cobrando() !== mesa.sessionId && confirming() !== mesa.sessionId) {
+                <!--
+                  Cobrar y liberar son de la caja, no del mozo. Sin el permiso
+                  no se muestran: un botón que siempre falla es peor que no
+                  tenerlo, y el mozo igual necesita ver la mesa para saber que
+                  sigue abierta.
+                -->
+                @if (
+                  auth.can('bills:close') &&
+                  cobrando() !== mesa.sessionId &&
+                  confirming() !== mesa.sessionId
+                ) {
                   <div class="ficha-accion">
                     <button
                       type="button"
@@ -389,7 +399,7 @@ type Vista = Carril | 'todo';
                   Lo declara quien tuvo la plata en la mano: la mesa dice cómo
                   *piensa* pagar antes de que el mozo llegue, y eso cambia.
                 -->
-                @if (cobrando() === mesa.sessionId) {
+                @if (auth.can('bills:close') && cobrando() === mesa.sessionId) {
                   <div class="panel">
                     <p class="panel-pregunta">¿Con qué pagaron?</p>
                     <!-- Recorridos y no escritos a mano: agregar un medio en un
@@ -415,7 +425,7 @@ type Vista = Carril | 'todo';
                   </div>
                 }
 
-                @if (confirming() === mesa.sessionId) {
+                @if (auth.can('bills:close') && confirming() === mesa.sessionId) {
                   <!-- Dos salidas, no un botón que cambia de texto: eso se leía
                        como un cartel sobre la deuda y no como algo que había
                        que volver a tocar. -->

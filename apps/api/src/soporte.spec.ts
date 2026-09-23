@@ -72,7 +72,8 @@ describe('cómo se entra como soporte', () => {
   });
 
   it('ni el alta de personal la acepta', () => {
-    expect(STAFF).toContain("z.enum(['MANAGER', 'KITCHEN', 'WAITER'])");
+    expect(STAFF).toContain("z.enum(['MANAGER', 'KITCHEN', 'WAITER', 'CAJA'])");
+    expect(STAFF).not.toContain("'SOPORTE'");
   });
 
   it('esDeSoporte reconoce sólo ese rol', () => {

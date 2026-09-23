@@ -36,7 +36,7 @@ import { StaffService } from './staff.service';
 const inviteSchema = z.object({
   displayName: z.string().min(1).max(60),
   // OWNER is deliberately absent: transferring ownership is not an invite.
-  role: z.enum(['MANAGER', 'KITCHEN', 'WAITER']),
+  role: z.enum(['MANAGER', 'KITCHEN', 'WAITER', 'CAJA']),
   /** Opcional: si el dueño quiere elegirlo en vez de aceptar el sugerido. */
   usuario: z.string().min(1).max(30).optional(),
 });
@@ -259,7 +259,7 @@ export class StaffController {
     const parsed = z
       .object({
         usuario: z.string().min(1).max(30),
-        role: z.enum(['MANAGER', 'KITCHEN', 'WAITER']),
+        role: z.enum(['MANAGER', 'KITCHEN', 'WAITER', 'CAJA']),
       })
       .safeParse(body);
     if (!parsed.success) {

@@ -26,8 +26,11 @@ describe('roles and permissions', () => {
     expect(can('KITCHEN', 'orders:advance')).toBe(true);
   });
 
-  it('lets a waiter close a bill but not edit the menu', () => {
-    expect(can('WAITER', 'bills:close')).toBe(true);
+  it('lets a waiter read bills but neither close them nor edit the menu', () => {
+    // Closing the money is the till's job: a waiter who could settle tables
+    // could also make them disappear without charging.
+    expect(can('WAITER', 'bills:read')).toBe(true);
+    expect(can('WAITER', 'bills:close')).toBe(false);
     expect(can('WAITER', 'menu:write')).toBe(false);
   });
 
