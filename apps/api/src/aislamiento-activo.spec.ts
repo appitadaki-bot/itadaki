@@ -113,6 +113,15 @@ describe('la consulta que busca las tablas sin aislar', () => {
     // antes de saber de cuál se trata.
     expect(FUENTE).toContain("col.column_name = 'tenant_id'");
   });
+
+  it('no marca como sin aislar lo que a propósito no lleva el candado', () => {
+    // password_resets y billing_events sí tienen tenant_id, pero se leen
+    // antes de saber cuál es —por un digest o una referencia imposibles de
+    // adivinar, no por RLS—. Sin esta exclusión, sacarles el candado (044)
+    // rompería el arranque en producción por un motivo que no es tal.
+    expect(FUENTE).toContain("'password_resets'");
+    expect(FUENTE).toContain("'billing_events'");
+  });
 });
 
 /** La migración tiene que arreglar exactamente lo que el arranque verifica. */
