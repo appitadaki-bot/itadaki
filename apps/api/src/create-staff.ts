@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { validateCredentials } from '@itadaki/identity/domain';
+import { ROLES, type Role, nuevoPin, validateCredentials } from '@itadaki/identity/domain';
 import { hashPassword } from '@itadaki/identity/infra';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -7,21 +7,42 @@ import { Client } from 'pg';
 import { conexionPostgres } from './db-url';
 
 /**
- * Creates a staff account.
+ * Crea una cuenta del personal, directo contra la base.
  *
- * Usage: node create-staff.js <tenantId> <email> <password> [role]
- * Runs as the owner role because it also applies the identity migration.
+ *   node create-staff.js <tenantId> <email> <password> [rol]
+ *
+ * Para cuando no hay por dónde entrar al panel: una base recién migrada, o un
+ * local cuyo dueño perdió la contraseña. El alta normal es el panel.
+ *
+ * Corre con el rol dueño de la base porque también aplica la migración de
+ * identidad.
+ *
+ * A quien entra con usuario y PIN —el salón y la cocina— le genera los dos y
+ * los imprime, porque esas pantallas no piden mail. Es el mismo PIN al azar
+ * que da el panel.
  */
 const ADMIN_URL =
   process.env['DATABASE_ADMIN_URL'] ?? 'postgres://itadaki:itadaki@localhost:5433/itadaki';
 
 async function main(): Promise<void> {
-  const [tenantId, email, password, role = 'OWNER'] = process.argv.slice(2);
+  const [tenantId, email, password, rolPedido = 'OWNER'] = process.argv.slice(2);
 
   if (tenantId === undefined || email === undefined || password === undefined) {
-    console.error('uso: create-staff <tenantId> <email> <password> [OWNER|MANAGER|KITCHEN|WAITER]');
+    console.error(`uso: create-staff <tenantId> <email> <password> [${ROLES.join('|')}]`);
     process.exit(1);
   }
+
+  /*
+   * Los roles salen de la lista del dominio y no de una copia escrita acá.
+   *
+   * Esta lista decía OWNER|MANAGER|KITCHEN|WAITER y se quedó vieja cuando
+   * apareció CAJA: la herramienta rechazaba un rol que la base sí aceptaba.
+   */
+  if (!(ROLES as readonly string[]).includes(rolPedido)) {
+    console.error(`rol desconocido: ${rolPedido}. Son: ${ROLES.join(', ')}`);
+    process.exit(1);
+  }
+  const role = rolPedido as Role;
 
   const checked = validateCredentials(email, password);
   if (checked.isErr()) {
@@ -81,6 +102,49 @@ async function main(): Promise<void> {
   }
 
   console.log(`cuenta creada: ${checked.value.email} (${role}) en ${tenantId}`);
+
+  /*
+   * Y su usuario y PIN, salvo que sea el dueño.
+   *
+   * Todo el personal que da de alta el panel lleva usuario y PIN, incluido el
+   * de caja: `entraConPin` decide qué ofrece la pantalla de login, no quién
+   * tiene uno. Una cuenta creada acá sin PIN queda sin forma de entrar al
+   * salón ni a la cocina, que no piden mail.
+   *
+   * El dueño no: entra con su mail y su contraseña, que es la que se pasó por
+   * argumento.
+   *
+   * Se imprime una sola vez, porque lo que se guarda es el hash. Si se pierde
+   * se regenera desde el panel; no hay dónde ir a leerlo.
+   */
+  if (role !== 'OWNER') {
+    const usuario = (checked.value.email.split('@')[0] ?? 'staff')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+      .slice(0, 20);
+    const pin = nuevoPin();
+
+    await client.query(
+      `UPDATE staff_users SET username = $3, pin_hash = $4, pin_intentos = 0,
+              pin_trabado_hasta = NULL
+        WHERE tenant_id = $1 AND email = $2`,
+      [tenantId, checked.value.email, usuario, await hashPassword(pin)],
+    );
+
+    const quedo = await client.query<{ username: string | null }>(
+      'SELECT username FROM staff_users WHERE tenant_id = $1 AND email = $2',
+      [tenantId, checked.value.email],
+    );
+    if (quedo.rows[0]?.username !== usuario) {
+      console.error('el usuario no se guardó: la cuenta no va a poder entrar al salón.');
+      await client.end();
+      process.exit(1);
+    }
+
+    console.log(`  entra al salón con  usuario: ${usuario}   PIN: ${pin}`);
+    console.log('  (el PIN se muestra una sola vez; se regenera desde el panel)');
+  }
+
   await client.end();
 }
 
