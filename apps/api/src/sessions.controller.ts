@@ -224,6 +224,27 @@ export class SessionsController {
   }
 
   /**
+   * Que quien dice ser esté sentado en esta mesa.
+   *
+   * El token es de la mesa y no de la persona, así que el `dinerId` llega en
+   * el cuerpo y el servidor no tiene con qué probarlo. Esto no lo prueba: lo
+   * único que frena es un id inventado, porque los de la mesa se leen del
+   * propio `GET /sessions/:id`.
+   *
+   * Vale igual. Sin esto se podían cargar platos a nombre de alguien que no
+   * existe, que después no aparecen en el reparto por comensal y sí en el
+   * total. Lo que falta para que el `dinerId` pruebe algo es que el join
+   * devuelva un token firmado, como ya hace la mesa.
+   *
+   * `POST :id/invite` ya lo hacía; los tres que tocan el carrito, no.
+   */
+  private estaSentado(state: SessionState, dinerId: string): void {
+    if (!state.session.diners.some((diner) => diner.id === dinerId)) {
+      throw new HttpException({ kind: 'NOT_AT_TABLE' }, HttpStatus.FORBIDDEN);
+    }
+  }
+
+  /**
    * Mesas que ya comieron todo y siguen sin pagar.
    *
    * Declarada antes que `:id` a propósito: Nest resuelve por orden y "unsettled"
@@ -609,7 +630,8 @@ export class SessionsController {
       throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
     }
 
-    await this.sessionInScope(scope, sessionId, true);
+    const state = await this.sessionInScope(scope, sessionId, true);
+    this.estaSentado(state, parsed.data.dinerId);
     const tenantId = scope.tenantId;
 
     const priced = await this.catalog.pricer.price(tenantId, {
@@ -666,7 +688,8 @@ export class SessionsController {
       throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
     }
 
-    await this.sessionInScope(scope, sessionId, true);
+    const state = await this.sessionInScope(scope, sessionId, true);
+    this.estaSentado(state, parsed.data.dinerId);
     const tenantId = scope.tenantId;
 
     const run = changeSharedLine({ sessions: this.sessions.store, events: this.realtime });
@@ -702,7 +725,8 @@ export class SessionsController {
       throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
     }
 
-    await this.sessionInScope(scope, sessionId, true);
+    const state = await this.sessionInScope(scope, sessionId, true);
+    this.estaSentado(state, parsed.data.dinerId);
     const tenantId = scope.tenantId;
 
     const run = leaveTable({ sessions: this.sessions.store, events: this.realtime });

@@ -241,6 +241,13 @@ export interface ClearSubmittedCommand {
   readonly tenantId: string;
   readonly sessionId: string;
   readonly lineIds: readonly string[];
+  /**
+   * Qué productos entraron de verdad a la comanda.
+   *
+   * Está para poder comprobar que cada id que se pide borrar corresponde a un
+   * plato de los que se acaban de mandar.
+   */
+  readonly enviados: readonly { readonly productId: string; readonly quantity: number }[];
 }
 
 /**
@@ -255,6 +262,12 @@ export interface ClearSubmittedCommand {
  * Sin control de dueño acá, entonces, a propósito: quien envía ya tenía
  * permiso de mandar esos platos: borrarlos del carrito es el mismo acto.
  *
+ * Pero eso vale mientras los ids sean los de esos platos, y eso hay que
+ * comprobarlo: `lines` y `lineIds` son dos listas sueltas del mismo cuerpo, así
+ * que se podía mandar un café y listar los ids de los platos de los demás. Se
+ * cocinaba el café y el resto desaparecía del carrito sin haberse cocinado ni
+ * cobrado. Por eso cada id tiene que encontrar su plato entre los enviados.
+ *
  * Borra por id y no vacía el carrito entero, porque alguien de la mesa pudo
  * agregar un plato mientras el envío viajaba y ese plato todavía no se cocinó.
  */
@@ -263,12 +276,29 @@ export function clearSubmittedLines(deps: {
   events: SessionEventPublisher;
 }) {
   return async (command: ClearSubmittedCommand): Promise<Result<SessionState, SessionFailure>> => {
-    const saved = await deps.sessions.mutate(command.tenantId, command.sessionId, (state) =>
-      ok({
+    const saved = await deps.sessions.mutate(command.tenantId, command.sessionId, (state) => {
+      // Lo enviado, para ir tachando: dos platos iguales consumen dos líneas.
+      const porCocinar = command.enviados.map((uno) => ({ ...uno, usado: false }));
+
+      const borrables = command.lineIds.filter((lineId) => {
+        const linea = state.cart.lines.find((una) => una.id === lineId);
+        if (linea === undefined) return false;
+
+        const suyo = porCocinar.find(
+          (uno) =>
+            !uno.usado && uno.productId === linea.product.productId && uno.quantity === linea.quantity,
+        );
+        if (suyo === undefined) return false;
+
+        suyo.usado = true;
+        return true;
+      });
+
+      return ok({
         ...state,
-        cart: command.lineIds.reduce((cart, lineId) => removeLine(cart, lineId), state.cart),
-      }),
-    );
+        cart: borrables.reduce((cart, lineId) => removeLine(cart, lineId), state.cart),
+      });
+    });
 
     if (saved.isErr()) {
       return err(saved.error);

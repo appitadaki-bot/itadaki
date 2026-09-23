@@ -200,6 +200,11 @@ export class OrdersController {
         tenantId,
         sessionId: parsed.data.sessionId,
         lineIds: parsed.data.lineIds,
+        // Para que el vaciado sólo alcance a lo que entró a la comanda.
+        enviados: parsed.data.lines.map((una) => ({
+          productId: una.productId,
+          quantity: una.quantity,
+        })),
       });
     }
 

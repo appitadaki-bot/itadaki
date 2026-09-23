@@ -2,85 +2,90 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * La tarjeta de una mesa por cobrar.
+ * La ficha de una mesa por cobrar.
  *
  * Los cinco medios de pago vivían en la columna angosta de la derecha, junto
- * al botón de cobrar. No entraban: se desbordaban encima del nombre de la mesa
+ * al botón de cobrar. No entraban: se desbordaban encima del número de la mesa
  * y del monto, que es justo lo que el mozo necesita leer para cobrar. Con
  * "Transferencia" —la palabra más larga— el desborde tapaba el número.
  *
  * Y los botones usaban la tipografía de los títulos, que es ancha y decorativa
- * a propósito: buena para "ITADAKI" arriba de todo, mala para una palabra
- * larga dentro de un botón.
+ * a propósito: buena para el número de mesa, mala para una palabra larga
+ * dentro de un botón.
+ *
+ * El rediseño cambió los nombres de las clases, no lo que hay que cuidar.
  */
 
-const PLANTILLA = readFileSync(join(__dirname, 'floor.component.ts'), 'utf-8').replace(/\r\n/g, "\n");
-const ESTILOS = readFileSync(join(__dirname, 'floor.component.css'), 'utf-8').replace(/\r\n/g, "\n");
+const PLANTILLA = readFileSync(join(__dirname, 'floor.component.ts'), 'utf-8').replace(
+  /\r\n/g,
+  '\n',
+);
+const ESTILOS = readFileSync(join(__dirname, 'floor.component.css'), 'utf-8').replace(/\r\n/g, '\n');
+
+/** El cuerpo de una regla CSS, para mirar adentro sin traerse la que sigue. */
+function reglaDe(selector: string): string {
+  const desde = ESTILOS.indexOf(selector);
+  if (desde === -1) return '';
+  return ESTILOS.slice(desde, ESTILOS.indexOf('}', desde));
+}
 
 describe('el cobro no se mete en la columna angosta', () => {
-  it('la elección del medio está fuera de la columna lateral', () => {
+  it('la elección del medio está fuera de la columna de acciones', () => {
     // Si vuelve adentro, los cinco botones se desbordan otra vez.
-    const tarjeta = PLANTILLA.slice(
+    const ficha = PLANTILLA.slice(
       PLANTILLA.indexOf('misImpagas()'),
       PLANTILLA.indexOf('</article>', PLANTILLA.indexOf('misImpagas()')),
     );
-    const zona = tarjeta.indexOf('cobro-zona');
-    const cierreColumna = tarjeta.indexOf('</div>', tarjeta.indexOf('card-side'));
+    const panel = ficha.indexOf('class="panel"');
+    const cierreColumna = ficha.indexOf('</div>', ficha.indexOf('ficha-accion'));
 
-    expect(zona).toBeGreaterThan(cierreColumna);
+    expect(panel).toBeGreaterThan(cierreColumna);
   });
 
-  it('los datos y los botones van en su propia fila', () => {
-    expect(PLANTILLA).toContain('class="card-fila"');
-  });
-
-  it('la zona de cobro ocupa el ancho', () => {
-    expect(ESTILOS).toContain('.cobro-zona');
+  it('el panel ocupa el ancho entero de la ficha', () => {
+    // La ficha es una grilla de tres columnas; el panel las cruza.
+    expect(reglaDe('.panel {')).toContain('grid-column: 1 / -1');
   });
 });
 
-describe('los cinco medios entran', () => {
-  it('van en grilla, no en una fila', () => {
-    // Cinco en fila obligan a que cada uno sea angosto, y ahí la palabra más
-    // larga se parte o se sale.
-    const bloque = ESTILOS.slice(ESTILOS.indexOf('.cobro-row {'));
-    expect(bloque.slice(0, bloque.indexOf('}'))).toContain('grid-template-columns');
+describe('los medios entran', () => {
+  it('van en grilla que se acomoda sola, no en una fila fija', () => {
+    // En fila, cada uno queda angosto y la palabra más larga se parte o se
+    // sale. `auto-fit` los reparte según el ancho que haya.
+    const regla = reglaDe('.medios {');
+    expect(regla).toContain('grid-template-columns');
+    expect(regla).toContain('auto-fit');
   });
 
-  it('sin el ancho máximo que los apretaba', () => {
-    // Había un `max-width: 8rem` que dejaba a "Transferencia" sin lugar. Se
-    // sacó en vez de anularse después, que es lo que hacía falta.
-    const bloque = ESTILOS.slice(ESTILOS.indexOf('.cobro {'));
-    expect(bloque.slice(0, bloque.indexOf('}'))).not.toContain('max-width');
-  });
-
-  it('una palabra larga no se corta a la mitad', () => {
-    expect(ESTILOS).toContain('overflow-wrap: break-word');
+  it('sin un ancho máximo que los apriete', () => {
+    // Había un `max-width: 8rem` que dejaba a "Transferencia" sin lugar.
+    expect(reglaDe('.medio {')).not.toContain('max-width');
   });
 });
 
-describe('la tipografía de los botones', () => {
+describe('la tipografía', () => {
   it('los botones usan la de texto, no la de títulos', () => {
-    for (const sel of ['.action {', '.cobro {']) {
-      const bloque = ESTILOS.slice(ESTILOS.indexOf(sel));
-      const cuerpo = bloque.slice(0, bloque.indexOf('}'));
-
-      expect(cuerpo).not.toContain('--itadaki-font-display');
+    for (const sel of ['.boton {', '.medio {']) {
+      expect(reglaDe(sel)).not.toContain('--itadaki-font-display');
     }
   });
 
   it('el número de mesa y el monto se quedan con la de títulos', () => {
     // Es lo que el mozo busca de un vistazo: ahí lo ancho ayuda.
-    for (const sel of ['.table {', '.amount {']) {
-      const bloque = ESTILOS.slice(ESTILOS.indexOf(sel));
-      expect(bloque.slice(0, bloque.indexOf('}'))).toContain('--itadaki-font-display');
+    for (const sel of ['.ficha-mesa {', '.ficha-monto {']) {
+      expect(reglaDe(sel)).toContain('--itadaki-font-display');
     }
   });
 });
 
 describe('en el teléfono', () => {
-  it('la tarjeta se apila', () => {
-    // "Mesa 1" y "$ 9.000" al lado de dos botones no entran en 390px.
-    expect(ESTILOS).toMatch(/max-width: 560px\)[\s\S]{0,400}\.card-fila/);
+  it('la ficha se estira para que el botón quede contra el borde', () => {
+    // En pantalla angosta no sobra ancho: el botón va donde cae el pulgar.
+    // En la tablet es al revés —columna fija— o vuelve el pozo del medio.
+    expect(ESTILOS).toMatch(/max-width: 719px\)[\s\S]{0,300}\.ficha \{/);
+  });
+
+  it('los botones no bajan de 44px, que es lo que el dedo acierta', () => {
+    expect(reglaDe('.boton {')).toContain('min-height: 44px');
   });
 });
