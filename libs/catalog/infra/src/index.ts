@@ -14,6 +14,6 @@ export { detectImageType, validateUpload, MAX_UPLOAD_BYTES, type IntakeError, ty
 export { LocalImageStore, SharpImageRenderer } from './lib/local-image-store';
 export { MAX_PRODUCTS, PostgresCategoryStore, PostgresPriceAudit, PostgresProductStore } from './lib/postgres-catalog';
 export { PostgresImageStore } from './lib/postgres-images';
-export { type BlobStorage, DiskBlobStorage, S3BlobStorage } from './lib/blob-storage';
+export { type BlobStorage, DiskBlobStorage, S3BlobStorage, claveSeguraDeBlob } from './lib/blob-storage';
 export { PostgresModifierStore, type ModifierStoreError } from './lib/postgres-modifiers';
 export { PostgresBitacora, type Actor, type EntradaDeBitacora } from './lib/postgres-bitacora';

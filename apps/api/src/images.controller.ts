@@ -23,8 +23,17 @@ const editParamsSchema = z.object({
   }),
 });
 
+/**
+ * El id que elige el cliente termina concatenado en la clave del archivo
+ * (`tenant/imageId/original`), así que un `../` lo saca de la carpeta del
+ * restaurante y lo mete en la de otro. El GET de variantes ya valida el id
+ * con esta forma; la subida y la reedición lo hacían pasar con sólo un largo
+ * máximo, que es el borde por donde se escribía encima de la foto ajena.
+ */
+const ES_UN_ID_DE_IMAGEN = /^[A-Za-z0-9_-]+$/;
+
 const uploadSchema = z.object({
-  imageId: z.string().min(1).max(64),
+  imageId: z.string().min(1).max(64).regex(ES_UN_ID_DE_IMAGEN),
   alt: z.string().max(200).default(''),
   /** Base64 payload; the real type is checked against magic bytes, not this. */
   data: z.string().min(1),
@@ -41,9 +50,6 @@ const reeditSchema = z.object({
  * una de las tres extensiones que el servidor genera.
  */
 const NOMBRE_DE_VARIANTE = /^[A-Za-z0-9_-]+\.(avif|webp|jpeg)$/;
-
-/** Lo mismo para el id, que también se concatena a la ruta del archivo. */
-const ES_UN_ID = /^[A-Za-z0-9_-]+$/;
 
 @Controller('images')
 export class ImagesController {
@@ -89,6 +95,13 @@ export class ImagesController {
   @RequirePermission('menu:write')
   @Post(':id/reedit')
   async reedit(@Param('id') imageId: string, @Body() body: unknown, @TenantId() tenantId: string) {
+    // El id viene por la ruta, sin schema que lo filtre: reeditar lee y vuelve
+    // a escribir el original y las variantes con esa clave, así que un `../`
+    // acá pisa la foto de otro local igual que en la subida.
+    if (!ES_UN_ID_DE_IMAGEN.test(imageId)) {
+      throw new HttpException({ kind: 'INVALID_IMAGE_ID' }, HttpStatus.BAD_REQUEST);
+    }
+
     const parsed = reeditSchema.safeParse(body);
     if (!parsed.success) {
       throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
@@ -140,7 +153,7 @@ export class ImagesController {
      * Por eso se enumera lo que vale en vez de descartar `..`: contra una
      * lista de lo prohibido siempre queda otra forma de escribir lo mismo.
      */
-    if (!NOMBRE_DE_VARIANTE.test(file) || !ES_UN_ID.test(imageId)) {
+    if (!NOMBRE_DE_VARIANTE.test(file) || !ES_UN_ID_DE_IMAGEN.test(imageId)) {
       throw new HttpException('unsupported variant', HttpStatus.BAD_REQUEST);
     }
 

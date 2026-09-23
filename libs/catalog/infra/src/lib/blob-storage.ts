@@ -27,6 +27,33 @@ export interface BlobStorage {
   remove(key: string): Promise<void>;
 }
 
+/**
+ * Rechaza una clave que se salga del árbol de imágenes.
+ *
+ * El disco ya se defiende resolviendo la ruta contra su raíz, pero un bucket
+ * no tiene raíz que resolver: la clave viaja tal cual dentro de la URL, y
+ * `new URL` colapsa los `../` antes de firmar, así que `tenant/../otro/...`
+ * termina firmado y aceptado contra el objeto de otro restaurante. Quien arma
+ * la clave ya valida el id que recibe; esto está para que ese control no sea
+ * lo único que separe a un local del bucket entero — la misma red que el
+ * disco tiene puesta hace tiempo.
+ *
+ * Se enumeran los segmentos prohibidos en vez de descartar la ruta entera:
+ * una clave legítima es `tenant/imageId/640.webp`, tres segmentos de
+ * `[A-Za-z0-9._-]`, y cualquier otra cosa —`..`, un segmento vacío de un `//`,
+ * una barra invertida, un `%` sin decodificar— no la genera este código.
+ */
+export function claveSeguraDeBlob(key: string): void {
+  const segmentos = key.split('/');
+  const limpia =
+    segmentos.length > 0 &&
+    segmentos.every((seg) => seg !== '' && seg !== '.' && seg !== '..' && /^[A-Za-z0-9._-]+$/.test(seg));
+
+  if (!limpia) {
+    throw new Error(`clave fuera del directorio de imágenes: ${key}`);
+  }
+}
+
 /** Bytes on the local filesystem. Fine for one instance; nothing beyond that. */
 export class DiskBlobStorage implements BlobStorage {
   constructor(private readonly rootDir: string) {}
@@ -139,6 +166,7 @@ export class S3BlobStorage implements BlobStorage {
   }
 
   async put(key: string, data: Buffer): Promise<void> {
+    claveSeguraDeBlob(key);
     const response = await this.signedFetch('PUT', key, data);
     if (!response.ok) {
       throw new Error(`s3 put ${key} respondió ${response.status}`);
@@ -146,6 +174,7 @@ export class S3BlobStorage implements BlobStorage {
   }
 
   async get(key: string): Promise<Buffer> {
+    claveSeguraDeBlob(key);
     const response = await this.signedFetch('GET', key);
     if (!response.ok) {
       throw new Error(`s3 get ${key} respondió ${response.status}`);
@@ -154,6 +183,7 @@ export class S3BlobStorage implements BlobStorage {
   }
 
   async remove(key: string): Promise<void> {
+    claveSeguraDeBlob(key);
     const response = await this.signedFetch('DELETE', key);
 
     // S3 contesta 204 al borrar y 404 si no estaba; las dos son el mismo
