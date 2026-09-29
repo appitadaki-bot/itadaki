@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { validatePassword } from '@itadaki/identity/domain';
 import { hashPassword } from '@itadaki/identity/infra';
 import { Client } from 'pg';
-import { withSslWhenRemote } from './db-url';
+import { conexionPostgres } from './db-url';
 
 /**
  * Crea la cuenta con la que entramos a armarle la carta a un local nuevo.
@@ -36,7 +36,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const client = new Client({ connectionString: withSslWhenRemote(ADMIN_URL) });
+  const client = new Client(conexionPostgres(ADMIN_URL));
   await client.connect();
 
   // Row level security aplica a todo el que no sea superusuario, que en una
