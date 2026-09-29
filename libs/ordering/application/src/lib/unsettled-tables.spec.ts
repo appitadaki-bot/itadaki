@@ -199,4 +199,101 @@ describe('listUnsettledTables', () => {
     if (result.isErr()) return;
     expect(result.value[0]?.owed.amountInMinorUnits).toBe(10_000);
   });
+
+  /*
+   * El plato que se cocinó y nadie marcó como entregado.
+   *
+   * Pasa todo el tiempo: el mozo lo lleva a la mesa y se olvida de tocar
+   * "Llevé". Antes eso dejaba a la mesa afuera de esta lista, o sea invisible
+   * para el mozo y para la caja, y a las tres horas el barrido la cerraba sin
+   * cobrar. Un toque que nadie dio alcanzaba para perder la venta entera.
+   */
+  describe('cuando la mesa ya pidió la cuenta', () => {
+    it('aparece aunque quede un plato sin marcar como entregado', async () => {
+      const store = new FakeOrderStore();
+      await orderFor(store, 's1', 1, ALL_THE_WAY);
+      // Éste llegó al pase y ahí quedó.
+      await orderFor(store, 's1', 1, ['ACCEPTED', 'IN_PREP', 'READY']);
+
+      const sessions = sessionsWith([
+        { session: sessionAt('s1', 'mesa-01'), cart: { currency: 'ARS', lines: [] } },
+      ]);
+
+      const run = listUnsettledTables({ sessions, orders: store });
+
+      const sinPedirla = await run('t1');
+      expect(sinPedirla.isOk()).toBe(true);
+      if (sinPedirla.isErr()) return;
+      expect(sinPedirla.value).toHaveLength(0);
+
+      const pidiendola = await run('t1', new Set(['s1']));
+      expect(pidiendola.isOk()).toBe(true);
+      if (pidiendola.isErr()) return;
+      expect(pidiendola.value).toHaveLength(1);
+    });
+
+    it('y cobra ese plato, que ya está en la mesa', async () => {
+      const store = new FakeOrderStore();
+      await orderFor(store, 's1', 1, ALL_THE_WAY);
+      await orderFor(store, 's1', 1, ['ACCEPTED', 'IN_PREP', 'READY']);
+
+      const sessions = sessionsWith([
+        { session: sessionAt('s1', 'mesa-01'), cart: { currency: 'ARS', lines: [] } },
+      ]);
+
+      const run = listUnsettledTables({ sessions, orders: store });
+      const soloEntregado = await run('t1', new Set());
+      const conElDelPase = await run('t1', new Set(['s1']));
+
+      expect(soloEntregado.isOk() && conElDelPase.isOk()).toBe(true);
+      if (soloEntregado.isErr() || conElDelPase.isErr()) return;
+
+      // Sin pedir la cuenta no aparece; lo que se compara es el total contra
+      // el de un solo plato entregado.
+      const unoSolo = new FakeOrderStore();
+      await orderFor(unoSolo, 's2', 1, ALL_THE_WAY);
+      const base = await listUnsettledTables({
+        sessions: sessionsWith([
+          { session: sessionAt('s2', 'mesa-02'), cart: { currency: 'ARS', lines: [] } },
+        ]),
+        orders: unoSolo,
+      })('t1');
+      if (base.isErr()) return;
+
+      const conDos = conElDelPase.value[0]?.owed.amountInMinorUnits ?? 0;
+      const conUno = base.value[0]?.owed.amountInMinorUnits ?? 0;
+      expect(conDos).toBe(conUno * 2);
+    });
+
+    it('pero no cobra lo que sigue en la cocina', async () => {
+      const store = new FakeOrderStore();
+      await orderFor(store, 's1', 1, ALL_THE_WAY);
+      // Todavía cocinándose: eso no llegó a la mesa y no se cobra.
+      await orderFor(store, 's1', 1, ['ACCEPTED', 'IN_PREP']);
+
+      const sessions = sessionsWith([
+        { session: sessionAt('s1', 'mesa-01'), cart: { currency: 'ARS', lines: [] } },
+      ]);
+
+      const conCuenta = await listUnsettledTables({ sessions, orders: store })(
+        't1',
+        new Set(['s1']),
+      );
+      if (conCuenta.isErr()) return;
+
+      const unoSolo = new FakeOrderStore();
+      await orderFor(unoSolo, 's2', 1, ALL_THE_WAY);
+      const base = await listUnsettledTables({
+        sessions: sessionsWith([
+          { session: sessionAt('s2', 'mesa-02'), cart: { currency: 'ARS', lines: [] } },
+        ]),
+        orders: unoSolo,
+      })('t1');
+      if (base.isErr()) return;
+
+      expect(conCuenta.value[0]?.owed.amountInMinorUnits).toBe(
+        base.value[0]?.owed.amountInMinorUnits,
+      );
+    });
+  });
 });

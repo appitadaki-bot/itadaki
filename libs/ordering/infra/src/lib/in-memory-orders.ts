@@ -25,6 +25,18 @@ export class InMemoryOrderStore implements OrderReader, OrderWriter {
     return found === undefined ? err({ kind: 'NOT_FOUND', id: orderId }) : ok(found);
   }
 
+  /**
+   * Los envíos que no terminaron.
+   *
+   * El adaptador de Postgres además descarta los de una mesa ya cerrada —un
+   * plato en "listo" de una mesa que pagó no le sirve a nadie— y acá no se
+   * puede: este store no conoce las sesiones, y dárselas sólo para esto lo
+   * ataría a otro agregado.
+   *
+   * La diferencia sólo se nota con `USE_POSTGRES=false`, que es una demo sin
+   * base. Si alguna vez hay que igualarlos, el camino es que la sesión avise
+   * al cerrar, no que este store se ponga a mirar mesas.
+   */
   async listActive(tenantId: string): Promise<Result<readonly Order[], OrderRepositoryError>> {
     return ok([...this.tenantRows(tenantId).values()].filter((order) => !isTerminal(order.status)));
   }
