@@ -40,9 +40,23 @@ interface RenderedQr {
     <div class="bar no-print">
       <div class="bar-text">
         <strong>{{ rendered().length }} mesa{{ rendered().length === 1 ? '' : 's' }}</strong>
+        <!--
+          Decía que los códigos vencían a las ocho horas y se renovaban al
+          abrir la pantalla. Ninguna de las dos cosas es cierta: el token del
+          QR impreso se firma sin vencimiento, justamente porque el papel
+          pegado en la mesa tiene que seguir andando el mes que viene y nadie
+          puede "volver a escanear" un sticker vencido.
+
+          El aviso no era inofensivo: le decía al dueño que tenía que
+          reimprimir todo cada día.
+
+          Un QR sí se puede invalidar, rotando el secreto de esa mesa, pero eso
+          obliga a reimprimir ese sticker — así que no se nombra acá, donde lo
+          que hace falta decir es que el papel dura.
+        -->
         <span class="hint">
-          Imprimí, recortá y pegá una en cada mesa. Los códigos vencen a las 8 horas
-          y se renuevan al volver a abrir esta pantalla.
+          Imprimí, recortá y pegá una en cada mesa. No vencen: se pegan una vez
+          y siguen andando.
         </span>
       </div>
       <div class="bar-actions">
