@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { validatePassword } from '@itadaki/identity/domain';
 import { hashPassword } from '@itadaki/identity/infra';
 import { Client } from 'pg';
-import { withSslWhenRemote } from './db-url';
+import { conexionPostgres } from './db-url';
 
 /**
  * Crea la cuenta con la que entramos a armarle la carta a un local nuevo.
@@ -22,6 +22,26 @@ const ADMIN_URL =
 
 const TENANT = 'soporte';
 
+/**
+ * A qué base apunta esto, sin la contraseña.
+ *
+ * `DATABASE_ADMIN_URL` sin definir manda la cuenta a la base local y el script
+ * la crea igual: quien creyó estar escribiendo en producción se entera recién
+ * cuando no puede entrar.
+ */
+function aDondeApunta(url: string): string {
+  try {
+    const { hostname, port, pathname } = new URL(url);
+    return `${hostname}${port === '' ? '' : `:${port}`}${pathname}`;
+  } catch {
+    return '(no se pudo leer DATABASE_ADMIN_URL)';
+  }
+}
+
+function esLocal(url: string): boolean {
+  return url.includes('localhost') || url.includes('127.0.0.1');
+}
+
 async function main(): Promise<void> {
   const [email, password] = process.argv.slice(2);
 
@@ -36,7 +56,18 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const client = new Client({ connectionString: withSslWhenRemote(ADMIN_URL) });
+  /*
+   * Con el certificado del proveedor, si lo hay.
+   *
+   * Usaba `withSslWhenRemote`, que arma el TLS pero ignora DATABASE_CA_CERT:
+   * contra una base que firma con su propia CA —Supabase— fallaba con
+   * "self-signed certificate in certificate chain" por más que el certificado
+   * estuviera en el entorno. Las otras tres herramientas de línea de comandos
+   * ya usaban `conexionPostgres`; ésta se quedó atrás.
+   */
+  console.log(`base: ${aDondeApunta(ADMIN_URL)}${esLocal(ADMIN_URL) ? '  (LOCAL)' : ''}`);
+
+  const client = new Client(conexionPostgres(ADMIN_URL));
   await client.connect();
 
   // Row level security aplica a todo el que no sea superusuario, que en una
