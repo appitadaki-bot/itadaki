@@ -64,8 +64,39 @@ export const USING_DEV_SECRET = AUTH_SECRET === DEV_SECRET;
 
 export const SESSION_HOURS = 12;
 
-/** Where a reset link points; the admin panel owns that screen. */
-export const ADMIN_APP_URL = urlFromEnv('ADMIN_APP_URL', 'http://localhost:4400');
+/**
+ * A dónde apuntan los links que viajan por mail: verificar la cuenta y
+ * recuperar la contraseña. Los dos abren en el panel.
+ *
+ * En un servidor tiene que estar declarada. Sin ella caía en localhost:4400 —
+ * la máquina de quien recibe el correo, no el panel— así que el mail llegaba,
+ * se tocaba el botón y no abría nada. Quien se quedó afuera de su restaurante
+ * no tenía cómo volver a entrar, y desde el lado del servidor todo parecía
+ * haber funcionado: el correo salió.
+ *
+ * Romper el arranque es preferible a mandar links muertos, que es lo mismo
+ * que hace el mailer cuando le falta su clave.
+ */
+function panelParaLosMails(): string {
+  const declarada = urlFromEnv('ADMIN_APP_URL', 'http://localhost:4400');
+
+  const base = process.env['DATABASE_URL'] ?? '';
+  const enUnServidor =
+    process.env['NODE_ENV'] === 'production' ||
+    (base.includes('://') && !base.includes('localhost'));
+
+  if (enUnServidor && declarada.includes('localhost')) {
+    throw new Error(
+      'ADMIN_APP_URL es obligatoria en producción: sin ella el link para ' +
+        'verificar la cuenta y el de recuperar la contraseña salen apuntando ' +
+        'a localhost, y no le abren a nadie',
+    );
+  }
+
+  return declarada;
+}
+
+export const ADMIN_APP_URL = panelParaLosMails();
 
 /** Tenant assumed for an anonymous diner with no table token yet. */
 export const DEFAULT_TENANT = process.env['DEFAULT_TENANT'] ?? 'itadaki';
