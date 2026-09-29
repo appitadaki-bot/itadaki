@@ -293,7 +293,17 @@ export class FloorStore {
         tableId: string;
         /** Todas las sesiones de esa mesa, para poder liberarla entera. */
         sessionIds: string[];
-        items: Array<{ name: string; quantity: number; status: string }>;
+        /*
+         * Con su envío y su id: sin eso no se puede cancelar un plato desde
+         * acá, que es donde el mozo se entera de que la cocina no lo tiene.
+         */
+        items: Array<{
+          id: string;
+          orderId: string;
+          name: string;
+          quantity: number;
+          status: string;
+        }>;
       }
     >();
 
@@ -304,7 +314,9 @@ export class FloorStore {
       if (!actual.sessionIds.includes(ticket.sessionId)) {
         actual.sessionIds.push(ticket.sessionId);
       }
-      actual.items.push(...ticket.items);
+      actual.items.push(
+        ...ticket.items.map((item) => ({ ...item, orderId: ticket.id })),
+      );
       mesas.set(tableId, actual);
     }
 
@@ -386,6 +398,35 @@ export class FloorStore {
    * anotado en una servilleta que se llevaron. Liberar la mesa ya lo renueva
    * solo, así que esto es para el medio del servicio.
    */
+  /**
+   * Saca un plato que la cocina no va a hacer.
+   *
+   * Se acabó el pescado, se rompió algo. Lo toca el mozo o la cajera, que son
+   * quienes se enteran: la cocina tiene las manos en otra cosa y no está para
+   * la pantalla.
+   *
+   * Sólo mientras no haya salido. Un plato ya listo o entregado no se cancela
+   * —eso se saca de la cuenta, que es otra cosa— y el servidor lo rechaza.
+   */
+  async cancelarPlato(orderId: string, itemId: string): Promise<void> {
+    this.actionError.set(null);
+    try {
+      const response = await fetch(`${API}/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { ...this.auth.headers(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemId, next: 'CANCELLED' }),
+      });
+      if (this.auth.expired(response)) return;
+      if (!response.ok) {
+        this.actionError.set('No se pudo sacar el plato. Probá de nuevo.');
+        return;
+      }
+      await this.refresh();
+    } catch {
+      this.actionError.set('No se pudo sacar el plato. Probá de nuevo.');
+    }
+  }
+
   async rotateCode(tableId: string): Promise<void> {
     const response = await fetch(`${API}/sessions/codes/${tableId}/rotate`, {
       method: 'POST',

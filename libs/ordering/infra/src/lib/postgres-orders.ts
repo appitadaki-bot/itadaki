@@ -142,13 +142,27 @@ export class PostgresOrderStore implements OrderReader, OrderWriter {
     }
   }
 
+  /**
+   * Lo que la cocina y el salón tienen delante ahora.
+   *
+   * Filtraba sólo por el estado del envío, así que un plato que quedó en
+   * "listo" porque nadie tocó "Llevé" seguía en el pase del mozo después de
+   * que la mesa pagó y se fue. Quedaba ahí para siempre: ya no había a quién
+   * llevárselo, y el mozo tenía que aprender a ignorar filas muertas —que es
+   * como se empieza a ignorar también las vivas.
+   *
+   * Una mesa cerrada no tiene nada pendiente, cualquiera sea el estado de sus
+   * platos. Cobrar limpia el tablero de esa mesa entera.
+   */
   async listActive(tenantId: string): Promise<Result<readonly Order[], OrderRepositoryError>> {
     try {
       const rows = await this.db.withTenant(tenantId, async (client) => {
         const result = await client.query<OrderRow>(
-          `SELECT * FROM orders
-            WHERE status NOT IN ('DELIVERED','CANCELLED')
-            ORDER BY created_at
+          `SELECT o.* FROM orders o
+             JOIN table_sessions s ON s.id = o.session_id
+            WHERE o.status NOT IN ('DELIVERED','CANCELLED')
+              AND s.status <> 'CLOSED'
+            ORDER BY o.created_at
             LIMIT ${MAX_ACTIVE_ORDERS}`,
         );
         return result.rows;

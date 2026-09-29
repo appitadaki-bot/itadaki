@@ -36,6 +36,7 @@ import {
   RequirePermission,
   Scope,
   TableScoped,
+  TenantId,
 } from './auth';
 import { database } from './database';
 import { descuentoDelLocal } from './descuento-del-local';
@@ -247,6 +248,81 @@ export class BillsController {
       throw new HttpException(found.error, HttpStatus.NOT_FOUND);
     }
     return this.describe(found.value, (display as CurrencyCode) ?? 'ARS');
+  }
+
+  /**
+   * Saca un plato de la cuenta.
+   *
+   * Para el que nunca llegó a la mesa y se descubre al pagar. Cancelarlo no
+   * alcanza: un plato que salió de la cocina ya no puede volver atrás —la
+   * máquina de estados no lo permite, y con razón, porque el estado dice lo
+   * que la cocina hizo y eso no se reescribe. Lo que cambia es qué se cobra.
+   *
+   * Lo hace la caja, sola. Es quien tiene al cliente adelante reclamando, y
+   * pedirle confirmación a otra persona traba el mostrador justo cuando no se
+   * puede esperar. Ya puede liberar una mesa sin cobrar nada, que es más.
+   *
+   * Sólo mientras la cuenta esté abierta: una vez cobrada, corregirla es una
+   * devolución y eso no pasa por acá.
+   */
+  @RequirePermission('bills:close')
+  @Post(':sessionId/lines/:lineId/quitar')
+  async quitarDeLaCuenta(
+    @Param('sessionId') sessionId: string,
+    @Param('lineId') lineId: string,
+    @TenantId() tenantId: string,
+    @Auth() quien: AuthContext | undefined,
+  ) {
+    const found = await this.bills.store.findBySession(tenantId, sessionId);
+    if (found.isErr()) {
+      throw new HttpException(found.error, HttpStatus.NOT_FOUND);
+    }
+
+    const bill = found.value;
+    if (isSettled(bill)) {
+      // Ya se cobró: lo que corresponde es una devolución, no editar el
+      // documento que el cliente se llevó.
+      throw new HttpException({ kind: 'CUENTA_YA_COBRADA' }, HttpStatus.CONFLICT);
+    }
+
+    const linea = bill.lines.find((one) => one.id === lineId);
+    if (linea === undefined) {
+      throw new HttpException({ kind: 'NOT_FOUND', id: lineId }, HttpStatus.NOT_FOUND);
+    }
+
+    const sinEsePlato = {
+      ...bill,
+      lines: bill.lines.filter((one) => one.id !== lineId),
+    };
+
+    const saved = await this.bills.store.save(tenantId, sinEsePlato);
+    if (saved.isErr()) {
+      throw new HttpException(saved.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    /*
+     * Queda registrado quién lo sacó.
+     *
+     * No por desconfiar de la caja: si un plato se saca seguido, eso es
+     * información de que algo pasa en el pase, y sin registro nadie se entera
+     * nunca. Se guarda en negativo porque es plata que sale de la cuenta.
+     */
+    if (quien !== undefined) {
+      const state = await this.sessions.store.findById(tenantId, sessionId);
+      void this.bills.cierres?.registrar(tenantId, {
+        sessionId,
+        // Si la sesión no se puede leer igual se registra: el dato que importa
+        // es quién sacó el plato y cuánto, y la mesa se puede reconstruir
+        // desde la sesión.
+        tableId: state.isOk() ? state.value.session.tableId : '',
+        queHizo: 'QUITO_PLATO',
+        quien: { id: quien.userId, nombre: quien.displayName, rol: quien.role },
+        montoMinor: -(linea.unitTotal.amountInMinorUnits * linea.quantity),
+        medio: null,
+      });
+    }
+
+    return this.describe(saved.value, 'ARS');
   }
 
   /**
