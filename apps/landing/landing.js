@@ -158,7 +158,17 @@
 
   for (const boton of document.querySelectorAll('[data-abrir-registro]')) {
     boton.addEventListener('click', () => {
-      formRegistro?.reset();
+      /*
+       * Sin `reset()`: lo que la persona ya escribió se queda.
+       *
+       * Se borraba todo cada vez que se abría el modal, y como además se
+       * cerraba solo al seleccionar una palabra, alcanzaba un clic mal puesto
+       * para perder el formulario entero y tener que escribirlo de nuevo. Casi
+       * nadie lo escribe dos veces.
+       *
+       * El formulario se limpia al enviarse, que es cuando esos datos ya no
+       * hacen falta.
+       */
       if (errorCorreo) errorCorreo.hidden = true;
       modalRegistro?.showModal();
       document.getElementById('campoNombre')?.focus();
@@ -167,9 +177,26 @@
 
   botonCerrarModal?.addEventListener('click', () => modalRegistro?.close());
 
-  // Cerrar tocando el fondo oscuro, no el formulario en sí.
+  /*
+   * Cerrar tocando el fondo oscuro, no el formulario en sí.
+   *
+   * Mirar sólo dónde terminó el clic no alcanza: al seleccionar una palabra
+   * se suelta el botón donde quedó el puntero, y si eso cae sobre el borde el
+   * navegador reporta el `click` en el `<dialog>` —que es el fondo— y el
+   * formulario se cerraba en medio de escribirlo.
+   *
+   * Se mira dónde EMPEZÓ el gesto. Arrastrar desde adentro nunca cierra, que
+   * es lo que hace cualquiera al seleccionar texto para corregirlo.
+   */
+  let empezoEnElFondo = false;
+
+  modalRegistro?.addEventListener('mousedown', (evento) => {
+    empezoEnElFondo = evento.target === modalRegistro;
+  });
+
   modalRegistro?.addEventListener('click', (evento) => {
-    if (evento.target === modalRegistro) modalRegistro.close();
+    if (empezoEnElFondo && evento.target === modalRegistro) modalRegistro.close();
+    empezoEnElFondo = false;
   });
 
   /*
