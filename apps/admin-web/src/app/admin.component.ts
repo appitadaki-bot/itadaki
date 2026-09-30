@@ -1349,10 +1349,11 @@ const ROLE_NAMES: Record<string, string> = {
 
           <div class="sheet-actions">
           <button type="submit" class="create">Guardar cambios</button>
-          <!-- Apagado hasta que se lo busca: sacar un plato es raro al lado de
-               corregirle el precio, que es lo de todos los días. -->
+          <!-- Apagado hasta que se lo busca: eliminar un plato es raro al lado
+               de corregirle el precio, que es lo de todos los días. Apagado,
+               pero con borde: sin él no se leía como botón. -->
           <button type="button" class="borrar" (click)="borrarPlato(dish)">
-          Sacar de la carta
+          Eliminar de la carta
           </button>
           </div>
           </form>
@@ -2172,11 +2173,11 @@ export class AdminComponent {
     this.editError.set(null);
 
     const ok = await this.preguntar({
-      titulo: `Borrar ${dish.name}`,
+      titulo: `Eliminar ${dish.name}`,
       detalle:
         'Se va con su foto y sus opciones. Si sólo se te acabó, marcalo sin stock ' +
         'y desaparece de la carta sin perder nada.',
-      accion: 'Borrar el plato',
+      accion: 'Eliminar el plato',
       peligro: true,
     });
     if (!ok) return;
