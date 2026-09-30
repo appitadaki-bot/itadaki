@@ -61,6 +61,33 @@ describe('el panel sube el original', () => {
   });
 });
 
+describe('el editor abre con la foto que el plato ya tiene', () => {
+  it('la busca en el plato y no sólo en la última subida', () => {
+    // Salía sólo de `result()`, que está vacío al abrir: tocar "Editar foto"
+    // en un plato con foto mostraba el recuadro de "elegí una foto", y el
+    // dueño la volvía a subir creyendo que no había ninguna.
+    const metodo = PANEL.slice(PANEL.indexOf('protected currentPhoto()'));
+    const cuerpo = metodo.slice(0, metodo.indexOf('\n  }'));
+
+    expect(cuerpo).toContain('this.products().find');
+    expect(cuerpo).toContain('imageSet');
+  });
+
+  it('le pone la marca de versión a la guardada', () => {
+    // Las variantes se sirven con un año de caché: sin esto, después de
+    // cambiar la foto el editor sigue abriendo con la vieja.
+    const metodo = PANEL.slice(PANEL.indexOf('protected currentPhoto()'));
+    expect(metodo.slice(0, metodo.indexOf('\n  }'))).toContain('v=${version}');
+  });
+
+  it('no repite la foto en una vista previa aparte', () => {
+    // Abajo del editor aparecía otra copia con "12 variantes · AVIF, WebP y
+    // JPEG en 4 tamaños": información de sistema, no del restaurante.
+    expect(PANEL).not.toContain('variantes · AVIF, WebP y JPEG');
+    expect(PANEL).not.toContain('[src]="best(set)"');
+  });
+});
+
 describe('la URL cambia cuando la foto cambia', () => {
   it('las variantes llevan una marca de versión', () => {
     // Sin esto el navegador sirve la vieja para siempre: un año de caché,

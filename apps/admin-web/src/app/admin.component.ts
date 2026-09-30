@@ -70,6 +70,19 @@ interface MenuProduct {
   imageSet: { variants: Array<{ url: string; width: number; format: string }>; lqip: string } | null;
 }
 
+/**
+ * La variante más grande que sirve para mirar la foto en pantalla.
+ *
+ * 600 y no 1200: el editor la muestra en un cuadrado de 380 píxeles, así que
+ * bajar la grande sería traer cuatro veces más bytes para verla igual.
+ */
+function elMasGrande(
+  variants: ReadonlyArray<{ url: string; width: number; format: string }>,
+): string | null {
+  const webp = variants.filter((variant) => variant.format === 'webp');
+  return webp.find((variant) => variant.width === 600)?.url ?? webp[0]?.url ?? null;
+}
+
 interface MenuCategory {
   id: string;
   name: string;
@@ -1264,12 +1277,6 @@ const ROLE_NAMES: Record<string, string> = {
             <p class="status" [class.error]="state.startsWith('error')">{{ state }}</p>
           }
 
-          @if (result(); as set) {
-            <img class="preview" [src]="best(set)" alt="" width="300" height="300" />
-            <p class="muted">
-              {{ set.variants.length }} variantes · AVIF, WebP y JPEG en 4 tamaños
-            </p>
-          }
         </div>
       </div>
     }
@@ -2635,13 +2642,32 @@ export class AdminComponent {
     }
   }
 
-  /** Largest webp of the selected dish, used as the editor's opening image. */
+  /**
+   * La foto con la que abre el editor.
+   *
+   * Salía sólo de `result()` —lo que devuelve una subida recién hecha— así que
+   * al tocar "Editar foto" en un plato que ya tenía una, el editor abría con
+   * el recuadro punteado de "elegí una foto": parecía que no había ninguna
+   * cargada y el dueño la volvía a subir.
+   *
+   * La del plato es la que está guardada; la de `result()` gana porque es más
+   * nueva que la lista que se leyó al entrar.
+   */
   protected currentPhoto(): string | null {
-    const set = this.result();
-    if (set === null) return null;
+    const recien = this.result();
+    if (recien !== null) {
+      return elMasGrande(recien.variants);
+    }
 
-    const webp = set.variants.filter((variant) => variant.format === 'webp');
-    return webp.find((variant) => variant.width === 600)?.url ?? webp[0]?.url ?? null;
+    const plato = this.products().find((product) => product.id === this.selected());
+    const guardada = elMasGrande(plato?.imageSet?.variants ?? []);
+    if (guardada === null) return null;
+
+    // Las variantes se sirven con un año de caché: sin la marca de versión, el
+    // navegador que ya vio la foto vieja sigue mostrándola después de cambiarla.
+    const version = this.photoVersion();
+    if (version === 0) return guardada;
+    return `${guardada}${guardada.includes('?') ? '&' : '?'}v=${version}`;
   }
 
   protected countIn(categoryId: string): number {
@@ -3349,10 +3375,6 @@ export class AdminComponent {
       currency: price.currency,
       maximumFractionDigits: 0,
     }).format(price.amountInMinorUnits / 100);
-  }
-
-  protected best(set: { variants: Array<{ url: string; width: number; format: string }> }): string {
-    return set.variants.find((v) => v.width === 300 && v.format === 'webp')?.url ?? '';
   }
 
   /**
