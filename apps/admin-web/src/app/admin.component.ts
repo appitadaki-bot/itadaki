@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { ImageEditorComponent } from '@itadaki/shared/ui-image-editor';
+import { type Encuadre, esLaFotoEntera } from '@itadaki/catalog/domain';
 import { moverEnLista } from './mover-en-lista';
 import { AuthStore, LoginComponent } from '@itadaki/shared/ui-auth';
 import { DecimalPipe } from '@angular/common';
@@ -68,6 +69,19 @@ interface MenuProduct {
   /** Lo que leen los filtros de la carta: vegano, sin gluten, etc. */
   diets: readonly string[];
   imageSet: { variants: Array<{ url: string; width: number; format: string }>; lqip: string } | null;
+}
+
+/**
+ * La variante más grande que sirve para mirar la foto en pantalla.
+ *
+ * 600 y no 1200: el editor la muestra en un cuadrado de 380 píxeles, así que
+ * bajar la grande sería traer cuatro veces más bytes para verla igual.
+ */
+function elMasGrande(
+  variants: ReadonlyArray<{ url: string; width: number; format: string }>,
+): string | null {
+  const webp = variants.filter((variant) => variant.format === 'webp');
+  return webp.find((variant) => variant.width === 600)?.url ?? webp[0]?.url ?? null;
 }
 
 interface MenuCategory {
@@ -1264,12 +1278,6 @@ const ROLE_NAMES: Record<string, string> = {
             <p class="status" [class.error]="state.startsWith('error')">{{ state }}</p>
           }
 
-          @if (result(); as set) {
-            <img class="preview" [src]="best(set)" alt="" width="300" height="300" />
-            <p class="muted">
-              {{ set.variants.length }} variantes · AVIF, WebP y JPEG en 4 tamaños
-            </p>
-          }
         </div>
       </div>
     }
@@ -2635,13 +2643,32 @@ export class AdminComponent {
     }
   }
 
-  /** Largest webp of the selected dish, used as the editor's opening image. */
+  /**
+   * La foto con la que abre el editor.
+   *
+   * Salía sólo de `result()` —lo que devuelve una subida recién hecha— así que
+   * al tocar "Editar foto" en un plato que ya tenía una, el editor abría con
+   * el recuadro punteado de "elegí una foto": parecía que no había ninguna
+   * cargada y el dueño la volvía a subir.
+   *
+   * La del plato es la que está guardada; la de `result()` gana porque es más
+   * nueva que la lista que se leyó al entrar.
+   */
   protected currentPhoto(): string | null {
-    const set = this.result();
-    if (set === null) return null;
+    const recien = this.result();
+    if (recien !== null) {
+      return elMasGrande(recien.variants);
+    }
 
-    const webp = set.variants.filter((variant) => variant.format === 'webp');
-    return webp.find((variant) => variant.width === 600)?.url ?? webp[0]?.url ?? null;
+    const plato = this.products().find((product) => product.id === this.selected());
+    const guardada = elMasGrande(plato?.imageSet?.variants ?? []);
+    if (guardada === null) return null;
+
+    // Las variantes se sirven con un año de caché: sin la marca de versión, el
+    // navegador que ya vio la foto vieja sigue mostrándola después de cambiarla.
+    const version = this.photoVersion();
+    if (version === 0) return guardada;
+    return `${guardada}${guardada.includes('?') ? '&' : '?'}v=${version}`;
   }
 
   protected countIn(categoryId: string): number {
@@ -3351,10 +3378,6 @@ export class AdminComponent {
     }).format(price.amountInMinorUnits / 100);
   }
 
-  protected best(set: { variants: Array<{ url: string; width: number; format: string }> }): string {
-    return set.variants.find((v) => v.width === 300 && v.format === 'webp')?.url ?? '';
-  }
-
   /**
    * Por qué no entró la foto, con lo que el servidor haya dicho.
    *
@@ -3381,6 +3404,8 @@ export class AdminComponent {
       }
       case 'EMPTY_FILE':
         return 'ese archivo está vacío';
+      case 'ENCUADRE_INVALIDO':
+        return 'el encuadre quedó fuera de la foto — probá con "Toda la foto"';
       case 'SIN_CONEXION':
         // El servidor se duerme a los quince minutos sin tráfico y tarda
         // cerca de un minuto en despertar: el segundo intento suele entrar.
@@ -3392,8 +3417,8 @@ export class AdminComponent {
     }
   }
 
-  /** Manda el archivo original, nunca un canvas rasterizado. */
-  protected async upload(event: { file: File }): Promise<void> {
+  /** Manda el archivo original y el encuadre, nunca un canvas rasterizado. */
+  protected async upload(event: { file: File; encuadre: Encuadre }): Promise<void> {
     const productId = this.selected();
     if (productId === null) return;
 
@@ -3406,7 +3431,7 @@ export class AdminComponent {
     try {
       const alt = this.products().find((p) => p.id === productId)?.name ?? '';
 
-      const response = await this.subirElOriginal(productId, alt, event.file);
+      const response = await this.subirElOriginal(productId, alt, event.file, event.encuadre);
 
       if (!response.ok) {
         const detail = (await response.json().catch(() => null)) as {
@@ -3458,7 +3483,12 @@ export class AdminComponent {
    * pedirle la foto de nuevo, y una copia ya procesada por el navegador
    * llegaría con menos calidad de la que se subió.
    */
-  private async subirElOriginal(productId: string, alt: string, file: File): Promise<Response> {
+  private async subirElOriginal(
+    productId: string,
+    alt: string,
+    file: File,
+    encuadre: Encuadre,
+  ): Promise<Response> {
     const buffer = await file.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     let binary = '';
@@ -3467,7 +3497,14 @@ export class AdminComponent {
     return this.auth.apiFetch(`${API}/images`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
-      body: JSON.stringify({ imageId: productId, alt, data: btoa(binary) }),
+      // El encuadre entero no se manda: es lo que el servidor hace sin que
+      // nadie le diga nada, y mandarlo sería repetirlo en cada subida.
+      body: JSON.stringify({
+        imageId: productId,
+        alt,
+        data: btoa(binary),
+        ...(esLaFotoEntera(encuadre) ? {} : { encuadre }),
+      }),
     });
   }
 

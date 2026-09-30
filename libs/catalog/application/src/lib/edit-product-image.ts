@@ -1,14 +1,19 @@
+import { type Encuadre, ENCUADRE_ENTERO, validarEncuadre } from '@itadaki/catalog/domain';
 import { type Result, err, ok } from '@itadaki/shared/domain';
 import { type ImageReader, type ImageRenderer, type ImageWriter, type StoredImage } from './image-ports';
 import { type RepositoryError } from './ports';
 
-export type ImageEditFailure = RepositoryError;
+export type ImageEditFailure =
+  | RepositoryError
+  | { readonly kind: 'ENCUADRE_INVALIDO'; readonly campo: string };
 
 export interface UploadImageCommand {
   readonly tenantId: string;
   readonly imageId: string;
   readonly original: Buffer;
   readonly alt: string;
+  /** Qué parte de la foto entra en el cuadrado. Sin esto, entera. */
+  readonly encuadre?: Encuadre;
 }
 
 /** First upload: stores the original, renders the set, records both. */
@@ -17,6 +22,11 @@ export function uploadImage(deps: {
   renderer: ImageRenderer;
 }) {
   return async (command: UploadImageCommand): Promise<Result<StoredImage, ImageEditFailure>> => {
+    const encuadre = validarEncuadre(command.encuadre ?? ENCUADRE_ENTERO);
+    if (encuadre.isErr()) {
+      return err({ kind: 'ENCUADRE_INVALIDO', campo: encuadre.error.campo });
+    }
+
     /*
      * Se guarda achicado: el original existe para volver a renderizar, no
      * para servirse, y los doce megapíxeles de un teléfono no los descarga
@@ -36,7 +46,12 @@ export function uploadImage(deps: {
       return err(stored.error);
     }
 
-    const rendered = await deps.renderer.render(paraGuardar, command.imageId, command.tenantId);
+    const rendered = await deps.renderer.render(
+      paraGuardar,
+      command.imageId,
+      command.tenantId,
+      encuadre.value,
+    );
     if (rendered.isErr()) {
       return err(rendered.error);
     }
@@ -57,6 +72,7 @@ export interface ReeditImageCommand {
   readonly tenantId: string;
   readonly imageId: string;
   readonly alt?: string;
+  readonly encuadre?: Encuadre;
 }
 
 /**
@@ -70,6 +86,11 @@ export function reeditImage(deps: {
   renderer: ImageRenderer;
 }) {
   return async (command: ReeditImageCommand): Promise<Result<StoredImage, ImageEditFailure>> => {
+    const encuadre = validarEncuadre(command.encuadre ?? ENCUADRE_ENTERO);
+    if (encuadre.isErr()) {
+      return err({ kind: 'ENCUADRE_INVALIDO', campo: encuadre.error.campo });
+    }
+
     const existing = await deps.images.findById(command.tenantId, command.imageId);
     if (existing.isErr()) {
       return err(existing.error);
@@ -84,6 +105,7 @@ export function reeditImage(deps: {
       original.value,
       command.imageId,
       command.tenantId,
+      encuadre.value,
     );
     if (rendered.isErr()) {
       return err(rendered.error);

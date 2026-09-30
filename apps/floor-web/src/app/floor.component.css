@@ -1015,7 +1015,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  margin-right: 0.6rem;
+  /* El plato y su botón no se separan al cortar el renglón: "Sacar" solo, al
+     principio de una línea, no dice de qué plato habla. */
   white-space: nowrap;
 }
 
@@ -1234,7 +1235,9 @@
 
 .fila {
   display: flex;
-  align-items: center;
+  /* Arriba y no al medio: con el pedido en dos renglones, el número de mesa y
+     "Liberar" quedaban flotando en el centro de una fila alta. */
+  align-items: flex-start;
   gap: 0.6rem;
   padding: 0.5rem 0.9rem;
   border-bottom: 1px solid var(--linea-suave);
@@ -1259,14 +1262,23 @@
   flex-shrink: 0;
 }
 
+/*
+ * Lo que la mesa tiene en cocina, entero.
+ *
+ * Se cortaba en una línea con puntos suspensivos: con tres platos ya no se
+ * veía el tercero, y los puntitos no se podían tocar — no había forma de ver
+ * el resto del pedido ni de sacar un plato que quedaba escondido. Se acomoda
+ * en varias líneas, que es lo que hay lugar de sobra para hacer.
+ */
 .fila-texto {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
   font-size: 0.82rem;
   color: var(--texto-medio);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /*

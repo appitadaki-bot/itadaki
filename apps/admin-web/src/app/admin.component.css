@@ -416,17 +416,6 @@
   background: var(--itadaki-accent);
 }
 
-.preview {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: var(--itadaki-radius-card);
-  display: block;
-  margin-bottom: 0.85rem;
-  background: var(--itadaki-surface-sunken);
-}
-
 .details {
   margin-top: 1rem;
   font-size: 0.8rem;

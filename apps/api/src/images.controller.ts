@@ -24,15 +24,29 @@ import { ImagesService } from './images.service';
  */
 const ES_UN_ID_DE_IMAGEN = /^[A-Za-z0-9_-]+$/;
 
+/**
+ * Qué parte de la foto entra en el cuadrado.
+ *
+ * Opcional: sin esto entra entera, que es como abre el editor y lo que pasa
+ * cuando el dueño no toca nada.
+ */
+const encuadreSchema = z.object({
+  cx: z.number().min(0).max(1),
+  cy: z.number().min(0).max(1),
+  lado: z.number().gt(0).max(1),
+});
+
 const uploadSchema = z.object({
   imageId: z.string().min(1).max(64).regex(ES_UN_ID_DE_IMAGEN),
   alt: z.string().max(200).default(''),
   /** Base64 payload; the real type is checked against magic bytes, not this. */
   data: z.string().min(1),
+  encuadre: encuadreSchema.optional(),
 });
 
 const reeditSchema = z.object({
   alt: z.string().max(200).optional(),
+  encuadre: encuadreSchema.optional(),
 });
 
 /**
@@ -72,6 +86,7 @@ export class ImagesController {
       imageId: parsed.data.imageId,
       original: buffer,
       alt: parsed.data.alt,
+      ...(parsed.data.encuadre === undefined ? {} : { encuadre: parsed.data.encuadre }),
     });
 
     if (result.isErr()) {
@@ -101,6 +116,7 @@ export class ImagesController {
       tenantId: tenantId,
       imageId,
       ...(parsed.data.alt === undefined ? {} : { alt: parsed.data.alt }),
+      ...(parsed.data.encuadre === undefined ? {} : { encuadre: parsed.data.encuadre }),
     });
 
     if (result.isErr()) {

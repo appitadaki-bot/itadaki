@@ -5,7 +5,7 @@ import {
   type StoredImage,
 } from '@itadaki/catalog/application/server';
 import { type RepositoryError } from '@itadaki/catalog/application';
-import { type ImageSet } from '@itadaki/catalog/domain';
+import { type Encuadre, ENCUADRE_ENTERO, type ImageSet } from '@itadaki/catalog/domain';
 import { type Result, err, ok } from '@itadaki/shared/domain';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -145,13 +145,14 @@ export class SharpImageRenderer implements ImageRenderer {
     original: Buffer,
     imageId: string,
     tenantId: string,
+    encuadre: Encuadre = ENCUADRE_ENTERO,
   ): Promise<Result<ImageSet, RepositoryError>> {
     try {
       // Strip EXIF before anything else: orientation is baked in by rotate(),
       // and the remaining metadata (GPS, device) never reaches disk.
       const clean = await sharp(original).rotate().toBuffer();
 
-      const rendered = await renderImageSet(clean);
+      const rendered = await renderImageSet(clean, encuadre);
 
       // Same key shape the store reads back from, so disk and bucket agree.
       await Promise.all(

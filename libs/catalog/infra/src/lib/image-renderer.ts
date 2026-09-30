@@ -1,8 +1,11 @@
 import {
+  type Encuadre,
+  ENCUADRE_ENTERO,
   type ImageSet,
   type ImageVariant,
   VARIANT_FORMATS,
   VARIANT_WIDTHS,
+  recorteEnPixeles,
 } from '@itadaki/catalog/domain';
 import sharp from 'sharp';
 
@@ -32,6 +35,21 @@ export interface RenderedImage {
 sharp.cache({ memory: 48 });
 sharp.concurrency(1);
 
+/**
+ * Cuánto se esfuerza el encoder de AVIF.
+ *
+ * Es de lejos lo más caro de toda la subida: con el valor de fábrica —4— la
+ * variante de 1200 tardaba entre 200 ms y 1,6 s según cuánto detalle tuviera
+ * la foto, más que todo el resto del trabajo junto. En 2 baja a 85–140 ms y
+ * el archivo crece unos pocos kilobytes, con AVIF todavía bastante más chico
+ * que el WebP del mismo cuadro.
+ *
+ * Medido en una máquina de escritorio; el servidor tiene una décima de
+ * procesador, así que allá esa diferencia se multiplica y es la que el dueño
+ * espera mirando la pantalla.
+ */
+const AVIF_EFFORT = 2;
+
 const MIME_BY_FORMAT: Record<(typeof VARIANT_FORMATS)[number], string> = {
   avif: 'image/avif',
   webp: 'image/webp',
@@ -47,28 +65,56 @@ const MIME_BY_FORMAT: Record<(typeof VARIANT_FORMATS)[number], string> = {
 const RELLENO = { r: 252, g: 244, b: 230, alpha: 1 };
 
 /**
- * Arma el cuadrado maestro con la foto entera adentro.
+ * Arma el cuadrado maestro con la parte de la foto que se eligió.
  *
- * Antes recortaba: el dueño elegía un cuadrado y lo que quedaba afuera se
- * perdía. Una foto apaisada de un plato entra recortada por los costados y
- * una vertical por arriba y abajo, así que la carta mostraba medio plato y el
- * editor le pedía a alguien que acomodara eso a mano, plato por plato.
+ * Por defecto es la foto entera: el cuadrado la contiene y lo que sobra se
+ * rellena. Antes eso no era una opción sino la única salida —el recorte se
+ * tomaba contra el lado corto, así que una apaisada perdía los costados
+ * siempre— y el editor sólo dejaba elegir qué mitad del plato se perdía.
  *
- * Ahora entra completa y lo que sobra del cuadrado se rellena. Las tarjetas
- * de la carta son cuadradas en las tres apps, y este es el único lugar donde
- * eso se resuelve: si se hiciera con CSS, cada una lo recortaría a su manera.
+ * Ahora el encuadre puede pasarse de los bordes, y las dos cosas son el mismo
+ * cálculo: la foto entera es el cuadrado del lado más largo, centrado. Lo que
+ * cae afuera se agrega como relleno antes de recortar, en vez de ser un caso
+ * aparte.
  *
- * Se renderiza en el servidor desde el original intacto, nunca desde un canvas
- * del navegador: así la foto guardada conserva su calidad.
+ * Las tarjetas de la carta son cuadradas en las tres apps, y este es el único
+ * lugar donde eso se resuelve: con CSS, cada una lo recortaría a su manera.
+ *
+ * Se renderiza en el servidor desde el original, nunca desde un canvas del
+ * navegador: así la foto guardada conserva su calidad.
  */
-async function renderMaster(original: Buffer, size: number): Promise<Buffer> {
+async function renderMaster(original: Buffer, size: number, encuadre: Encuadre): Promise<Buffer> {
   const metadata = await sharp(original).metadata();
-  if ((metadata.width ?? 0) === 0 || (metadata.height ?? 0) === 0) {
+  const width = metadata.width ?? 0;
+  const height = metadata.height ?? 0;
+  if (width === 0 || height === 0) {
     throw new Error('could not read image dimensions');
   }
 
-  return sharp(original)
-    .resize(size, size, { fit: 'contain', background: RELLENO })
+  const recorte = recorteEnPixeles(encuadre, width, height);
+
+  // Lo que el cuadrado se pasa de cada borde. Se agrega primero, para que el
+  // recorte de después caiga siempre adentro de una imagen que ya existe.
+  const margen = {
+    left: Math.max(0, -recorte.left),
+    top: Math.max(0, -recorte.top),
+    right: Math.max(0, recorte.left + recorte.lado - width),
+    bottom: Math.max(0, recorte.top + recorte.lado - height),
+  };
+
+  const hayMargen = margen.left + margen.top + margen.right + margen.bottom > 0;
+  const base = hayMargen
+    ? sharp(await sharp(original).extend({ ...margen, background: RELLENO }).png().toBuffer())
+    : sharp(original);
+
+  return base
+    .extract({
+      left: recorte.left + margen.left,
+      top: recorte.top + margen.top,
+      width: recorte.lado,
+      height: recorte.lado,
+    })
+    .resize(size, size, { fit: 'cover' })
     .flatten({ background: RELLENO })
     .png()
     .toBuffer();
@@ -139,9 +185,12 @@ export async function shrinkOriginal(original: Buffer): Promise<Buffer> {
   }
 }
 
-export async function renderImageSet(original: Buffer): Promise<RenderedImage> {
+export async function renderImageSet(
+  original: Buffer,
+  encuadre: Encuadre = ENCUADRE_ENTERO,
+): Promise<RenderedImage> {
   const largest = VARIANT_WIDTHS[0];
-  const master = await renderMaster(original, largest);
+  const master = await renderMaster(original, largest, encuadre);
 
   const variants: RenderedVariant[] = [];
   for (const width of VARIANT_WIDTHS) {
@@ -151,7 +200,7 @@ export async function renderImageSet(original: Buffer): Promise<RenderedImage> {
       const encoder = sharp(resized);
       const data =
         format === 'avif'
-          ? await encoder.avif({ quality: 55 }).toBuffer()
+          ? await encoder.avif({ quality: 55, effort: AVIF_EFFORT }).toBuffer()
           : format === 'webp'
             ? await encoder.webp({ quality: 72 }).toBuffer()
             : await encoder.jpeg({ quality: 80, mozjpeg: true }).toBuffer();

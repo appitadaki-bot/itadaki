@@ -27,23 +27,37 @@ const STORE = readFileSync(
   'utf-8',
 );
 
-describe('el editor muestra la foto entera', () => {
-  it('la vista previa no recorta', () => {
-    // `cover` es lo que la cortaba: mostraba el centro y comía los bordes.
+describe('el editor abre en la foto entera', () => {
+  it('la vista previa no recorta de arranque', () => {
+    // `cover` es lo que la cortaba sin preguntar: mostraba el centro y comía
+    // los bordes. `contain` a zoom 1 es la foto completa.
     expect(ESTILOS).toContain('object-fit: contain;');
     expect(ESTILOS).not.toContain('object-fit: cover;');
   });
 
-  it('no quedó ningún control de encuadre', () => {
-    // Arrastrar, hacer zoom y la grilla de tercios existían sólo para elegir
-    // el recorte.
-    for (const resto of ['pointerdown', 'onWheel', 'panLimits', 'class="grid"', 'Restablecer']) {
-      expect(EDITOR).not.toContain(resto);
-    }
+  it('el encuadre de arranque es la foto entera', () => {
+    expect(EDITOR).toContain('signal<Encuadre>(ENCUADRE_ENTERO)');
   });
 
-  it('emite el archivo y nada más', () => {
-    expect(EDITOR).toContain('readonly applied = output<{ file: File }>();');
+  it('se puede acercar y volver atrás', () => {
+    // Acercarse es una decisión; antes era lo único que había.
+    expect(EDITOR).toContain('Toda la foto');
+    expect(EDITOR).toContain('protected onWheel(');
+    expect(EDITOR).toContain('protected onPointerMove(');
+  });
+
+  it('no se arrastra cuando no hay adónde', () => {
+    // Con la foto entera no hay nada afuera del cuadro que ir a buscar.
+    expect(EDITOR).toContain('if (!this.sePuedeMover()) return;');
+  });
+
+  it('todo cambio pasa por el acotado', () => {
+    // Sin esto, acercarse y arrastrar mete relleno en el medio de la foto.
+    expect(EDITOR).toContain('centrarDentro(encuadre, width, height)');
+  });
+
+  it('emite el archivo y el encuadre', () => {
+    expect(EDITOR).toContain('readonly applied = output<{ file: File; encuadre: Encuadre }>();');
   });
 });
 
@@ -55,9 +69,35 @@ describe('el panel sube el original', () => {
     expect(PANEL).toContain('data: btoa(binary)');
   });
 
-  it('ya no manda parámetros de recorte', () => {
-    expect(PANEL).not.toContain('ImageEditParams');
-    expect(PANEL).not.toContain('event.params');
+  it('no manda el encuadre entero, que es lo que el servidor hace solo', () => {
+    expect(PANEL).toContain('esLaFotoEntera(encuadre) ? {} : { encuadre }');
+  });
+});
+
+describe('el editor abre con la foto que el plato ya tiene', () => {
+  it('la busca en el plato y no sólo en la última subida', () => {
+    // Salía sólo de `result()`, que está vacío al abrir: tocar "Editar foto"
+    // en un plato con foto mostraba el recuadro de "elegí una foto", y el
+    // dueño la volvía a subir creyendo que no había ninguna.
+    const metodo = PANEL.slice(PANEL.indexOf('protected currentPhoto()'));
+    const cuerpo = metodo.slice(0, metodo.indexOf('\n  }'));
+
+    expect(cuerpo).toContain('this.products().find');
+    expect(cuerpo).toContain('imageSet');
+  });
+
+  it('le pone la marca de versión a la guardada', () => {
+    // Las variantes se sirven con un año de caché: sin esto, después de
+    // cambiar la foto el editor sigue abriendo con la vieja.
+    const metodo = PANEL.slice(PANEL.indexOf('protected currentPhoto()'));
+    expect(metodo.slice(0, metodo.indexOf('\n  }'))).toContain('v=${version}');
+  });
+
+  it('no repite la foto en una vista previa aparte', () => {
+    // Abajo del editor aparecía otra copia con "12 variantes · AVIF, WebP y
+    // JPEG en 4 tamaños": información de sistema, no del restaurante.
+    expect(PANEL).not.toContain('variantes · AVIF, WebP y JPEG');
+    expect(PANEL).not.toContain('[src]="best(set)"');
   });
 });
 

@@ -1,4 +1,4 @@
-import { VARIANT_WIDTHS } from '@itadaki/catalog/domain';
+import { ENCUADRE_ENTERO, VARIANT_WIDTHS } from '@itadaki/catalog/domain';
 import sharp from 'sharp';
 import { detectImageType, validateUpload } from './image-intake';
 import {
@@ -143,6 +143,40 @@ describe('renderImageSet', () => {
     // Relleno liso: casi sin desvío. El damero pasa de 80 en cada canal.
     for (const canal of borde.channels) {
       expect(canal.stdev).toBeLessThan(6);
+    }
+  });
+
+  it('un encuadre más cerrado da otros píxeles', async () => {
+    // Que el encuadre llegue hasta sharp: con la foto entera y con la mitad
+    // del lado, la misma foto no puede dar el mismo archivo.
+    const fuente = await makeSource(900, 600);
+    const entera = await renderImageSet(fuente, ENCUADRE_ENTERO);
+    const cerca = await renderImageSet(fuente, { cx: 0.3, cy: 0.5, lado: 0.5 });
+
+    const pick = (set: typeof entera) =>
+      set.variants.find((v) => v.width === 300 && v.format === 'jpeg')?.data as Buffer;
+
+    expect(Buffer.compare(pick(entera), pick(cerca))).not.toBe(0);
+  });
+
+  it('un encuadre cerrado no mete relleno: es todo foto', async () => {
+    // Al revés que la entera, donde la franja de arriba es relleno liso.
+    const rendered = await renderImageSet(await makeSource(900, 600), {
+      cx: 0.5,
+      cy: 0.5,
+      lado: 600 / 900,
+    });
+    const variant = rendered.variants.find((v) => v.width === 600 && v.format === 'jpeg');
+
+    const borde = await sharp(
+      await sharp(variant?.data as Buffer)
+        .extract({ left: 0, top: 0, width: 600, height: 40 })
+        .png()
+        .toBuffer(),
+    ).stats();
+
+    for (const canal of borde.channels) {
+      expect(canal.stdev).toBeGreaterThan(20);
     }
   });
 

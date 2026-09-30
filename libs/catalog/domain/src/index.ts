@@ -20,6 +20,16 @@ export {
 } from './lib/modifier';
 export { VARIANT_WIDTHS, VARIANT_FORMATS } from './lib/image-edit';
 export {
+  type Encuadre,
+  type EncuadreError,
+  type RecorteEnPixeles,
+  ENCUADRE_ENTERO,
+  centrarDentro,
+  esLaFotoEntera,
+  recorteEnPixeles,
+  validarEncuadre,
+} from './lib/encuadre';
+export {
   type ParsedDish,
   type ParsedLine,
   type ParsedMenu,

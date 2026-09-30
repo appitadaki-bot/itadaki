@@ -341,7 +341,18 @@ export class SessionStore {
       void this.refresh(sessionId);
       this.sessionListeners.forEach((notify) => notify());
     });
-    this.socket.on('order.changed', () => this.orderListeners.forEach((notify) => notify()));
+    /*
+     * Un plato cambió: lo avisa, y relee la mesa.
+     *
+     * La mesa lleva adentro lo ya enviado a la cocina —de ahí sale el total
+     * que se ve arriba— así que un plato que el mozo saca la cambia aunque
+     * nadie haya tocado la sesión. Sin releerla, el teléfono seguía sumando
+     * un plato que ya no existe.
+     */
+    this.socket.on('order.changed', () => {
+      void this.refresh(sessionId);
+      this.orderListeners.forEach((notify) => notify());
+    });
     // El mozo atendió el llamado desde el salón: el timbre se apaga solo, sin
     // que nadie de la mesa tenga que abrir la hoja para enterarse.
     this.socket.on('call.changed', () => this.callListeners.forEach((notify) => notify()));

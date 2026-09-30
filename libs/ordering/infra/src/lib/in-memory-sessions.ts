@@ -6,9 +6,25 @@ import {
 } from '@itadaki/ordering/application';
 import { type Result, err, ok } from '@itadaki/shared/domain';
 
+/**
+ * Las mesas abiertas, compartidas por todas las instancias.
+ *
+ * Fuera de la clase a propósito: con `USE_POSTGRES=false` la API construye
+ * este almacén dos veces —el controlador de sesiones y el gateway de tiempo
+ * real, que comprueba que la mesa sea de quien dice ser antes de dejarla
+ * escuchar—. Con el mapa adentro de la instancia, el del gateway estaba
+ * siempre vacío: el comensal no entraba nunca a la sala de su mesa y no
+ * recibía un solo evento en vivo.
+ *
+ * Eso no pasa en producción, donde las dos leen la misma base, así que el
+ * único lugar donde se notaba era levantando el proyecto sin base —o sea, en
+ * la máquina de quien va a probar justamente que el tiempo real anda—.
+ */
+const MESAS = new Map<string, Map<string, SessionState>>();
+
 /** Sessions are keyed per tenant so tables never leak between restaurants. */
 export class InMemorySessionStore implements SessionReader, SessionWriter {
-  private readonly rows = new Map<string, Map<string, SessionState>>();
+  private readonly rows = MESAS;
 
   private tenantRows(tenantId: string): Map<string, SessionState> {
     const existing = this.rows.get(tenantId);
