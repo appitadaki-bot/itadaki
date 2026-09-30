@@ -7,7 +7,6 @@ import {
   effect,
   inject,
   signal,
-  type WritableSignal,
 } from '@angular/core';
 import { type ImageEditParams } from '@itadaki/catalog/domain';
 import { ImageEditorComponent } from '@itadaki/shared/ui-image-editor';
@@ -806,16 +805,22 @@ const ROLE_NAMES: Record<string, string> = {
           <details class="details manage-staff" open>
             <summary>Ver el equipo</summary>
 
-            <!-- El link con el que entra el personal. Va acá y también junto a
-                 cada PIN recién generado: acá para cuando alguien lo pierda,
-                 y allá para mandar los tres datos de una. -->
-            <div class="link-del-local">
-              <p class="link-titulo">Por acá entra tu equipo</p>
-              <p class="link-valor">{{ linkDelLocal() }}</p>
-              <button type="button" class="secondary" (click)="copiarLink()">
-                {{ copiadoLink() ? 'Copiado ✓' : 'Copiar el link' }}
-              </button>
-            </div>
+            <!-- Los links con los que entra el personal. Van acá y también junto
+                 a cada PIN recién generado: acá para cuando alguien lo pierda,
+                 y allá para mandar los tres datos de una.
+
+                 Uno por app y no uno solo: el que estaba salía del panel, así
+                 que el dueño le pasaba al mozo la dirección del admin, donde
+                 su usuario no entra. -->
+            @for (link of linksDelEquipo(); track link.para) {
+              <div class="link-del-local">
+                <p class="link-titulo">{{ link.para }}</p>
+                <p class="link-valor">{{ link.url }}</p>
+                <button type="button" class="secondary" (click)="copiarLink(link.url)">
+                  {{ copiadoLink() === link.url ? 'Copiado ✓' : 'Copiar el link' }}
+                </button>
+              </div>
+            }
 
             <div class="staff-list">
               @for (member of staff(); track member.id) {
@@ -823,7 +828,7 @@ const ROLE_NAMES: Record<string, string> = {
                   <div class="staff-info">
                     <span class="staff-name">{{ member.displayName }}</span>
                     <span class="staff-meta">
-                      {{ roleName(member.role) }} · {{ member.email }}
+                      {{ roleName(member.role) }} · {{ identidad(member.email) }}
                     </span>
                   </div>
                   @if (member.id === auth.profile()?.id) {
@@ -3042,7 +3047,8 @@ export class AdminComponent {
    * no tiene permiso al portapapeles.
    */
   protected readonly entregado = signal(false);
-  protected readonly copiadoLink = signal(false);
+  /** Cuál de los links se acaba de copiar, para avisar en ese botón y no en todos. */
+  protected readonly copiadoLink = signal<string | null>(null);
 
   /**
    * Por dónde entra el personal.
@@ -3062,17 +3068,8 @@ export class AdminComponent {
    * y así no hay que configurar cuatro direcciones a mano.
    */
   private appDe(role: string): string {
-    const subdominio: Record<string, string> = {
-      KITCHEN: 'cocina',
-      WAITER: 'salon',
-      // La caja trabaja sobre el mismo tablero que el mozo.
-      CAJA: 'salon',
-      MANAGER: 'admin',
-      OWNER: 'admin',
-    };
-
     const origen = globalThis.location.origin;
-    const cual = subdominio[role] ?? 'admin';
+    const cual = this.subdominioDe(role);
 
     // Sólo si el panel vive en un subdominio: en localhost cada app tiene su
     // puerto, y ahí el link del panel es lo mejor que se puede dar.
@@ -3081,16 +3078,67 @@ export class AdminComponent {
       : origen;
   }
 
+  /** En qué app trabaja ese puesto. */
+  private subdominioDe(role: string): string {
+    const subdominio: Record<string, string> = {
+      KITCHEN: 'cocina',
+      WAITER: 'salon',
+      // La caja trabaja sobre el mismo tablero que el mozo.
+      CAJA: 'salon',
+      MANAGER: 'admin',
+      OWNER: 'admin',
+    };
+    return subdominio[role] ?? 'admin';
+  }
+
   /** El link para el equipo, según dónde trabaja cada uno. */
   protected linkPara(role: string): string {
     const slug = this.auth.profile()?.tenantId ?? '';
     return `${this.appDe(role)}/${slug}`;
   }
 
-  protected readonly linkDelLocal = computed(() => {
-    const slug = this.auth.profile()?.tenantId ?? '';
-    return `${globalThis.location.origin}/${slug}`;
+  /**
+   * Los links que hay que repartir, uno por app.
+   *
+   * Era uno solo y salía de `location.origin`, que es el panel: el dueño le
+   * pasaba al mozo la dirección del admin y el mozo no podía entrar. Sale de
+   * los puestos que el local tiene de verdad, así nadie copia un link que no
+   * le sirve a nadie.
+   */
+  protected readonly linksDelEquipo = computed(() => {
+    const yo = this.auth.profile()?.id;
+    const titulo: Record<string, string> = {
+      admin: 'Por acá entran los encargados',
+      salon: 'Por acá entran los mozos y la caja',
+      cocina: 'Por acá entra la cocina',
+    };
+
+    // Por app y no por persona: seis mozos comparten el mismo link.
+    const porApp = new Map<string, { para: string; url: string }>();
+    for (const member of this.staff()) {
+      if (member.id === yo) continue;
+      const app = this.subdominioDe(member.role);
+      porApp.set(app, {
+        para: titulo[app] ?? 'Por acá entra tu equipo',
+        url: this.linkPara(member.role),
+      });
+    }
+    return [...porApp.values()];
   });
+
+  /**
+   * Cómo se identifica cada persona en la lista.
+   *
+   * El personal entra con usuario y PIN: el mail que tiene guardado es interno
+   * e inventado —existe sólo porque la columna es única— y mostrarlo hacía
+   * creer que hay una casilla a la que escribirle. Del dueño sí se muestra:
+   * ese es real y es con el que entra.
+   */
+  protected identidad(email: string): string {
+    if (!email.endsWith('@sin-mail.itadaki')) return email;
+    // `usuario@…` o `usuario+local@…`: el usuario es lo de adelante.
+    return email.split('@')[0]?.split('+')[0] ?? email;
+  }
 
   protected async generarPin(member: {
     id: string;
@@ -3132,7 +3180,7 @@ export class AdminComponent {
 
     // Copiar cuenta como haberlos entregado: es el camino normal, y pedir
     // además la tilde sería hacer dos veces lo mismo.
-    if (await this.alPortapapeles(texto, this.copiado)) {
+    if (await this.alPortapapeles(texto, (copio) => this.copiado.set(copio))) {
       this.entregado.set(true);
     }
   }
@@ -3142,8 +3190,8 @@ export class AdminComponent {
     return nombre.split(' ')[0] ?? nombre;
   }
 
-  protected async copiarLink(): Promise<void> {
-    await this.alPortapapeles(this.linkDelLocal(), this.copiadoLink);
+  protected async copiarLink(url: string): Promise<void> {
+    await this.alPortapapeles(url, (copio) => this.copiadoLink.set(copio ? url : null));
   }
 
   /**
@@ -3152,11 +3200,11 @@ export class AdminComponent {
    * Sin el aviso nadie sabe si funcionó, y termina copiando tres veces por las
    * dudas. Vuelve solo a los dos segundos.
    */
-  private async alPortapapeles(texto: string, marca: WritableSignal<boolean>): Promise<boolean> {
+  private async alPortapapeles(texto: string, marca: (copio: boolean) => void): Promise<boolean> {
     try {
       await navigator.clipboard.writeText(texto);
-      marca.set(true);
-      setTimeout(() => marca.set(false), 2000);
+      marca(true);
+      setTimeout(() => marca(false), 2000);
       return true;
     } catch {
       // Sin permiso al portapapeles, el texto está a la vista para copiarlo
