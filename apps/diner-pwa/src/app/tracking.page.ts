@@ -174,34 +174,60 @@ export class TrackingPage {
     ),
   );
 
+  /**
+   * Los que todavía van a llegar.
+   *
+   * Un plato anulado se sigue mostrando —tachado, para que se entienda qué
+   * pasó— pero no entra en ninguna cuenta: si contara, el "2 de 3" nunca
+   * llegaría a 3 y el pedido se vería eternamente a medias.
+   */
+  private readonly enPie = computed(() =>
+    this.dishes().filter((dish) => dish.status !== 'CANCELLED'),
+  );
+
   /** Cuántos platos hay, contando las cantidades y no los renglones. */
-  protected readonly cuantosPlatos = computed(() => contarPlatos(this.dishes()));
+  protected readonly cuantosPlatos = computed(() => contarPlatos(this.enPie()));
 
   /**
    * En qué paso está el pedido en conjunto: el del plato más atrasado.
    *
    * Es lo que la mesa quiere saber de un vistazo — "¿ya viene?" — sin tener
    * que leer el estado de cada plato uno por uno.
+   *
+   * Sin el anulado, que tiene el paso más bajo de todos y dejaría el pedido
+   * clavado en "enviado" aunque el resto ya estuviera servido.
    */
   protected readonly overallStep = computed(() => {
-    const pasos = this.dishes().map((dish) => dish.step);
+    const pasos = this.enPie().map((dish) => dish.step);
     return pasos.length === 0 ? 0 : Math.min(...pasos);
   });
 
   /** Cuántos platos ya salieron de la cocina, para el "2 de 5". */
   protected readonly readyCount = computed(() =>
     contarPlatos(
-      this.dishes().filter((dish) => dish.status === 'READY' || dish.status === 'DELIVERED'),
+      this.enPie().filter((dish) => dish.status === 'READY' || dish.status === 'DELIVERED'),
     ),
   );
 
-  /** El estado de un plato en dos palabras, al lado de su nombre. */
+  /**
+   * El estado de un plato en dos palabras, al lado de su nombre.
+   *
+   * El anulado tiene que decirlo: antes caía en el `else` y mostraba
+   * "enviado", así que alguien a quien le avisaron que no había pescado veía
+   * su plato como si siguiera en camino. La pantalla contradecía al mozo.
+   */
   protected dishState(status: string): string {
+    if (status === 'CANCELLED') return 'no se pudo hacer';
     if (status === 'DELIVERED') return 'servido';
     if (status === 'READY') return 'ya sale';
     if (status === 'IN_PREP') return 'preparando';
     if (status === 'ACCEPTED') return 'en cola';
     return 'enviado';
+  }
+
+  /** Para tacharlo, y para que no cuente como algo que va a llegar. */
+  protected anulado(status: string): boolean {
+    return status === 'CANCELLED';
   }
 
   protected label(step: string): { title: string; hint: string } {

@@ -28,6 +28,25 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return ALLOWED_TRANSITIONS[from].includes(to);
 }
 
+/**
+ * Si un plato se puede anular desde donde está.
+ *
+ * Aparte de `canTransition` a propósito. Las transiciones de arriba son el
+ * camino de la cocina, y ahí `READY` y `DELIVERED` son el final: el estado
+ * cuenta lo que la cocina hizo, y eso no se reescribe avanzando.
+ *
+ * Anular es otra cosa. Es la caja diciendo "este plato no va en la cuenta"
+ * —nunca llegó a la mesa, o llegó mal— y eso puede pasar en cualquier momento,
+ * incluso con el plato ya entregado, porque se descubre al pagar.
+ *
+ * Lo único que no se anula es lo ya anulado: hacerlo dos veces no significa
+ * nada, y dejarlo pasar esconde que alguien tocó dos veces creyendo que la
+ * primera no había entrado.
+ */
+export function sePuedeAnular(from: OrderStatus): boolean {
+  return from !== 'CANCELLED';
+}
+
 export function allowedTransitionsFrom(status: OrderStatus): readonly OrderStatus[] {
   return ALLOWED_TRANSITIONS[status];
 }

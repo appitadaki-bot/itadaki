@@ -267,10 +267,19 @@ export class FloorStore {
     ),
   );
 
-  /** Tables with something in the kitchen, so the waiter can answer "ya sale". */
+  /**
+   * Tables with something in the kitchen, so the waiter can answer "ya sale".
+   *
+   * El anulado no cuenta: quedaba acá para siempre, porque el filtro era "todo
+   * lo que no salió" y un plato que la caja sacó de la cuenta no sale nunca.
+   * El mozo veía una mesa esperando comida que ya nadie iba a cocinar.
+   */
   readonly cooking = computed(() =>
     this.tickets().filter((ticket) =>
-      ticket.items.some((item) => item.status !== 'READY' && item.status !== 'DELIVERED'),
+      ticket.items.some(
+        (item) =>
+          item.status !== 'READY' && item.status !== 'DELIVERED' && item.status !== 'CANCELLED',
+      ),
     ),
   );
 

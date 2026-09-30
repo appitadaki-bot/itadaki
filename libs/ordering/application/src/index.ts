@@ -1,3 +1,4 @@
+export { anularPlato, type AnularPlatoCommand, type AnularPlatoError } from './lib/anular-plato';
 export {
   type OrderReader,
   type OrderWriter,
