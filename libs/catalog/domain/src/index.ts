@@ -18,16 +18,7 @@ export {
   type ModifierSelectionError,
   validateSelection,
 } from './lib/modifier';
-export {
-  type CropBox,
-  type ImageEditParams,
-  type ImageEditError,
-  VARIANT_WIDTHS,
-  VARIANT_FORMATS,
-  defaultCrop,
-  validateEditParams,
-} from './lib/image-edit';
-export { type LumaGrid, type FrameProposal, proposeFrame } from './lib/auto-frame';
+export { VARIANT_WIDTHS, VARIANT_FORMATS } from './lib/image-edit';
 export {
   type ParsedDish,
   type ParsedLine,

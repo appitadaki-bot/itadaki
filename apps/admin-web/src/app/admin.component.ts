@@ -8,7 +8,6 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { type ImageEditParams } from '@itadaki/catalog/domain';
 import { ImageEditorComponent } from '@itadaki/shared/ui-image-editor';
 import { moverEnLista } from './mover-en-lista';
 import { AuthStore, LoginComponent } from '@itadaki/shared/ui-auth';
@@ -1227,8 +1226,8 @@ const ROLE_NAMES: Record<string, string> = {
           <!--
             Una instancia por plato, no una reutilizada.
             Angular conserva el componente al cambiar de plato, así que la foto
-            recién subida y su recorte quedaban colgados del siguiente: se abría
-            la "Provoleta" y se veía el bife. Con el id en el @if, el editor se
+            recién subida quedaba colgada del siguiente: se abría la
+            "Provoleta" y se veía el bife. Con el id en el @if, el editor se
             destruye y nace limpio.
           -->
           <!-- El editor y su cortina de carga, juntos: la cortina se pone
@@ -3382,8 +3381,6 @@ export class AdminComponent {
       }
       case 'EMPTY_FILE':
         return 'ese archivo está vacío';
-      case 'INVALID_PARAMS':
-        return 'el recorte quedó fuera de la foto — probá con Restablecer';
       default:
         // Lo que haya dicho el servidor, tal cual: es más útil que "algo
         // salió mal", aunque no esté escrito para el dueño del local.
@@ -3391,8 +3388,8 @@ export class AdminComponent {
     }
   }
 
-  /** Sends the original plus the parameters — never a rasterised canvas. */
-  protected async upload(event: { params: ImageEditParams; file: File | null }): Promise<void> {
+  /** Manda el archivo original, nunca un canvas rasterizado. */
+  protected async upload(event: { file: File }): Promise<void> {
     const productId = this.selected();
     if (productId === null) return;
 
@@ -3405,22 +3402,7 @@ export class AdminComponent {
     try {
       const alt = this.products().find((p) => p.id === productId)?.name ?? '';
 
-      /*
-       * Sin archivo nuevo, se reencuadra la que ya está.
-       *
-       * El original vive en el servidor: mandarlo de nuevo para mover el
-       * recorte sería subir varios megas por un cambio de coordenadas, y el
-       * dueño no tiene el archivo a mano —lo subió la semana pasada desde otro
-       * teléfono—, así que exigirlo era pedirle algo que no puede dar.
-       */
-      const response =
-        event.file === null
-          ? await this.auth.apiFetch(`${API}/images/${productId}/reedit`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
-              body: JSON.stringify({ alt, params: event.params }),
-            })
-          : await this.subirElOriginal(productId, alt, event.file, event.params);
+      const response = await this.subirElOriginal(productId, alt, event.file);
 
       if (!response.ok) {
         const detail = (await response.json().catch(() => null)) as {
@@ -3459,18 +3441,14 @@ export class AdminComponent {
   }
 
   /**
-   * Manda el original y sus parámetros de recorte.
+   * Manda el original.
    *
-   * El archivo tal cual lo eligió el dueño, nunca el canvas rasterizado: el
-   * servidor tiene que poder volver a renderizar desde el original cuando se
-   * cambie el encuadre, y una copia ya recortada perdería lo que quedó afuera.
+   * El archivo tal cual lo eligió el dueño, nunca un canvas rasterizado: el
+   * servidor guarda el original para poder volver a generar las variantes sin
+   * pedirle la foto de nuevo, y una copia ya procesada por el navegador
+   * llegaría con menos calidad de la que se subió.
    */
-  private async subirElOriginal(
-    productId: string,
-    alt: string,
-    file: File,
-    params: ImageEditParams,
-  ): Promise<Response> {
+  private async subirElOriginal(productId: string, alt: string, file: File): Promise<Response> {
     const buffer = await file.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     let binary = '';
@@ -3479,7 +3457,7 @@ export class AdminComponent {
     return this.auth.apiFetch(`${API}/images`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
-      body: JSON.stringify({ imageId: productId, alt, data: btoa(binary), params }),
+      body: JSON.stringify({ imageId: productId, alt, data: btoa(binary) }),
     });
   }
 

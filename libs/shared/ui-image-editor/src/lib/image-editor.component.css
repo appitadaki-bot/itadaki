@@ -14,49 +14,32 @@
 /* La foto, los avisos y los botones al mismo ancho, o cada uno se acomodaba
    al largo de su texto y la columna quedaba en escalera. El tope existe
    porque un cuadrado del ancho del modal se come la pantalla sin verse
-   mejor: lo que se recorta termina siendo una miniatura de la carta. */
+   mejor: en la carta termina siendo una miniatura. */
 .editor > * {
   width: min(100%, 380px);
 }
 
+/* El mismo cuadrado que va a quedar en la carta, con el mismo crema de
+   relleno que pone el servidor: lo que se ve acá es lo que se guarda. */
 .stage {
   position: relative;
   aspect-ratio: 1;
   width: 100%;
   overflow: hidden;
   border-radius: var(--itadaki-radius-card);
-  background: var(--itadaki-surface-sunken);
-  touch-action: none;
-  cursor: crosshair;
+  background: var(--itadaki-surface);
 }
 
-/* Only show the grab cursor when there is actually somewhere to drag to. */
-.stage.pannable { cursor: grab; }
-.stage.pannable:active { cursor: grabbing; }
-
+/* `contain` y no `cover`: la foto entra entera, que es el punto. */
 .layer {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transform-origin: center;
+  object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: none;
-}
-
-/* Rule-of-thirds guides, drawn over everything. */
-.grid {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(to right, oklch(100% 0 0 / 0.25) 1px, transparent 1px),
-    linear-gradient(to bottom, oklch(100% 0 0 / 0.25) 1px, transparent 1px);
-  background-size: 33.333% 33.333%;
-  background-position: 33.333% 33.333%;
-  background-repeat: repeat;
 }
 
 .existing-note {
@@ -75,18 +58,6 @@
   cursor: not-allowed;
 }
 
-.auto-note {
-  margin: 0;
-  font-size: 0.76rem;
-  font-weight: 600;
-  text-align: center;
-  color: var(--itadaki-status-ready-fg);
-  background: var(--itadaki-status-ready-bg);
-  border-radius: var(--itadaki-radius-chip);
-  padding: 0.45rem 0.6rem;
-}
-
-
 /* La fila de botones usa todo el ancho del modal, no la columna de la foto:
    en 380px los tres no entran y el último cae a un segundo renglón. */
 .actions {
@@ -95,12 +66,11 @@
 
 /* Cada botón con el ancho de su texto, la fila centrada.
  *
- * Se repartían el ancho en tercios iguales y "Cambiar foto" no entraba: caía
+ * Se repartían el ancho en partes iguales y "Cambiar foto" no entraba: caía
  * en dos renglones, y el texto de un renglón partido se alinea a la izquierda
  * aunque el botón esté centrado. "Subir otra foto" —el mismo botón cuando el
- * plato ya tiene foto— entra menos todavía, así que agrandar el tercio no
- * alcanzaba. `wrap` es para la pantalla angosta donde los tres no entran en
- * una línea: se apilan en vez de desbordar. */
+ * plato ya tiene foto— entra menos todavía. `wrap` es para la pantalla
+ * angosta donde no entran en una línea: se apilan en vez de desbordar. */
 .actions {
   display: flex;
   flex-wrap: nowrap;
@@ -194,8 +164,8 @@
   border-top: 1px solid var(--itadaki-border);
 }
 
-/* En un teléfono los tres no entran en el ancho del modal: ahí sí se apilan,
-   que es mejor que empujar la ventana de costado. */
+/* En un teléfono no entran en el ancho del modal: ahí sí se apilan, que es
+   mejor que empujar la ventana de costado. */
 @media (max-width: 560px) {
   .actions {
     flex-wrap: wrap;

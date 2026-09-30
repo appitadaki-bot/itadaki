@@ -1,8 +1,4 @@
-import {
-  type ImageEditParams,
-  VARIANT_WIDTHS,
-  defaultCrop,
-} from '@itadaki/catalog/domain';
+import { VARIANT_WIDTHS } from '@itadaki/catalog/domain';
 import sharp from 'sharp';
 import { detectImageType, validateUpload } from './image-intake';
 import {
@@ -33,12 +29,6 @@ async function makeSource(width = 900, height = 600): Promise<Buffer> {
   }
   return sharp(pixels, { raw: { width, height, channels: 3 } }).jpeg({ quality: 95 }).toBuffer();
 }
-
-
-const params = (overrides: Partial<ImageEditParams> = {}): ImageEditParams => ({
-  crop: defaultCrop(),
-  ...overrides,
-});
 
 describe('magic byte detection', () => {
   it('identifies a real JPEG', async () => {
@@ -90,7 +80,7 @@ describe('magic byte detection', () => {
 
 describe('renderImageSet', () => {
   it('emits every width in every format', async () => {
-    const rendered = await renderImageSet(await makeSource(), params());
+    const rendered = await renderImageSet(await makeSource());
     expect(rendered.variants).toHaveLength(12);
 
     for (const width of [1200, 600, 300, 80]) {
@@ -103,7 +93,7 @@ describe('renderImageSet', () => {
   });
 
   it('renders every variant as a square', async () => {
-    const rendered = await renderImageSet(await makeSource(), params());
+    const rendered = await renderImageSet(await makeSource());
 
     for (const variant of rendered.variants) {
       const meta = await sharp(variant.data).metadata();
@@ -113,7 +103,7 @@ describe('renderImageSet', () => {
   });
 
   it('produces a decodable image per format', async () => {
-    const rendered = await renderImageSet(await makeSource(), params());
+    const rendered = await renderImageSet(await makeSource());
     const at600 = rendered.variants.filter((v) => v.width === 600);
 
     for (const variant of at600) {
@@ -124,28 +114,36 @@ describe('renderImageSet', () => {
   });
 
   it('emits an inline LQIP placeholder', async () => {
-    const rendered = await renderImageSet(await makeSource(), params());
+    const rendered = await renderImageSet(await makeSource());
     expect(rendered.lqip.startsWith('data:image/webp;base64,')).toBe(true);
     // Small enough to inline without bloating the document.
     expect(rendered.lqip.length).toBeLessThan(3000);
   });
 
-  it('honours an inset crop', async () => {
-    const full = await renderImageSet(await makeSource(), params());
-    const cropped = await renderImageSet(
-      await makeSource(),
-      params({ crop: { x: 0.05, y: 0.1, size: 0.3 } }),
-    );
+  it('no recorta: la foto apaisada entra entera y el resto se rellena', async () => {
+    // Lo que se perdía antes: un cuadrado contra el lado corto se comía los
+    // costados de una foto de 900x600. Se mide sobre la franja de arriba, que
+    // con la foto entera adentro es relleno liso y con recorte sería parte
+    // del damero.
+    const rendered = await renderImageSet(await makeSource(900, 600));
+    const variant = rendered.variants.find((v) => v.width === 600 && v.format === 'jpeg');
 
-    const pick = (set: typeof full) =>
-      set.variants.find((v) => v.width === 300 && v.format === 'jpeg')?.data;
+    const lado = 600;
+    const franja = Math.round(((lado - (lado * 600) / 900) / 2) * 0.6);
+    // Recortado a un buffer aparte: `stats()` mide la imagen de entrada y no
+    // lo que quedó en la tubería, así que sobre la misma cadena devolvía el
+    // desvío de la foto entera.
+    const borde = await sharp(
+      await sharp(variant?.data as Buffer)
+        .extract({ left: 0, top: 0, width: lado, height: franja })
+        .png()
+        .toBuffer(),
+    ).stats();
 
-    const a = pick(full);
-    const b = pick(cropped);
-    expect(a).toBeDefined();
-    expect(b).toBeDefined();
-    // Different framing must yield different pixels.
-    expect(Buffer.compare(a as Buffer, b as Buffer)).not.toBe(0);
+    // Relleno liso: casi sin desvío. El damero pasa de 80 en cada canal.
+    for (const canal of borde.channels) {
+      expect(canal.stdev).toBeLessThan(6);
+    }
   });
 
   it('strips EXIF metadata from the output', async () => {
@@ -154,7 +152,7 @@ describe('renderImageSet', () => {
       .jpeg()
       .toBuffer();
 
-    const rendered = await renderImageSet(withExif, params());
+    const rendered = await renderImageSet(withExif);
     const variant = rendered.variants.find((v) => v.width === 600 && v.format === 'jpeg');
     const meta = await sharp(variant?.data as Buffer).metadata();
 
