@@ -1,7 +1,7 @@
 import { type CurrencyCode, Money, type MoneyError, type Result, err, ok } from '@itadaki/shared/domain';
 import { type OrderItem } from './order-item';
 import { type ItemProgress, orderStatusFrom } from './item-status';
-import { type OrderStatus, canTransition } from './order-status';
+import { type OrderStatus, canTransition, sePuedeAnular } from './order-status';
 
 export type OrderError =
   | MoneyError
@@ -151,6 +151,78 @@ export class Order {
         items: this.items,
         status: this.status,
         history: [...this.history, { status: next, at, actor }],
+        itemProgress: progress,
+      }),
+    );
+  }
+
+  /**
+   * Anula un plato, esté donde esté.
+   *
+   * Distinto de avanzarlo: `transitionItem` sigue el camino de la cocina, y
+   * ahí `READY` y `DELIVERED` son el final porque el estado cuenta lo que la
+   * cocina hizo. Anular no reescribe esa historia, la corta: es la caja
+   * diciendo que ese plato no va en la cuenta.
+   *
+   * Pasa con el plato que nunca llegó a la mesa y se descubre al pagar, así
+   * que tiene que poder hacerse incluso sobre uno marcado como entregado.
+   *
+   * Sin esto, sacar un plato de la cuenta lo sacaba sólo de la cuenta: el
+   * comensal lo seguía viendo en su teléfono, la cocina lo mostraba como
+   * entregado y el mozo lo tenía en el pase. Tres pantallas contando tres
+   * cosas distintas sobre el mismo plato.
+   */
+  anularItem(itemId: string, actor: string, at: Date): Result<Order, OrderError> {
+    const current =
+      this.itemProgress.find((entry) => entry.itemId === itemId)?.status ?? this.status;
+
+    if (this.items.every((item) => item.id !== itemId)) {
+      return err({ kind: 'ITEM_NOT_FOUND', itemId });
+    }
+    if (!sePuedeAnular(current)) {
+      return err({ kind: 'ILLEGAL_TRANSITION', from: current, to: 'CANCELLED' });
+    }
+
+    const base =
+      this.itemProgress.length > 0
+        ? this.itemProgress
+        : this.items.map((item) => ({ itemId: item.id, status: this.status }));
+
+    const progress = base.map((entry) =>
+      entry.itemId === itemId ? { itemId, status: 'CANCELLED' as OrderStatus } : entry,
+    );
+
+    /*
+     * El envío queda cancelado sólo si no le sobrevive ningún plato.
+     *
+     * Su estado es el del más atrasado de los que siguen en pie: con uno
+     * anulado y el resto entregado, el envío está entregado. Tomar el mínimo
+     * sobre todos —incluido el anulado— dejaría el ticket colgado para
+     * siempre en el tablero.
+     */
+    const vivos = progress.filter((entry) => entry.status !== 'CANCELLED');
+    const orden: readonly OrderStatus[] = [
+      'DRAFT',
+      'SENT',
+      'ACCEPTED',
+      'IN_PREP',
+      'READY',
+      'DELIVERED',
+    ];
+    const status: OrderStatus =
+      vivos.length === 0
+        ? 'CANCELLED'
+        : (orden.find((paso) => vivos.some((entry) => entry.status === paso)) ?? this.status);
+
+    return ok(
+      new Order({
+        id: this.id,
+        clientRequestId: this.clientRequestId,
+        sessionId: this.sessionId,
+        currency: this.currency,
+        items: this.items,
+        status,
+        history: [...this.history, { status: 'CANCELLED', at, actor }],
         itemProgress: progress,
       }),
     );

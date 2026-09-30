@@ -525,9 +525,26 @@
 
 /* A dish ahead of its ticket is dimmed: it is no longer what the cook needs. */
 .ticket-item[data-item-status='READY'] .item-name,
-.ticket-item[data-item-status='DELIVERED'] .item-name {
+.ticket-item[data-item-status='DELIVERED'] .item-name,
+.ticket-item[data-item-status='CANCELLED'] .item-name {
   color: var(--itadaki-ink-subtle);
   text-decoration: line-through;
+}
+
+/*
+ * El plato anulado, más apagado que el que salió.
+ *
+ * Los dos están tachados, pero no son lo mismo: uno se cocinó y el otro no va.
+ * Sin distinguirlos, un plato que la caja sacó de la cuenta se leía igual que
+ * uno servido, y el cocinero no tenía cómo darse cuenta de que algo se anuló.
+ */
+.ticket-item[data-item-status='CANCELLED'] {
+  opacity: 0.55;
+}
+
+.ticket-item[data-item-status='CANCELLED'] .item-done {
+  color: var(--itadaki-status-late);
+  font-weight: 700;
 }
 
 /* Una mesa que espera atrás: una línea, no una tarjeta.

@@ -112,6 +112,27 @@
   color: var(--itadaki-ink-soft);
 }
 
+/*
+ * El plato que no se pudo hacer.
+ *
+ * Tachado y con el motivo al lado, en vez de desaparecer: el mozo ya se lo
+ * dijo en la mesa, y una pantalla donde el plato se esfumó sin explicación se
+ * lee como un error de la app — el comensal vuelve a llamar al mozo para
+ * preguntar justo lo que el mozo acaba de contarle.
+ *
+ * En el color de alarma y no en gris: no es un plato que ya pasó, es uno que
+ * no va a llegar.
+ */
+.dish[data-status='CANCELLED'] .dish-name {
+  color: var(--itadaki-ink-soft);
+  text-decoration: line-through;
+}
+
+.dish[data-status='CANCELLED'] .dish-state {
+  color: var(--itadaki-status-late);
+  font-weight: 700;
+}
+
 /* Parte del pedido ya salió y parte no: decirlo evita que la mesa crea que
    se olvidaron de un plato. */
 .partial {

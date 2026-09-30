@@ -9,7 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { closeBill } from '@itadaki/billing/application';
-import { type SessionState, closeTable } from '@itadaki/ordering/application';
+import { type SessionState, anularPlato, closeTable } from '@itadaki/ordering/application';
 import {
   type Bill,
   type SplitStrategy,
@@ -298,6 +298,34 @@ export class BillsController {
     const saved = await this.bills.store.save(tenantId, sinEsePlato);
     if (saved.isErr()) {
       throw new HttpException(saved.error, HttpStatus.BAD_GATEWAY);
+    }
+
+    /*
+     * Y el plato se anula en el pedido, no sólo en la cuenta.
+     *
+     * Sacarlo de un lado solo dejaba tres pantallas contando tres cosas
+     * distintas: el comensal lo seguía viendo en su teléfono, la cocina lo
+     * mostraba como entregado y el mozo lo tenía en el pase. La única que
+     * decía la verdad era la cuenta, que es la que el cliente no ve.
+     *
+     * Después de guardar la cuenta y no antes: si esto falla, el plato ya
+     * salió de lo que se cobra —que es lo que el cliente tiene delante— y el
+     * resto se corrige mirando el log. Al revés se cobraría un plato que las
+     * pantallas ya dan por anulado.
+     */
+    const anulado = await anularPlato({
+      orders: this.orders.store,
+      events: this.realtime,
+      now: () => new Date(),
+    })({ tenantId, sessionId, itemId: lineId, actorId: quien?.userId ?? 'caja' });
+
+    if (anulado.isErr()) {
+      log.error('el plato salió de la cuenta pero sigue en el pedido', {
+        tenantId,
+        sessionId,
+        itemId: lineId,
+        error: anulado.error.kind,
+      });
     }
 
     /*

@@ -703,9 +703,23 @@ export class KdsComponent implements OnDestroy {
    * falls back to a short prefix so the ticket is still identifiable.
    */
   /** The one step a dish can take from where it is, or null once delivered. */
-  /** Qué decir de un plato que ya no tiene botón en este tablero. */
+  /**
+   * Qué decir de un plato que ya no tiene botón en este tablero.
+   *
+   * Cada estado por su nombre, sin un `else` que los junte. Antes todo lo que
+   * no fuera READY decía "entregado", así que un plato anulado —el que la caja
+   * sacó de la cuenta porque nunca llegó a la mesa— se leía como servido. La
+   * cocina veía exactamente lo contrario de lo que había pasado.
+   */
   protected doneLabel(status: string): string {
-    return status === 'READY' ? 'en la barra' : 'entregado';
+    if (status === 'CANCELLED') return 'anulado';
+    if (status === 'READY') return 'en la barra';
+    return 'entregado';
+  }
+
+  /** Para tacharlo: un plato anulado no se lee igual que uno servido. */
+  protected estaAnulado(status: string): boolean {
+    return status === 'CANCELLED';
   }
 
   protected nextFor(status: string): { next: string; action: string } | null {

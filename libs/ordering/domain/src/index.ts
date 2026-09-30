@@ -6,6 +6,7 @@ export {
   canTransition,
   allowedTransitionsFrom,
   isTerminal,
+  sePuedeAnular,
   trackingStepOf,
 } from './lib/order-status';
 export {

@@ -267,10 +267,19 @@ export class FloorStore {
     ),
   );
 
-  /** Tables with something in the kitchen, so the waiter can answer "ya sale". */
+  /**
+   * Tables with something in the kitchen, so the waiter can answer "ya sale".
+   *
+   * El anulado no cuenta: quedaba acá para siempre, porque el filtro era "todo
+   * lo que no salió" y un plato que la caja sacó de la cuenta no sale nunca.
+   * El mozo veía una mesa esperando comida que ya nadie iba a cocinar.
+   */
   readonly cooking = computed(() =>
     this.tickets().filter((ticket) =>
-      ticket.items.some((item) => item.status !== 'READY' && item.status !== 'DELIVERED'),
+      ticket.items.some(
+        (item) =>
+          item.status !== 'READY' && item.status !== 'DELIVERED' && item.status !== 'CANCELLED',
+      ),
     ),
   );
 
@@ -346,6 +355,16 @@ export class FloorStore {
       if (this.pending() === 0) void this.refresh();
     });
     this.socket.on('call.changed', () => {
+      if (this.pending() === 0) void this.refresh();
+    });
+
+    /*
+     * La mesa se cerró: sale del tablero.
+     *
+     * Cobrar no toca ningún plato, así que no emite `order.changed`: sin esto
+     * el mozo seguía viendo en el pase los platos de una mesa que ya pagó.
+     */
+    this.socket.on('session.changed', () => {
       if (this.pending() === 0) void this.refresh();
     });
   }

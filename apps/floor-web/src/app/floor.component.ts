@@ -786,11 +786,17 @@ export class FloorComponent implements OnDestroy {
    *
    * Un plato listo o entregado no se cancela: ése ya está en la mesa, y si
    * nunca llegó se saca de la cuenta, que es otra cosa y la hace la caja.
+   *
+   * Y uno ya anulado tampoco: sin excluirlo, el botón "Sacar" seguía ahí
+   * después de sacarlo, ofreciendo hacer de nuevo algo que ya estaba hecho.
    */
   protected enCocina(
     items: readonly { id: string; orderId: string; name: string; quantity: number; status: string }[],
   ): readonly { id: string; orderId: string; name: string; quantity: number }[] {
-    return items.filter((item) => item.status !== 'READY' && item.status !== 'DELIVERED');
+    return items.filter(
+      (item) =>
+        item.status !== 'READY' && item.status !== 'DELIVERED' && item.status !== 'CANCELLED',
+    );
   }
 
   protected async sacarPlato(orderId: string, itemId: string): Promise<void> {

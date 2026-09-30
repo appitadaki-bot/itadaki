@@ -107,6 +107,20 @@ export class KdsStore {
       if (this.pending() === 0) void this.refresh();
     });
     this.socket.on('call.changed', () => void this.refreshCalls());
+
+    /*
+     * La mesa se cerró: su comanda sale del tablero.
+     *
+     * Cobrar no cambia ningún plato —los deja donde estaban— así que no emite
+     * `order.changed` y la cocina no se enteraba: seguía mostrando los platos
+     * de una mesa que ya pagó y se fue, hasta que alguien recargara.
+     *
+     * El servidor sólo manda esto al restaurante cuando la mesa se cierra, no
+     * en cada cambio de carrito.
+     */
+    this.socket.on('session.changed', () => {
+      if (this.pending() === 0) void this.refresh();
+    });
   }
 
   disconnect(): void {
