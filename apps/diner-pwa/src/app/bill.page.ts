@@ -378,12 +378,28 @@ export class BillPage {
      *
      * Ya cerrada no hay nada más que mirar, así que se deja de pedir.
      */
-    const dejarDeEscuchar = this.session.onSessionChanged(() => {
+    const releer = (): void => {
       const id = this.session.session()?.id;
       if (id === undefined || !hayQueReleerLaCuenta(id, this.store.bill()?.status)) return;
       void this.store.close(id);
+    };
+
+    const dejarDeEscuchar = this.session.onSessionChanged(releer);
+
+    /*
+     * Y cuando un plato cambia, también.
+     *
+     * Sacar un plato no toca la mesa, toca el pedido: emite `order.changed` y
+     * no `session.changed`. Sin esto, el mozo le avisaba a la mesa que no
+     * había pescado, lo sacaba, y el que estaba mirando la cuenta lo seguía
+     * viendo —con su precio adentro del total— hasta recargar la página.
+     */
+    const dejarDeEscucharPlatos = this.session.onOrderChanged(releer);
+
+    inject(DestroyRef).onDestroy(() => {
+      dejarDeEscuchar();
+      dejarDeEscucharPlatos();
     });
-    inject(DestroyRef).onDestroy(dejarDeEscuchar);
   }
 
   /**
