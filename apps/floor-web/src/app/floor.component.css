@@ -993,6 +993,37 @@
   padding: 0 0.6rem;
 }
 
+/*
+ * El botón de sacar un plato, dentro de una fila de consulta.
+ *
+ * Más chico que los del tablero a propósito: acá no se trabaja, se corrige
+ * algo que salió mal. Igual respeta el mínimo táctil en el eje que se toca.
+ */
+.boton.mini {
+  min-height: 30px;
+  font-size: 0.72rem;
+  padding: 0 0.5rem;
+}
+
+/*
+ * Un plato en cocina, con su botón al lado.
+ *
+ * En línea y separados: con varios platos, la fila se lee como una lista de
+ * cosas con su acción, no como un párrafo con botones adentro.
+ */
+.en-cocina {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: 0.6rem;
+  white-space: nowrap;
+}
+
+.en-cocina-que {
+  font-size: 0.82rem;
+  color: var(--texto-medio);
+}
+
 .boton.ancho {
   width: 100%;
 }

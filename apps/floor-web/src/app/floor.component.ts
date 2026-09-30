@@ -487,7 +487,45 @@ type Vista = Carril | 'todo';
                 @for (mesa of store.cocinandoPorMesa(); track mesa.tableId) {
                   <div class="fila">
                     <span class="fila-mesa">{{ tableNumber(mesa.tableId) }}</span>
-                    <span class="fila-texto">{{ pending(mesa.items) }}</span>
+
+                    <!--
+                      Los platos uno por uno, no resumidos en una línea.
+                      Antes decía "2× Milanesa · 1× Flan" y no había forma de
+                      señalar cuál sacar cuando la cocina avisa que uno no se
+                      puede hacer.
+                    -->
+                    <span class="fila-texto">
+                      @for (plato of enCocina(mesa.items); track plato.id) {
+                        <span class="en-cocina">
+                          <span class="en-cocina-que">
+                            {{ plato.quantity }}× {{ plato.name }}
+                          </span>
+                          @if (sacando() === plato.id) {
+                            <button
+                              type="button"
+                              class="boton peligro mini"
+                              (click)="sacarPlato(plato.orderId, plato.id)"
+                            >
+                              ¿Seguro?
+                            </button>
+                          } @else {
+                            <!--
+                              Se acabó el pescado. Lo toca quien se entera —el
+                              mozo o la cajera— y no la cocina, que tiene las
+                              manos ocupadas.
+                            -->
+                            <button
+                              type="button"
+                              class="boton tenue mini"
+                              [attr.aria-label]="'Sacar ' + plato.name"
+                              (click)="sacando.set(plato.id)"
+                            >
+                              Sacar
+                            </button>
+                          }
+                        </span>
+                      }
+                    </span>
                     <!-- Para la mesa que pagó en la caja y se fue: sin esto
                          queda ocupada hasta el barrido, y el grupo siguiente
                          escanea el QR y cae en el pedido de los anteriores. -->
@@ -738,6 +776,26 @@ export class FloorComponent implements OnDestroy {
     for (const sessionId of sessionIds) {
       await this.store.releaseTable(sessionId);
     }
+  }
+
+  /** Qué plato está esperando confirmación para salir del pedido. */
+  protected readonly sacando = signal<string | null>(null);
+
+  /**
+   * Los que todavía no salieron de la cocina.
+   *
+   * Un plato listo o entregado no se cancela: ése ya está en la mesa, y si
+   * nunca llegó se saca de la cuenta, que es otra cosa y la hace la caja.
+   */
+  protected enCocina(
+    items: readonly { id: string; orderId: string; name: string; quantity: number; status: string }[],
+  ): readonly { id: string; orderId: string; name: string; quantity: number }[] {
+    return items.filter((item) => item.status !== 'READY' && item.status !== 'DELIVERED');
+  }
+
+  protected async sacarPlato(orderId: string, itemId: string): Promise<void> {
+    this.sacando.set(null);
+    await this.store.cancelarPlato(orderId, itemId);
   }
 
   protected async rotate(tableId: string): Promise<void> {

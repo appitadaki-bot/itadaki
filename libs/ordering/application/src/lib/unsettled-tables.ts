@@ -72,8 +72,15 @@ export function listUnsettledTables(deps: {
   sessions: SessionReader;
   orders: OrderReader;
 }) {
+  /**
+   * @param pidieronLaCuenta Sesiones que ya pidieron la cuenta.
+   *
+   * Esas entran aunque les quede un plato sin marcar como entregado: la mesa
+   * ya dijo que terminó, y el sistema no tiene por qué saber más que ella.
+   */
   return async (
     tenantId: string,
+    pidieronLaCuenta: ReadonlySet<string> = new Set(),
   ): Promise<Result<readonly UnsettledTable[], OrderRepositoryError>> => {
     const open = await deps.sessions.listOpen(tenantId);
     if (open.isErr()) {
@@ -87,13 +94,37 @@ export function listUnsettledTables(deps: {
         return err(placed.error);
       }
 
-      const served = servedItems(placed.value);
+      const pidio = pidieronLaCuenta.has(state.session.id);
+
+      /*
+       * Lo que la mesa debe.
+       *
+       * Normalmente es lo entregado. Pero si pidió la cuenta con un plato que
+       * salió de la cocina y nadie marcó "Llevé", ese plato se cobra igual: el
+       * cliente lo tiene adelante, y dejarlo afuera mostraría un total menor
+       * que el de la cuenta que se le va a cobrar. Dos números distintos para
+       * la misma mesa es peor que cualquiera de los dos.
+       *
+       * Lo que sigue en la cocina no se cobra ni siquiera entonces: eso no
+       * llegó a la mesa.
+       */
+      const served = pidio ? servidoOEnElPase(placed.value) : servedItems(placed.value);
       if (served.length === 0) continue;
 
-      // Algo todavía en cocina o en la barra: la mesa sigue a la vista del
-      // mozo por el camino normal, y avisarle acá sería mandarlo a cobrarle a
-      // alguien que está esperando el plato principal.
-      if (pendingItems(placed.value).length > 0) continue;
+      /*
+       * Algo todavía en cocina o en la barra: la mesa sigue a la vista del
+       * mozo por el camino normal, y avisarle acá sería mandarlo a cobrarle a
+       * alguien que está esperando el plato principal.
+       *
+       * Salvo que haya pedido la cuenta. Ahí la mesa ya decidió que terminó, y
+       * dejarla afuera la volvía invisible: no aparecía ni para el mozo ni
+       * para la caja, y a las tres horas el barrido la cerraba sin cobrar. Un
+       * plato que quedó en "listo" porque nadie tocó "Llevé" alcanzaba para
+       * perder la venta entera.
+       */
+      if (pendingItems(placed.value).length > 0 && !pidieronLaCuenta.has(state.session.id)) {
+        continue;
+      }
 
       tables.push({
         sessionId: state.session.id,
@@ -123,6 +154,27 @@ function servedItems(orders: readonly Order[]): readonly ServedItem[] {
     .flatMap((order) =>
       order.items
         .filter((item) => order.statusOf(item.id) === 'DELIVERED')
+        .map((item) => ({ quantity: item.quantity, unitTotal: unitWithModifiers(item) })),
+    );
+}
+
+/**
+ * Lo entregado, más lo que está listo esperando que alguien lo lleve.
+ *
+ * Para la mesa que pidió la cuenta: un plato en el pase ya salió de la cocina
+ * y el mozo lo va a llevar en el camino de ir a cobrar. Contarlo acá es lo que
+ * hace que el total del tablero coincida con el de la cuenta —que cobra todo
+ * lo no cancelado— en vez de mostrar de menos.
+ */
+function servidoOEnElPase(orders: readonly Order[]): readonly ServedItem[] {
+  return orders
+    .filter((order) => order.status !== 'CANCELLED')
+    .flatMap((order) =>
+      order.items
+        .filter((item) => {
+          const status = order.statusOf(item.id);
+          return status === 'DELIVERED' || status === 'READY';
+        })
         .map((item) => ({ quantity: item.quantity, unitTotal: unitWithModifiers(item) })),
     );
 }

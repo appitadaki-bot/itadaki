@@ -22,6 +22,26 @@ const ADMIN_URL =
 
 const TENANT = 'soporte';
 
+/**
+ * A qué base apunta esto, sin la contraseña.
+ *
+ * `DATABASE_ADMIN_URL` sin definir manda la cuenta a la base local y el script
+ * la crea igual: quien creyó estar escribiendo en producción se entera recién
+ * cuando no puede entrar.
+ */
+function aDondeApunta(url: string): string {
+  try {
+    const { hostname, port, pathname } = new URL(url);
+    return `${hostname}${port === '' ? '' : `:${port}`}${pathname}`;
+  } catch {
+    return '(no se pudo leer DATABASE_ADMIN_URL)';
+  }
+}
+
+function esLocal(url: string): boolean {
+  return url.includes('localhost') || url.includes('127.0.0.1');
+}
+
 async function main(): Promise<void> {
   const [email, password] = process.argv.slice(2);
 
@@ -35,6 +55,8 @@ async function main(): Promise<void> {
     console.error('contraseña inválida:', revisada.error.kind);
     process.exit(1);
   }
+
+  console.log(`base: ${aDondeApunta(ADMIN_URL)}${esLocal(ADMIN_URL) ? '  (LOCAL)' : ''}`);
 
   const client = new Client(conexionPostgres(ADMIN_URL));
   await client.connect();

@@ -260,7 +260,26 @@ export class SessionsController {
       sessions: this.sessions.store,
       orders: this.orders.store,
     });
-    const result = await run(tenantId);
+
+    /*
+     * Qué mesas ya pidieron la cuenta.
+     *
+     * Entran en la lista aunque les quede un plato sin marcar como entregado:
+     * la mesa ya dijo que terminó. Sin esto, un "Llevé" que nadie tocó volvía
+     * invisible a una mesa con plata adentro, y el barrido la cerraba a las
+     * tres horas sin cobrar.
+     *
+     * Si los llamados no se pueden leer se sigue con el criterio de siempre:
+     * mostrar de menos es mejor que no mostrar nada.
+     */
+    const llamados = await this.calls.store.listPending(tenantId);
+    const pidieron = new Set(
+      llamados.isOk()
+        ? llamados.value.filter((call) => call.reason === 'BILL').map((call) => call.sessionId)
+        : [],
+    );
+
+    const result = await run(tenantId, pidieron);
 
     if (result.isErr()) {
       throw new HttpException(result.error, HttpStatus.BAD_GATEWAY);
