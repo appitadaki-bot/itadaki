@@ -32,6 +32,21 @@ export interface RenderedImage {
 sharp.cache({ memory: 48 });
 sharp.concurrency(1);
 
+/**
+ * Cuánto se esfuerza el encoder de AVIF.
+ *
+ * Es de lejos lo más caro de toda la subida: con el valor de fábrica —4— la
+ * variante de 1200 tardaba entre 200 ms y 1,6 s según cuánto detalle tuviera
+ * la foto, más que todo el resto del trabajo junto. En 2 baja a 85–140 ms y
+ * el archivo crece unos pocos kilobytes, con AVIF todavía bastante más chico
+ * que el WebP del mismo cuadro.
+ *
+ * Medido en una máquina de escritorio; el servidor tiene una décima de
+ * procesador, así que allá esa diferencia se multiplica y es la que el dueño
+ * espera mirando la pantalla.
+ */
+const AVIF_EFFORT = 2;
+
 const MIME_BY_FORMAT: Record<(typeof VARIANT_FORMATS)[number], string> = {
   avif: 'image/avif',
   webp: 'image/webp',
@@ -151,7 +166,7 @@ export async function renderImageSet(original: Buffer): Promise<RenderedImage> {
       const encoder = sharp(resized);
       const data =
         format === 'avif'
-          ? await encoder.avif({ quality: 55 }).toBuffer()
+          ? await encoder.avif({ quality: 55, effort: AVIF_EFFORT }).toBuffer()
           : format === 'webp'
             ? await encoder.webp({ quality: 72 }).toBuffer()
             : await encoder.jpeg({ quality: 80, mozjpeg: true }).toBuffer();

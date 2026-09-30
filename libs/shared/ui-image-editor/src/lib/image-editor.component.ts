@@ -6,6 +6,57 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { medidaDeSubida } from './medida-de-subida';
+
+/**
+ * Deja la foto en la medida con la que se va a guardar, antes de subirla.
+ *
+ * Una foto de teléfono sale de doce megapíxeles y pesa cuatro o cinco megas.
+ * Viaja en base64 —que le suma un tercio— y del otro lado el servidor la
+ * decodifica entera para achicarla exactamente a esto. Haciéndolo acá, la
+ * espera del dueño se va casi toda: sube medio mega en vez de seis, y el
+ * servidor —que tiene una décima de procesador— se ahorra el decodificado más
+ * caro de todos.
+ *
+ * No se recorta ni se retoca nada: es la misma foto, en menos píxeles.
+ *
+ * Si algo falla se manda el archivo original. Subir de más es lento; no poder
+ * subir es perder la foto.
+ */
+async function achicarParaSubir(file: File): Promise<File> {
+  try {
+    // `from-image` aplica la orientación del EXIF: sin eso, una foto sacada
+    // de costado se sube acostada.
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const medida = medidaDeSubida(bitmap.width, bitmap.height, file.size);
+    if (medida === null) {
+      bitmap.close();
+      return file;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = medida.width;
+    canvas.height = medida.height;
+
+    const context = canvas.getContext('2d');
+    if (context === null) {
+      bitmap.close();
+      return file;
+    }
+
+    context.drawImage(bitmap, 0, 0, medida.width, medida.height);
+    bitmap.close();
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', 0.9),
+    );
+    if (blob === null || blob.size >= file.size) return file;
+
+    return new File([blob], file.name, { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}
 
 /**
  * Elegir la foto del plato. Nada más.
@@ -17,8 +68,8 @@ import {
  * sólo elegía qué mitad del plato se perdía. La foto entra entera y el
  * servidor rellena lo que le falta para ser cuadrada.
  *
- * Acá no se rasteriza nada: se manda el archivo original y el servidor
- * renderiza desde ahí.
+ * Lo único que se le hace a la foto antes de mandarla es bajarla a la medida
+ * con la que el servidor la iba a guardar igual. No se recorta ni se retoca.
  */
 @Component({
   selector: 'itd-image-editor',
@@ -50,8 +101,13 @@ import {
               (change)="onFile($event)"
             />
           </label>
-          <button type="button" class="primary" [disabled]="showingExisting()" (click)="emit()">
-            Aplicar
+          <button
+            type="button"
+            class="primary"
+            [disabled]="showingExisting() || preparando()"
+            (click)="emit()"
+          >
+            {{ preparando() ? 'Preparando…' : 'Aplicar' }}
           </button>
         </div>
       } @else {
@@ -74,6 +130,8 @@ export class ImageEditorComponent {
   readonly applied = output<{ file: File }>();
 
   protected readonly sourceUrl = signal<string | null>(null);
+  /** Mientras se achica la foto: son unos segundos en un teléfono viejo. */
+  protected readonly preparando = signal(false);
   /** True while showing the stored photo: there is nothing to apply. */
   protected readonly showingExisting = signal(false);
 
@@ -122,9 +180,15 @@ export class ImageEditorComponent {
     this.showingExisting.set(false);
   }
 
-  protected emit(): void {
+  protected async emit(): Promise<void> {
     const file = this.file;
     if (file === null) return;
-    this.applied.emit({ file });
+
+    this.preparando.set(true);
+    try {
+      this.applied.emit({ file: await achicarParaSubir(file) });
+    } finally {
+      this.preparando.set(false);
+    }
   }
 }
