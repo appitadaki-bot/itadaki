@@ -140,9 +140,33 @@ export class RealtimeGateway
     this.server?.to(`session:${event.sessionId}`).emit('order.changed', event);
   }
 
-  /** Scoped to the session room so only that table's phones wake up. */
+  /**
+   * Cambió algo de una mesa: su carrito, o que se cerró.
+   *
+   * A la sala de la sesión, que son los teléfonos de esa mesa, y también a la
+   * del restaurante. Iba sólo a la primera, con el argumento de no despertar
+   * pantallas por un carrito ajeno — y es cierto para el carrito, pero cerrar
+   * la mesa le importa a todo el personal: la comanda de una mesa cobrada
+   * tiene que salir del tablero de la cocina, y la cocina está en la sala del
+   * restaurante, no en la de esa sesión.
+   *
+   * Sin esto, el cocinero seguía viendo platos de una mesa que ya pagó y se
+   * fue, hasta que alguien recargara la pantalla.
+   */
   async sessionChanged(event: SessionEvent): Promise<void> {
     this.server?.to(`session:${event.sessionId}`).emit('session.changed', event);
+
+    /*
+     * Al personal, sólo cuando la mesa se cierra.
+     *
+     * Un plato que alguien agrega o saca del carrito es cosa de esa mesa y no
+     * tiene por qué redibujar el tablero de la cocina —en un salón lleno eso
+     * es una avalancha de eventos por algo que todavía no se pidió—. Cerrarla
+     * sí: es lo que saca su comanda de la pantalla.
+     */
+    if (event.reason === 'closed') {
+      this.server?.to(`tenant:${event.tenantId}`).emit('session.changed', event);
+    }
   }
 
   /**

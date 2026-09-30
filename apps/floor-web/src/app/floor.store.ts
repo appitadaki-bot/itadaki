@@ -357,6 +357,16 @@ export class FloorStore {
     this.socket.on('call.changed', () => {
       if (this.pending() === 0) void this.refresh();
     });
+
+    /*
+     * La mesa se cerró: sale del tablero.
+     *
+     * Cobrar no toca ningún plato, así que no emite `order.changed`: sin esto
+     * el mozo seguía viendo en el pase los platos de una mesa que ya pagó.
+     */
+    this.socket.on('session.changed', () => {
+      if (this.pending() === 0) void this.refresh();
+    });
   }
 
   disconnect(): void {
