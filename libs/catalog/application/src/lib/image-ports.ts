@@ -1,4 +1,4 @@
-import { type ImageSet } from '@itadaki/catalog/domain';
+import { type Encuadre, type ImageSet } from '@itadaki/catalog/domain';
 import { type Result } from '@itadaki/shared/domain';
 import { type RepositoryError } from './ports';
 
@@ -33,7 +33,12 @@ export interface ImageWriter {
 
 /** Renders the derivative set. Kept behind a port so sharp stays in infra. */
 export interface ImageRenderer {
-  render(original: Buffer, imageId: string, tenantId: string): Promise<Result<ImageSet, RepositoryError>>;
+  render(
+    original: Buffer,
+    imageId: string,
+    tenantId: string,
+    encuadre: Encuadre,
+  ): Promise<Result<ImageSet, RepositoryError>>;
 
   /**
    * Deja el original en algo que se pueda guardar sin remordimiento.

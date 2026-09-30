@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { ImageEditorComponent } from '@itadaki/shared/ui-image-editor';
+import { type Encuadre, esLaFotoEntera } from '@itadaki/catalog/domain';
 import { moverEnLista } from './mover-en-lista';
 import { AuthStore, LoginComponent } from '@itadaki/shared/ui-auth';
 import { DecimalPipe } from '@angular/common';
@@ -3403,6 +3404,8 @@ export class AdminComponent {
       }
       case 'EMPTY_FILE':
         return 'ese archivo está vacío';
+      case 'ENCUADRE_INVALIDO':
+        return 'el encuadre quedó fuera de la foto — probá con "Toda la foto"';
       case 'SIN_CONEXION':
         // El servidor se duerme a los quince minutos sin tráfico y tarda
         // cerca de un minuto en despertar: el segundo intento suele entrar.
@@ -3414,8 +3417,8 @@ export class AdminComponent {
     }
   }
 
-  /** Manda el archivo original, nunca un canvas rasterizado. */
-  protected async upload(event: { file: File }): Promise<void> {
+  /** Manda el archivo original y el encuadre, nunca un canvas rasterizado. */
+  protected async upload(event: { file: File; encuadre: Encuadre }): Promise<void> {
     const productId = this.selected();
     if (productId === null) return;
 
@@ -3428,7 +3431,7 @@ export class AdminComponent {
     try {
       const alt = this.products().find((p) => p.id === productId)?.name ?? '';
 
-      const response = await this.subirElOriginal(productId, alt, event.file);
+      const response = await this.subirElOriginal(productId, alt, event.file, event.encuadre);
 
       if (!response.ok) {
         const detail = (await response.json().catch(() => null)) as {
@@ -3480,7 +3483,12 @@ export class AdminComponent {
    * pedirle la foto de nuevo, y una copia ya procesada por el navegador
    * llegaría con menos calidad de la que se subió.
    */
-  private async subirElOriginal(productId: string, alt: string, file: File): Promise<Response> {
+  private async subirElOriginal(
+    productId: string,
+    alt: string,
+    file: File,
+    encuadre: Encuadre,
+  ): Promise<Response> {
     const buffer = await file.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     let binary = '';
@@ -3489,7 +3497,14 @@ export class AdminComponent {
     return this.auth.apiFetch(`${API}/images`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
-      body: JSON.stringify({ imageId: productId, alt, data: btoa(binary) }),
+      // El encuadre entero no se manda: es lo que el servidor hace sin que
+      // nadie le diga nada, y mandarlo sería repetirlo en cada subida.
+      body: JSON.stringify({
+        imageId: productId,
+        alt,
+        data: btoa(binary),
+        ...(esLaFotoEntera(encuadre) ? {} : { encuadre }),
+      }),
     });
   }
 
