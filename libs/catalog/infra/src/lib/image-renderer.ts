@@ -1,5 +1,4 @@
 import {
-  type ImageEditParams,
   type ImageSet,
   type ImageVariant,
   VARIANT_FORMATS,
@@ -18,6 +17,21 @@ export interface RenderedImage {
   readonly lqip: string;
 }
 
+/*
+ * Cuánta memoria se le deja tomar a libvips.
+ *
+ * Por defecto cachea lo que ya decodificó y reparte cada operación entre
+ * tantos hilos como núcleos tenga la máquina, cada uno con su copia. Eso está
+ * pensado para un servidor de imágenes; acá la API entera vive en 512 MB y
+ * quedarse sin memoria no degrada nada: mata el proceso, y con él la subida y
+ * cualquier pedido que estuviera en curso.
+ *
+ * Una foto por vez tarda un poco más y no se nota: subir la foto de un plato
+ * es algo que pasa mientras se carga la carta, no en el medio del servicio.
+ */
+sharp.cache({ memory: 48 });
+sharp.concurrency(1);
+
 const MIME_BY_FORMAT: Record<(typeof VARIANT_FORMATS)[number], string> = {
   avif: 'image/avif',
   webp: 'image/webp',
@@ -25,29 +39,39 @@ const MIME_BY_FORMAT: Record<(typeof VARIANT_FORMATS)[number], string> = {
 };
 
 /**
- * Renders the master square from the original plus the editor parameters.
- * The browser canvas is never uploaded: re-rendering server-side from the
- * untouched original keeps quality and makes the edit non-destructive.
+ * El color con el que se rellena lo que le falta a la foto para ser cuadrada.
+ *
+ * Es el crema de las superficies de la app —`--itadaki-surface`— así que el
+ * relleno no se lee como un marco: la foto termina y sigue la tarjeta.
  */
-async function renderMaster(original: Buffer, params: ImageEditParams, size: number): Promise<Buffer> {
+const RELLENO = { r: 252, g: 244, b: 230, alpha: 1 };
+
+/**
+ * Arma el cuadrado maestro con la foto entera adentro.
+ *
+ * Antes recortaba: el dueño elegía un cuadrado y lo que quedaba afuera se
+ * perdía. Una foto apaisada de un plato entra recortada por los costados y
+ * una vertical por arriba y abajo, así que la carta mostraba medio plato y el
+ * editor le pedía a alguien que acomodara eso a mano, plato por plato.
+ *
+ * Ahora entra completa y lo que sobra del cuadrado se rellena. Las tarjetas
+ * de la carta son cuadradas en las tres apps, y este es el único lugar donde
+ * eso se resuelve: si se hiciera con CSS, cada una lo recortaría a su manera.
+ *
+ * Se renderiza en el servidor desde el original intacto, nunca desde un canvas
+ * del navegador: así la foto guardada conserva su calidad.
+ */
+async function renderMaster(original: Buffer, size: number): Promise<Buffer> {
   const metadata = await sharp(original).metadata();
-  const width = metadata.width ?? 0;
-  const height = metadata.height ?? 0;
-  if (width === 0 || height === 0) {
+  if ((metadata.width ?? 0) === 0 || (metadata.height ?? 0) === 0) {
     throw new Error('could not read image dimensions');
   }
 
-  // The crop is a square expressed against the shorter side.
-  const shortest = Math.min(width, height);
-  const cropSide = Math.max(1, Math.round(params.crop.size * shortest));
-  const left = Math.min(Math.max(0, Math.round(params.crop.x * width)), width - cropSide);
-  const top = Math.min(Math.max(0, Math.round(params.crop.y * height)), height - cropSide);
-
-  const base = sharp(original)
-    .extract({ left, top, width: cropSide, height: cropSide })
-    .resize(size, size, { fit: 'cover' });
-
-  return base.png().toBuffer();
+  return sharp(original)
+    .resize(size, size, { fit: 'contain', background: RELLENO })
+    .flatten({ background: RELLENO })
+    .png()
+    .toBuffer();
 }
 
 /**
@@ -115,12 +139,9 @@ export async function shrinkOriginal(original: Buffer): Promise<Buffer> {
   }
 }
 
-export async function renderImageSet(
-  original: Buffer,
-  params: ImageEditParams,
-): Promise<RenderedImage> {
+export async function renderImageSet(original: Buffer): Promise<RenderedImage> {
   const largest = VARIANT_WIDTHS[0];
-  const master = await renderMaster(original, params, largest);
+  const master = await renderMaster(original, largest);
 
   const variants: RenderedVariant[] = [];
   for (const width of VARIANT_WIDTHS) {

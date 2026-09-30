@@ -1,17 +1,13 @@
-import { type ImageEditParams, validateEditParams } from '@itadaki/catalog/domain';
 import { type Result, err, ok } from '@itadaki/shared/domain';
 import { type ImageReader, type ImageRenderer, type ImageWriter, type StoredImage } from './image-ports';
 import { type RepositoryError } from './ports';
 
-export type ImageEditFailure =
-  | RepositoryError
-  | { readonly kind: 'INVALID_PARAMS'; readonly field: string };
+export type ImageEditFailure = RepositoryError;
 
 export interface UploadImageCommand {
   readonly tenantId: string;
   readonly imageId: string;
   readonly original: Buffer;
-  readonly params: ImageEditParams;
   readonly alt: string;
 }
 
@@ -21,18 +17,18 @@ export function uploadImage(deps: {
   renderer: ImageRenderer;
 }) {
   return async (command: UploadImageCommand): Promise<Result<StoredImage, ImageEditFailure>> => {
-    const validated = validateEditParams(command.params);
-    if (validated.isErr()) {
-      return err({
-        kind: 'INVALID_PARAMS',
-        field: 'field' in validated.error ? validated.error.field : 'crop',
-      });
-    }
-
-    // Se guarda achicado: el original existe para reeditar el encuadre, no
-    // para servirse, y los doce megapíxeles de un teléfono no los descarga
-    // nadie nunca. Se renderiza desde el que subieron, que todavía está entero
-    // en memoria, así que esta primera vez no pierde nada.
+    /*
+     * Se guarda achicado: el original existe para volver a renderizar, no
+     * para servirse, y los doce megapíxeles de un teléfono no los descarga
+     * nadie nunca.
+     *
+     * Y se renderiza desde ese mismo achicado, no desde el que subieron. La
+     * variante más grande mide 1200 y el achicado 2560, así que no se ve
+     * ninguna diferencia; lo que cambia es cuánta memoria pide procesarlo. El
+     * servidor tiene 512 MB para todo y decodificar una foto de teléfono
+     * entera es de lo más caro que hace: si se queda sin memoria, el proceso
+     * muere y se lleva puesta la subida —y a quien estuviera pidiendo—.
+     */
     const paraGuardar = await deps.renderer.shrinkOriginal(command.original);
 
     const stored = await deps.images.saveOriginal(command.tenantId, command.imageId, paraGuardar);
@@ -40,12 +36,7 @@ export function uploadImage(deps: {
       return err(stored.error);
     }
 
-    const rendered = await deps.renderer.render(
-      command.original,
-      validated.value,
-      command.imageId,
-      command.tenantId,
-    );
+    const rendered = await deps.renderer.render(paraGuardar, command.imageId, command.tenantId);
     if (rendered.isErr()) {
       return err(rendered.error);
     }
@@ -55,7 +46,6 @@ export function uploadImage(deps: {
         id: command.imageId,
         tenantId: command.tenantId,
         originalPath: stored.value,
-        params: validated.value,
         imageSet: rendered.value,
         alt: command.alt,
       })
@@ -66,28 +56,20 @@ export function uploadImage(deps: {
 export interface ReeditImageCommand {
   readonly tenantId: string;
   readonly imageId: string;
-  readonly params: ImageEditParams;
   readonly alt?: string;
 }
 
 /**
- * Re-renders from the stored original with new parameters. Nothing is
- * uploaded again and no quality is lost, because every render starts from
- * the untouched source rather than from the previous output.
+ * Vuelve a renderizar desde el original guardado. Nada se sube de nuevo y no
+ * se pierde calidad, porque cada render arranca del archivo intacto y no de
+ * la salida anterior. Sirve para cambiar el texto alternativo, y para volver
+ * a generar las variantes si cambia cómo se arman.
  */
 export function reeditImage(deps: {
   images: ImageReader & ImageWriter;
   renderer: ImageRenderer;
 }) {
   return async (command: ReeditImageCommand): Promise<Result<StoredImage, ImageEditFailure>> => {
-    const validated = validateEditParams(command.params);
-    if (validated.isErr()) {
-      return err({
-        kind: 'INVALID_PARAMS',
-        field: 'field' in validated.error ? validated.error.field : 'crop',
-      });
-    }
-
     const existing = await deps.images.findById(command.tenantId, command.imageId);
     if (existing.isErr()) {
       return err(existing.error);
@@ -100,7 +82,6 @@ export function reeditImage(deps: {
 
     const rendered = await deps.renderer.render(
       original.value,
-      validated.value,
       command.imageId,
       command.tenantId,
     );
@@ -110,7 +91,6 @@ export function reeditImage(deps: {
 
     const record = await deps.images.saveRecord({
       ...existing.value,
-      params: validated.value,
       imageSet: rendered.value,
       alt: command.alt ?? existing.value.alt,
     });

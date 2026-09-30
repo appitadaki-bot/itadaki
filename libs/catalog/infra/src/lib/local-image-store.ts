@@ -5,7 +5,7 @@ import {
   type StoredImage,
 } from '@itadaki/catalog/application/server';
 import { type RepositoryError } from '@itadaki/catalog/application';
-import { type ImageEditParams, type ImageSet } from '@itadaki/catalog/domain';
+import { type ImageSet } from '@itadaki/catalog/domain';
 import { type Result, err, ok } from '@itadaki/shared/domain';
 import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -143,7 +143,6 @@ export class SharpImageRenderer implements ImageRenderer {
 
   async render(
     original: Buffer,
-    params: ImageEditParams,
     imageId: string,
     tenantId: string,
   ): Promise<Result<ImageSet, RepositoryError>> {
@@ -152,7 +151,7 @@ export class SharpImageRenderer implements ImageRenderer {
       // and the remaining metadata (GPS, device) never reaches disk.
       const clean = await sharp(original).rotate().toBuffer();
 
-      const rendered = await renderImageSet(clean, params);
+      const rendered = await renderImageSet(clean);
 
       // Same key shape the store reads back from, so disk and bucket agree.
       await Promise.all(

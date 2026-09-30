@@ -2081,11 +2081,14 @@
 
 .elegir-nombre { white-space: nowrap; }
 
-/* Sacar un plato es raro al lado de corregirle el precio: se apaga hasta que
-   alguien lo busca, para que no compita con lo de todos los días. */
+/* Eliminar un plato es raro al lado de corregirle el precio, así que no se
+   pinta como acción principal. Pero sin borde no se leía como botón: quedaba
+   un texto gris al costado del que guarda, y el que lo buscaba no lo
+   encontraba. El borde lo hace tocable a la vista; el rojo sigue apareciendo
+   recién en el hover. */
 .borrar {
   padding: 0.6rem 1rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--itadaki-border);
   border-radius: var(--itadaki-radius-action);
   background: transparent;
   color: var(--itadaki-ink-subtle);

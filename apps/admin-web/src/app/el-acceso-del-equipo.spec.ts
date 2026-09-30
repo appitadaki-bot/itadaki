@@ -107,6 +107,50 @@ describe('los datos de acceso se ven', () => {
     expect(PANEL).not.toContain('`Entrá por acá: ${this.linkDelLocal()}`');
   });
 
+  it('el bloque de arriba tampoco reparte la dirección del panel', () => {
+    // Ahí el dueño va a buscar el link cuando alguien lo pierde: si es el del
+    // admin, se lo pasa al mozo igual y el mozo no entra.
+    expect(PANEL).not.toContain('linkDelLocal');
+    expect(PANEL).toContain('linksDelEquipo');
+  });
+
+  it('hay un link por app y no uno por persona', () => {
+    // Seis mozos comparten el mismo: repetirlo seis veces no es una lista,
+    // es ruido.
+    expect(PANEL).toContain('const porApp = new Map<string, { para: string; url: string }>();');
+  });
+});
+
+/**
+ * Lo mismo que hace el panel con el mail de cada uno.
+ *
+ * El personal no tiene casilla: la columna es única en toda la base, así que
+ * se le guarda una dirección interna derivada del usuario.
+ */
+function identidad(email: string): string {
+  if (!email.endsWith('@sin-mail.itadaki')) return email;
+  return email.split('@')[0]?.split('+')[0] ?? email;
+}
+
+describe('en la lista se ve el usuario, no un mail que no existe', () => {
+  it('del personal se muestra sólo el usuario', () => {
+    expect(identidad('cajera@sin-mail.itadaki')).toBe('cajera');
+  });
+
+  it('y el mismo usuario aunque trabaje en varios locales', () => {
+    // La segunda fila lleva el local pegado para que el mail no se repita.
+    expect(identidad('roberto+taco-box@sin-mail.itadaki')).toBe('roberto');
+  });
+
+  it('del dueño se muestra su mail, que es real', () => {
+    // Es con el que entra: esconderlo sería esconder el dato que sí sirve.
+    expect(identidad('lucia@gmail.com')).toBe('lucia@gmail.com');
+  });
+
+  it('la lista no imprime el mail crudo', () => {
+    expect(PANEL).toContain('{{ identidad(member.email) }}');
+  });
+
   it('la página de atrás no se mueve mientras hay una ventana', () => {
     expect(PANEL).toContain("document.body.style.overflow = this.hayVentana() ? 'hidden' : '';");
   });

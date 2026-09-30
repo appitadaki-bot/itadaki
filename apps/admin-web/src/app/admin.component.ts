@@ -7,9 +7,7 @@ import {
   effect,
   inject,
   signal,
-  type WritableSignal,
 } from '@angular/core';
-import { type ImageEditParams } from '@itadaki/catalog/domain';
 import { ImageEditorComponent } from '@itadaki/shared/ui-image-editor';
 import { moverEnLista } from './mover-en-lista';
 import { AuthStore, LoginComponent } from '@itadaki/shared/ui-auth';
@@ -806,16 +804,22 @@ const ROLE_NAMES: Record<string, string> = {
           <details class="details manage-staff" open>
             <summary>Ver el equipo</summary>
 
-            <!-- El link con el que entra el personal. Va acá y también junto a
-                 cada PIN recién generado: acá para cuando alguien lo pierda,
-                 y allá para mandar los tres datos de una. -->
-            <div class="link-del-local">
-              <p class="link-titulo">Por acá entra tu equipo</p>
-              <p class="link-valor">{{ linkDelLocal() }}</p>
-              <button type="button" class="secondary" (click)="copiarLink()">
-                {{ copiadoLink() ? 'Copiado ✓' : 'Copiar el link' }}
-              </button>
-            </div>
+            <!-- Los links con los que entra el personal. Van acá y también junto
+                 a cada PIN recién generado: acá para cuando alguien lo pierda,
+                 y allá para mandar los tres datos de una.
+
+                 Uno por app y no uno solo: el que estaba salía del panel, así
+                 que el dueño le pasaba al mozo la dirección del admin, donde
+                 su usuario no entra. -->
+            @for (link of linksDelEquipo(); track link.para) {
+              <div class="link-del-local">
+                <p class="link-titulo">{{ link.para }}</p>
+                <p class="link-valor">{{ link.url }}</p>
+                <button type="button" class="secondary" (click)="copiarLink(link.url)">
+                  {{ copiadoLink() === link.url ? 'Copiado ✓' : 'Copiar el link' }}
+                </button>
+              </div>
+            }
 
             <div class="staff-list">
               @for (member of staff(); track member.id) {
@@ -823,7 +827,7 @@ const ROLE_NAMES: Record<string, string> = {
                   <div class="staff-info">
                     <span class="staff-name">{{ member.displayName }}</span>
                     <span class="staff-meta">
-                      {{ roleName(member.role) }} · {{ member.email }}
+                      {{ roleName(member.role) }} · {{ identidad(member.email) }}
                     </span>
                   </div>
                   @if (member.id === auth.profile()?.id) {
@@ -1222,8 +1226,8 @@ const ROLE_NAMES: Record<string, string> = {
           <!--
             Una instancia por plato, no una reutilizada.
             Angular conserva el componente al cambiar de plato, así que la foto
-            recién subida y su recorte quedaban colgados del siguiente: se abría
-            la "Provoleta" y se veía el bife. Con el id en el @if, el editor se
+            recién subida quedaba colgada del siguiente: se abría la
+            "Provoleta" y se veía el bife. Con el id en el @if, el editor se
             destruye y nace limpio.
           -->
           <!-- El editor y su cortina de carga, juntos: la cortina se pone
@@ -1344,10 +1348,11 @@ const ROLE_NAMES: Record<string, string> = {
 
           <div class="sheet-actions">
           <button type="submit" class="create">Guardar cambios</button>
-          <!-- Apagado hasta que se lo busca: sacar un plato es raro al lado de
-               corregirle el precio, que es lo de todos los días. -->
+          <!-- Apagado hasta que se lo busca: eliminar un plato es raro al lado
+               de corregirle el precio, que es lo de todos los días. Apagado,
+               pero con borde: sin él no se leía como botón. -->
           <button type="button" class="borrar" (click)="borrarPlato(dish)">
-          Sacar de la carta
+          Eliminar de la carta
           </button>
           </div>
           </form>
@@ -2167,11 +2172,11 @@ export class AdminComponent {
     this.editError.set(null);
 
     const ok = await this.preguntar({
-      titulo: `Borrar ${dish.name}`,
+      titulo: `Eliminar ${dish.name}`,
       detalle:
         'Se va con su foto y sus opciones. Si sólo se te acabó, marcalo sin stock ' +
         'y desaparece de la carta sin perder nada.',
-      accion: 'Borrar el plato',
+      accion: 'Eliminar el plato',
       peligro: true,
     });
     if (!ok) return;
@@ -3042,7 +3047,8 @@ export class AdminComponent {
    * no tiene permiso al portapapeles.
    */
   protected readonly entregado = signal(false);
-  protected readonly copiadoLink = signal(false);
+  /** Cuál de los links se acaba de copiar, para avisar en ese botón y no en todos. */
+  protected readonly copiadoLink = signal<string | null>(null);
 
   /**
    * Por dónde entra el personal.
@@ -3062,17 +3068,8 @@ export class AdminComponent {
    * y así no hay que configurar cuatro direcciones a mano.
    */
   private appDe(role: string): string {
-    const subdominio: Record<string, string> = {
-      KITCHEN: 'cocina',
-      WAITER: 'salon',
-      // La caja trabaja sobre el mismo tablero que el mozo.
-      CAJA: 'salon',
-      MANAGER: 'admin',
-      OWNER: 'admin',
-    };
-
     const origen = globalThis.location.origin;
-    const cual = subdominio[role] ?? 'admin';
+    const cual = this.subdominioDe(role);
 
     // Sólo si el panel vive en un subdominio: en localhost cada app tiene su
     // puerto, y ahí el link del panel es lo mejor que se puede dar.
@@ -3081,16 +3078,67 @@ export class AdminComponent {
       : origen;
   }
 
+  /** En qué app trabaja ese puesto. */
+  private subdominioDe(role: string): string {
+    const subdominio: Record<string, string> = {
+      KITCHEN: 'cocina',
+      WAITER: 'salon',
+      // La caja trabaja sobre el mismo tablero que el mozo.
+      CAJA: 'salon',
+      MANAGER: 'admin',
+      OWNER: 'admin',
+    };
+    return subdominio[role] ?? 'admin';
+  }
+
   /** El link para el equipo, según dónde trabaja cada uno. */
   protected linkPara(role: string): string {
     const slug = this.auth.profile()?.tenantId ?? '';
     return `${this.appDe(role)}/${slug}`;
   }
 
-  protected readonly linkDelLocal = computed(() => {
-    const slug = this.auth.profile()?.tenantId ?? '';
-    return `${globalThis.location.origin}/${slug}`;
+  /**
+   * Los links que hay que repartir, uno por app.
+   *
+   * Era uno solo y salía de `location.origin`, que es el panel: el dueño le
+   * pasaba al mozo la dirección del admin y el mozo no podía entrar. Sale de
+   * los puestos que el local tiene de verdad, así nadie copia un link que no
+   * le sirve a nadie.
+   */
+  protected readonly linksDelEquipo = computed(() => {
+    const yo = this.auth.profile()?.id;
+    const titulo: Record<string, string> = {
+      admin: 'Por acá entran los encargados',
+      salon: 'Por acá entran los mozos y la caja',
+      cocina: 'Por acá entra la cocina',
+    };
+
+    // Por app y no por persona: seis mozos comparten el mismo link.
+    const porApp = new Map<string, { para: string; url: string }>();
+    for (const member of this.staff()) {
+      if (member.id === yo) continue;
+      const app = this.subdominioDe(member.role);
+      porApp.set(app, {
+        para: titulo[app] ?? 'Por acá entra tu equipo',
+        url: this.linkPara(member.role),
+      });
+    }
+    return [...porApp.values()];
   });
+
+  /**
+   * Cómo se identifica cada persona en la lista.
+   *
+   * El personal entra con usuario y PIN: el mail que tiene guardado es interno
+   * e inventado —existe sólo porque la columna es única— y mostrarlo hacía
+   * creer que hay una casilla a la que escribirle. Del dueño sí se muestra:
+   * ese es real y es con el que entra.
+   */
+  protected identidad(email: string): string {
+    if (!email.endsWith('@sin-mail.itadaki')) return email;
+    // `usuario@…` o `usuario+local@…`: el usuario es lo de adelante.
+    return email.split('@')[0]?.split('+')[0] ?? email;
+  }
 
   protected async generarPin(member: {
     id: string;
@@ -3132,7 +3180,7 @@ export class AdminComponent {
 
     // Copiar cuenta como haberlos entregado: es el camino normal, y pedir
     // además la tilde sería hacer dos veces lo mismo.
-    if (await this.alPortapapeles(texto, this.copiado)) {
+    if (await this.alPortapapeles(texto, (copio) => this.copiado.set(copio))) {
       this.entregado.set(true);
     }
   }
@@ -3142,8 +3190,8 @@ export class AdminComponent {
     return nombre.split(' ')[0] ?? nombre;
   }
 
-  protected async copiarLink(): Promise<void> {
-    await this.alPortapapeles(this.linkDelLocal(), this.copiadoLink);
+  protected async copiarLink(url: string): Promise<void> {
+    await this.alPortapapeles(url, (copio) => this.copiadoLink.set(copio ? url : null));
   }
 
   /**
@@ -3152,11 +3200,11 @@ export class AdminComponent {
    * Sin el aviso nadie sabe si funcionó, y termina copiando tres veces por las
    * dudas. Vuelve solo a los dos segundos.
    */
-  private async alPortapapeles(texto: string, marca: WritableSignal<boolean>): Promise<boolean> {
+  private async alPortapapeles(texto: string, marca: (copio: boolean) => void): Promise<boolean> {
     try {
       await navigator.clipboard.writeText(texto);
-      marca.set(true);
-      setTimeout(() => marca.set(false), 2000);
+      marca(true);
+      setTimeout(() => marca(false), 2000);
       return true;
     } catch {
       // Sin permiso al portapapeles, el texto está a la vista para copiarlo
@@ -3333,8 +3381,10 @@ export class AdminComponent {
       }
       case 'EMPTY_FILE':
         return 'ese archivo está vacío';
-      case 'INVALID_PARAMS':
-        return 'el recorte quedó fuera de la foto — probá con Restablecer';
+      case 'SIN_CONEXION':
+        // El servidor se duerme a los quince minutos sin tráfico y tarda
+        // cerca de un minuto en despertar: el segundo intento suele entrar.
+        return 'no pudimos conectarnos con el servidor — esperá un momento y probá de nuevo';
       default:
         // Lo que haya dicho el servidor, tal cual: es más útil que "algo
         // salió mal", aunque no esté escrito para el dueño del local.
@@ -3342,8 +3392,8 @@ export class AdminComponent {
     }
   }
 
-  /** Sends the original plus the parameters — never a rasterised canvas. */
-  protected async upload(event: { params: ImageEditParams; file: File | null }): Promise<void> {
+  /** Manda el archivo original, nunca un canvas rasterizado. */
+  protected async upload(event: { file: File }): Promise<void> {
     const productId = this.selected();
     if (productId === null) return;
 
@@ -3356,22 +3406,7 @@ export class AdminComponent {
     try {
       const alt = this.products().find((p) => p.id === productId)?.name ?? '';
 
-      /*
-       * Sin archivo nuevo, se reencuadra la que ya está.
-       *
-       * El original vive en el servidor: mandarlo de nuevo para mover el
-       * recorte sería subir varios megas por un cambio de coordenadas, y el
-       * dueño no tiene el archivo a mano —lo subió la semana pasada desde otro
-       * teléfono—, así que exigirlo era pedirle algo que no puede dar.
-       */
-      const response =
-        event.file === null
-          ? await this.auth.apiFetch(`${API}/images/${productId}/reedit`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
-              body: JSON.stringify({ alt, params: event.params }),
-            })
-          : await this.subirElOriginal(productId, alt, event.file, event.params);
+      const response = await this.subirElOriginal(productId, alt, event.file);
 
       if (!response.ok) {
         const detail = (await response.json().catch(() => null)) as {
@@ -3404,24 +3439,26 @@ export class AdminComponent {
 
       // Re-read the menu so the list on the left shows the new thumbnail.
       await this.load();
+    } catch {
+      // Lo que estalle antes de tener una respuesta —leer el archivo del
+      // disco, quedarse corto de memoria al codificarlo— también tiene que
+      // decirlo. Callarse es lo que hacía que una foto que no entró pareciera
+      // cargada: el editor seguía mostrándola y no había ningún aviso.
+      this.status.set('error: no pudimos subir la foto — probá de nuevo');
     } finally {
       this.subiendo.set(false);
     }
   }
 
   /**
-   * Manda el original y sus parámetros de recorte.
+   * Manda el original.
    *
-   * El archivo tal cual lo eligió el dueño, nunca el canvas rasterizado: el
-   * servidor tiene que poder volver a renderizar desde el original cuando se
-   * cambie el encuadre, y una copia ya recortada perdería lo que quedó afuera.
+   * El archivo tal cual lo eligió el dueño, nunca un canvas rasterizado: el
+   * servidor guarda el original para poder volver a generar las variantes sin
+   * pedirle la foto de nuevo, y una copia ya procesada por el navegador
+   * llegaría con menos calidad de la que se subió.
    */
-  private async subirElOriginal(
-    productId: string,
-    alt: string,
-    file: File,
-    params: ImageEditParams,
-  ): Promise<Response> {
+  private async subirElOriginal(productId: string, alt: string, file: File): Promise<Response> {
     const buffer = await file.arrayBuffer();
     const bytes = new Uint8Array(buffer);
     let binary = '';
@@ -3430,7 +3467,7 @@ export class AdminComponent {
     return this.auth.apiFetch(`${API}/images`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
-      body: JSON.stringify({ imageId: productId, alt, data: btoa(binary), params }),
+      body: JSON.stringify({ imageId: productId, alt, data: btoa(binary) }),
     });
   }
 

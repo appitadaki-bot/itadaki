@@ -1,13 +1,12 @@
-import { type ImageEditParams, type ImageSet } from '@itadaki/catalog/domain';
+import { type ImageSet } from '@itadaki/catalog/domain';
 import { type Result } from '@itadaki/shared/domain';
 import { type RepositoryError } from './ports';
 
-/** One stored image: the untouched original plus the params last applied. */
+/** One stored image: the untouched original plus what was rendered from it. */
 export interface StoredImage {
   readonly id: string;
   readonly tenantId: string;
   readonly originalPath: string;
-  readonly params: ImageEditParams;
   readonly imageSet: ImageSet;
   readonly alt: string;
 }
@@ -34,12 +33,7 @@ export interface ImageWriter {
 
 /** Renders the derivative set. Kept behind a port so sharp stays in infra. */
 export interface ImageRenderer {
-  render(
-    original: Buffer,
-    params: ImageEditParams,
-    imageId: string,
-    tenantId: string,
-  ): Promise<Result<ImageSet, RepositoryError>>;
+  render(original: Buffer, imageId: string, tenantId: string): Promise<Result<ImageSet, RepositoryError>>;
 
   /**
    * Deja el original en algo que se pueda guardar sin remordimiento.

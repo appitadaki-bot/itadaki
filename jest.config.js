@@ -23,6 +23,6 @@ module.exports = {
     '^@itadaki/billing/infra$': '<rootDir>/libs/billing/infra/src/index.ts',
   },
   transform: {
-    '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.base.json' }],
+    '^.+\\.ts$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
   },
 };

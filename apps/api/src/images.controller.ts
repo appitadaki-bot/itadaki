@@ -15,14 +15,6 @@ import { z } from 'zod';
 import { Public, RequirePermission, TenantId } from './auth';
 import { ImagesService } from './images.service';
 
-const editParamsSchema = z.object({
-  crop: z.object({
-    x: z.number().min(0).max(1),
-    y: z.number().min(0).max(1),
-    size: z.number().gt(0).max(1),
-  }),
-});
-
 /**
  * El id que elige el cliente termina concatenado en la clave del archivo
  * (`tenant/imageId/original`), así que un `../` lo saca de la carpeta del
@@ -37,12 +29,10 @@ const uploadSchema = z.object({
   alt: z.string().max(200).default(''),
   /** Base64 payload; the real type is checked against magic bytes, not this. */
   data: z.string().min(1),
-  params: editParamsSchema,
 });
 
 const reeditSchema = z.object({
   alt: z.string().max(200).optional(),
-  params: editParamsSchema,
 });
 
 /**
@@ -81,14 +71,13 @@ export class ImagesController {
       tenantId: tenantId,
       imageId: parsed.data.imageId,
       original: buffer,
-      params: parsed.data.params,
       alt: parsed.data.alt,
     });
 
     if (result.isErr()) {
       throw new HttpException(result.error, HttpStatus.UNPROCESSABLE_ENTITY);
     }
-    return { id: result.value.id, imageSet: result.value.imageSet, params: result.value.params };
+    return { id: result.value.id, imageSet: result.value.imageSet };
   }
 
   /** Re-renders from the stored original: no re-upload, no generational loss. */
@@ -111,7 +100,6 @@ export class ImagesController {
     const result = await run({
       tenantId: tenantId,
       imageId,
-      params: parsed.data.params,
       ...(parsed.data.alt === undefined ? {} : { alt: parsed.data.alt }),
     });
 
@@ -119,7 +107,7 @@ export class ImagesController {
       const status = result.error.kind === 'NOT_FOUND' ? HttpStatus.NOT_FOUND : HttpStatus.UNPROCESSABLE_ENTITY;
       throw new HttpException(result.error, status);
     }
-    return { id: result.value.id, imageSet: result.value.imageSet, params: result.value.params };
+    return { id: result.value.id, imageSet: result.value.imageSet };
   }
 
   @RequirePermission('menu:read')
@@ -129,7 +117,7 @@ export class ImagesController {
     if (found.isErr()) {
       throw new HttpException(found.error, HttpStatus.NOT_FOUND);
     }
-    return { id: found.value.id, imageSet: found.value.imageSet, params: found.value.params };
+    return { id: found.value.id, imageSet: found.value.imageSet };
   }
 
   /** Serves a rendered variant straight from the store. */

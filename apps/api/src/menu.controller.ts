@@ -5,7 +5,6 @@ import {
   MAX_DESCRIPTION,
   MAX_DISHES,
   MAX_NAME,
-  defaultCrop,
   htmlToMenuText,
 } from '@itadaki/catalog/domain';
 import {
@@ -829,8 +828,7 @@ export class MenuController {
    * Baja la foto del plato y la guarda con el id del producto.
    *
    * Ese id compartido es lo que las une: no hay campo que apuntar, el producto
-   * y su imagen se llaman igual. El encuadre es la foto entera — recortarla
-   * sin verla sería adivinar — y desde el editor se ajusta después.
+   * y su imagen se llaman igual. Entra entera, igual que una subida a mano.
    */
   private async attachPhoto(
     tenantId: string,
@@ -849,7 +847,6 @@ export class MenuController {
       tenantId,
       imageId: productId,
       original: downloaded.bytes,
-      params: { crop: defaultCrop() },
       alt,
     });
 
