@@ -122,3 +122,29 @@ describe('la espera se ve, no sólo se lee', () => {
     expect(PLANTILLA).toContain('.slice(0, CUANTAS_CRITICAS)');
   });
 });
+
+/**
+ * El pedido de la mesa se lee entero.
+ *
+ * La línea de "En cocina" se cortaba con puntos suspensivos: con tres platos
+ * el tercero no se veía, y los puntitos no eran un botón — no había forma de
+ * abrir el resto ni de sacar un plato que quedaba escondido.
+ */
+describe('lo que está en cocina se ve completo', () => {
+  const ESTILOS = readFileSync(join(__dirname, 'floor.component.css'), 'utf-8');
+
+  it('la línea de platos no se trunca', () => {
+    const regla = ESTILOS.slice(ESTILOS.indexOf('.fila-texto {'));
+    const cuerpo = regla.slice(0, regla.indexOf('}'));
+
+    expect(cuerpo).not.toContain('text-overflow: ellipsis');
+    expect(cuerpo).not.toContain('white-space: nowrap');
+    expect(cuerpo).toContain('flex-wrap: wrap');
+  });
+
+  it('el plato y su botón no se separan al cortar el renglón', () => {
+    // "Sacar" solo al principio de una línea no dice de qué plato habla.
+    const regla = ESTILOS.slice(ESTILOS.indexOf('.en-cocina {'));
+    expect(regla.slice(0, regla.indexOf('}'))).toContain('white-space: nowrap');
+  });
+});
