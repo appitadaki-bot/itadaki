@@ -17,10 +17,18 @@ export function uploadImage(deps: {
   renderer: ImageRenderer;
 }) {
   return async (command: UploadImageCommand): Promise<Result<StoredImage, ImageEditFailure>> => {
-    // Se guarda achicado: el original existe para reeditar el encuadre, no
-    // para servirse, y los doce megapíxeles de un teléfono no los descarga
-    // nadie nunca. Se renderiza desde el que subieron, que todavía está entero
-    // en memoria, así que esta primera vez no pierde nada.
+    /*
+     * Se guarda achicado: el original existe para volver a renderizar, no
+     * para servirse, y los doce megapíxeles de un teléfono no los descarga
+     * nadie nunca.
+     *
+     * Y se renderiza desde ese mismo achicado, no desde el que subieron. La
+     * variante más grande mide 1200 y el achicado 2560, así que no se ve
+     * ninguna diferencia; lo que cambia es cuánta memoria pide procesarlo. El
+     * servidor tiene 512 MB para todo y decodificar una foto de teléfono
+     * entera es de lo más caro que hace: si se queda sin memoria, el proceso
+     * muere y se lleva puesta la subida —y a quien estuviera pidiendo—.
+     */
     const paraGuardar = await deps.renderer.shrinkOriginal(command.original);
 
     const stored = await deps.images.saveOriginal(command.tenantId, command.imageId, paraGuardar);
@@ -28,11 +36,7 @@ export function uploadImage(deps: {
       return err(stored.error);
     }
 
-    const rendered = await deps.renderer.render(
-      command.original,
-      command.imageId,
-      command.tenantId,
-    );
+    const rendered = await deps.renderer.render(paraGuardar, command.imageId, command.tenantId);
     if (rendered.isErr()) {
       return err(rendered.error);
     }

@@ -17,6 +17,21 @@ export interface RenderedImage {
   readonly lqip: string;
 }
 
+/*
+ * Cuánta memoria se le deja tomar a libvips.
+ *
+ * Por defecto cachea lo que ya decodificó y reparte cada operación entre
+ * tantos hilos como núcleos tenga la máquina, cada uno con su copia. Eso está
+ * pensado para un servidor de imágenes; acá la API entera vive en 512 MB y
+ * quedarse sin memoria no degrada nada: mata el proceso, y con él la subida y
+ * cualquier pedido que estuviera en curso.
+ *
+ * Una foto por vez tarda un poco más y no se nota: subir la foto de un plato
+ * es algo que pasa mientras se carga la carta, no en el medio del servicio.
+ */
+sharp.cache({ memory: 48 });
+sharp.concurrency(1);
+
 const MIME_BY_FORMAT: Record<(typeof VARIANT_FORMATS)[number], string> = {
   avif: 'image/avif',
   webp: 'image/webp',

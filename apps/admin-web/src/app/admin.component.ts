@@ -3381,6 +3381,10 @@ export class AdminComponent {
       }
       case 'EMPTY_FILE':
         return 'ese archivo está vacío';
+      case 'SIN_CONEXION':
+        // El servidor se duerme a los quince minutos sin tráfico y tarda
+        // cerca de un minuto en despertar: el segundo intento suele entrar.
+        return 'no pudimos conectarnos con el servidor — esperá un momento y probá de nuevo';
       default:
         // Lo que haya dicho el servidor, tal cual: es más útil que "algo
         // salió mal", aunque no esté escrito para el dueño del local.
@@ -3435,6 +3439,12 @@ export class AdminComponent {
 
       // Re-read the menu so the list on the left shows the new thumbnail.
       await this.load();
+    } catch {
+      // Lo que estalle antes de tener una respuesta —leer el archivo del
+      // disco, quedarse corto de memoria al codificarlo— también tiene que
+      // decirlo. Callarse es lo que hacía que una foto que no entró pareciera
+      // cargada: el editor seguía mostrándola y no había ningún aviso.
+      this.status.set('error: no pudimos subir la foto — probá de nuevo');
     } finally {
       this.subiendo.set(false);
     }

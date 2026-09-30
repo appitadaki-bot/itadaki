@@ -1,4 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
+import { respuestaSinConexion } from './sin-conexion';
 
 export interface StaffProfile {
   readonly id: string;
@@ -598,10 +599,19 @@ export class AuthStore {
    * become the login screen.
    */
   async apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
-    const response = await fetch(url, {
-      ...init,
-      headers: { ...this.headers(), ...(init.headers ?? {}) },
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        ...init,
+        headers: { ...this.headers(), ...(init.headers ?? {}) },
+      });
+    } catch {
+      // Sin red, `fetch` no devuelve: tira. Se contesta como contestaría el
+      // servidor si pudiera. Pasa seguido porque se duerme a los quince
+      // minutos sin tráfico y el primero que vuelve espera a que despierte.
+      return respuestaSinConexion();
+    }
+
     this.expired(response);
     return response;
   }

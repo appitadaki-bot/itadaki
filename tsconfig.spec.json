@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    /*
+     * Los tests corren en node, pero prueban código que vive en el navegador:
+     * el store de sesión, los componentes. Sin `DOM` en `lib`, `fetch`,
+     * `Response` o `location` no existen para el compilador y ese código no se
+     * puede probar de otra forma que leyéndolo como texto.
+     *
+     * Va acá y no en el tsconfig base: al servidor no le sirve tener a mano
+     * los tipos del navegador — ahí confundirse de ambiente es un error que
+     * conviene que siga marcando.
+     */
+    "lib": ["ES2022", "DOM"]
+  }
+}
