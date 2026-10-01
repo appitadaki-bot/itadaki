@@ -24,6 +24,9 @@
   --panel-hundido: oklch(98% 0.002 250);
   --linea: oklch(91% 0.004 250);
   --linea-suave: oklch(94.5% 0.003 250);
+  /* Entre una mesa y la siguiente: con la línea suave no se veía dónde
+     terminaba una fila de varios renglones. */
+  --separador: oklch(87% 0.005 250);
 
   --texto: oklch(25% 0.008 250);
   --texto-medio: oklch(46% 0.008 250);
@@ -474,8 +477,8 @@
    */
   .carriles:has(> .carril:only-child) .ficha {
     border-bottom: none;
-    border-right: 1px solid var(--linea-suave);
-    border-top: 1px solid var(--linea-suave);
+    border-right: 2px solid var(--separador);
+    border-top: 2px solid var(--separador);
   }
 
   /* El panel de cobro cruza su celda, no la grilla entera. */
@@ -690,7 +693,7 @@
   align-items: center;
   gap: 0.75rem;
   padding: 0.7rem 0.9rem;
-  border-bottom: 1px solid var(--linea-suave);
+  border-bottom: 2px solid var(--separador);
   transition: background var(--itadaki-quick) var(--itadaki-ease);
 }
 
@@ -1249,7 +1252,7 @@
   align-items: flex-start;
   gap: 0.6rem;
   padding: 0.5rem 0.9rem;
-  border-bottom: 1px solid var(--linea-suave);
+  border-bottom: 2px solid var(--separador);
 }
 
 /* La lista de mesas es de un renglón: ahí todo va al medio de la fila. */
