@@ -901,8 +901,20 @@ strong { color: var(--tinta); font-weight: 700; }
   flex-direction: column;
 }
 
+/*
+ * La chapa, despegada del título.
+ *
+ * Trae `margin-bottom` de `.chapa`, pero `.tarjeta p { margin: 0 }` es más
+ * específico y se lo come: la chapa es un `<p>` adentro de una tarjeta. El
+ * título tampoco tiene margen arriba, así que los dos quedaban pegados y la
+ * chapa se leía como la primera línea del título en vez de como su etiqueta.
+ *
+ * Va acá y no bajándole la especificidad a la otra regla: ese `margin: 0` es
+ * el que mantiene juntos los párrafos del cuerpo de todas las tarjetas.
+ */
 .servicio .chapa {
   align-self: flex-start;
+  margin-bottom: 0.85rem;
 }
 
 .servicio h3 {
