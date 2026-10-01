@@ -20,9 +20,9 @@ const LANDING = readFileSync(
 );
 
 /** El precio que se cobra hoy, y el de lista. */
-const PRECIO = '40.000';
-const PRECIO_SIN_PUNTO = '40000';
-const PRECIO_DE_LISTA = '80.000';
+const PRECIO = '12.999';
+const PRECIO_SIN_PUNTO = '12999';
+const PRECIO_DE_LISTA = '40.000';
 
 describe('el precio del plan', () => {
   it('es el mismo en la tarjeta', () => {
@@ -43,8 +43,13 @@ describe('el precio del plan', () => {
   });
 
   it('no quedó ninguna mención del anterior', () => {
-    expect(LANDING).not.toContain('35.000');
-    expect(LANDING).not.toContain('"35000"');
+    // El que se cobraba antes pasó a ser el de lista, así que sólo puede
+    // aparecer tachado: si quedó suelto en algún lado, la página ofrece dos
+    // precios distintos y el cliente elige el que leyó primero.
+    expect(LANDING).not.toContain('"40000"');
+    expect(LANDING).not.toContain('abono mensual fijo de $40.000');
+    expect(LANDING).not.toContain('plan-cifra">40.000');
+    expect(LANDING).not.toContain('80.000');
   });
 });
 
@@ -70,7 +75,7 @@ describe('el precio de lanzamiento', () => {
 
   it('el precio que se paga va primero', () => {
     // Lo primero que se lee tiene que ser lo que cuesta hoy, no el tachado.
-    expect(LANDING.indexOf('plan-cifra">40.000')).toBeLessThan(
+    expect(LANDING.indexOf(`plan-cifra">${PRECIO}`)).toBeLessThan(
       LANDING.indexOf('plan-antes'),
     );
   });
