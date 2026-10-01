@@ -121,6 +121,13 @@ describe('la consulta que busca las tablas sin aislar', () => {
     // rompería el arranque en producción por un motivo que no es tal.
     expect(FUENTE).toContain("'password_resets'");
     expect(FUENTE).toContain("'billing_events'");
+
+    // Y `demos`, por lo mismo: sus dos preguntas son sobre todos los
+    // restaurantes de prueba a la vez —cuántos viven, cuáles vencieron— y con
+    // el candado puesto una consulta sin restaurante en el alcance no
+    // devuelve nada. Esto costó un deploy fallido: la tabla nació en la 045,
+    // el arranque la encontró sin candado y se negó a levantar.
+    expect(FUENTE).toContain("'demos'");
   });
 });
 
