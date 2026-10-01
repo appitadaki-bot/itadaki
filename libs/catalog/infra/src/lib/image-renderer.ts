@@ -7,7 +7,7 @@ import {
   VARIANT_WIDTHS,
   recorteEnPixeles,
 } from '@itadaki/catalog/domain';
-import sharp from 'sharp';
+import sharp, { type OutputInfo, type Sharp } from 'sharp';
 
 export interface RenderedVariant {
   readonly width: number;
@@ -35,22 +35,14 @@ export interface RenderedImage {
 sharp.cache({ memory: 48 });
 sharp.concurrency(1);
 
-/**
- * Cuánto se esfuerza el encoder de AVIF.
+/*
+ * El tipo de archivo de cada variante.
  *
- * Es de lejos lo más caro de toda la subida: con el valor de fábrica —4— la
- * variante de 1200 tardaba entre 200 ms y 1,6 s según cuánto detalle tuviera
- * la foto, más que todo el resto del trabajo junto. En 2 baja a 85–140 ms y
- * el archivo crece unos pocos kilobytes, con AVIF todavía bastante más chico
- * que el WebP del mismo cuadro.
- *
- * Medido en una máquina de escritorio; el servidor tiene una décima de
- * procesador, así que allá esa diferencia se multiplica y es la que el dueño
- * espera mirando la pantalla.
+ * `avif` ya no se genera —se explica en `VARIANT_FORMATS`— pero se sigue
+ * sirviendo: las fotos cargadas antes tienen sus archivos en el bucket y sus
+ * URLs guardadas en la base.
  */
-const AVIF_EFFORT = 2;
-
-const MIME_BY_FORMAT: Record<(typeof VARIANT_FORMATS)[number], string> = {
+const MIME_BY_FORMAT: Record<string, string> = {
   avif: 'image/avif',
   webp: 'image/webp',
   jpeg: 'image/jpeg',
@@ -83,7 +75,11 @@ const RELLENO = { r: 252, g: 244, b: 230, alpha: 1 };
  * Se renderiza en el servidor desde el original, nunca desde un canvas del
  * navegador: así la foto guardada conserva su calidad.
  */
-async function renderMaster(original: Buffer, size: number, encuadre: Encuadre): Promise<Buffer> {
+async function renderMaster(
+  original: Buffer,
+  size: number,
+  encuadre: Encuadre,
+): Promise<{ data: Buffer; info: OutputInfo }> {
   const metadata = await sharp(original).metadata();
   const width = metadata.width ?? 0;
   const height = metadata.height ?? 0;
@@ -93,31 +89,52 @@ async function renderMaster(original: Buffer, size: number, encuadre: Encuadre):
 
   const recorte = recorteEnPixeles(encuadre, width, height);
 
-  // Lo que el cuadrado se pasa de cada borde. Se agrega primero, para que el
-  // recorte de después caiga siempre adentro de una imagen que ya existe.
-  const margen = {
-    left: Math.max(0, -recorte.left),
-    top: Math.max(0, -recorte.top),
-    right: Math.max(0, recorte.left + recorte.lado - width),
-    bottom: Math.max(0, recorte.top + recorte.lado - height),
+  /*
+   * Primero el pedazo que existe, después el relleno de lo que falta.
+   *
+   * El orden importa y no es el que uno escribe: sharp aplica el recorte
+   * antes que el agregado de bordes, en la tubería, sin importar en qué orden
+   * se los pida. Pedirle "agregá borde y después recortá" lo hacía recortar
+   * la foto original —el cuadrado se le iba afuera— y fallaba con
+   * `bad extract area`.
+   *
+   * Así que se recorta lo que cae adentro de la foto, se lo lleva a la
+   * proporción que le toca dentro del cuadrado final, y lo que sobraba por
+   * cada borde se agrega como relleno ya en píxeles de salida. Una sola
+   * tubería: materializar el extendido en un PNG para volver a abrirlo
+   * costaba una decodificación y una codificación de una imagen grande
+   * —cuatro segundos y medio, medido contra el servidor—.
+   */
+  const dentro = {
+    left: Math.max(0, recorte.left),
+    top: Math.max(0, recorte.top),
+    right: Math.min(width, recorte.left + recorte.lado),
+    bottom: Math.min(height, recorte.top + recorte.lado),
   };
 
-  const hayMargen = margen.left + margen.top + margen.right + margen.bottom > 0;
-  const base = hayMargen
-    ? sharp(await sharp(original).extend({ ...margen, background: RELLENO }).png().toBuffer())
-    : sharp(original);
+  const anchoDentro = Math.max(1, dentro.right - dentro.left);
+  const altoDentro = Math.max(1, dentro.bottom - dentro.top);
+  const escala = size / recorte.lado;
 
-  return base
-    .extract({
-      left: recorte.left + margen.left,
-      top: recorte.top + margen.top,
-      width: recorte.lado,
-      height: recorte.lado,
+  const anchoSalida = Math.max(1, Math.min(size, Math.round(anchoDentro * escala)));
+  const altoSalida = Math.max(1, Math.min(size, Math.round(altoDentro * escala)));
+
+  const izquierda = Math.max(0, Math.min(size - anchoSalida, Math.round((dentro.left - recorte.left) * escala)));
+  const arriba = Math.max(0, Math.min(size - altoSalida, Math.round((dentro.top - recorte.top) * escala)));
+
+  return sharp(original)
+    .extract({ left: dentro.left, top: dentro.top, width: anchoDentro, height: altoDentro })
+    .resize(anchoSalida, altoSalida, { fit: 'fill' })
+    .extend({
+      left: izquierda,
+      top: arriba,
+      right: size - anchoSalida - izquierda,
+      bottom: size - altoSalida - arriba,
+      background: RELLENO,
     })
-    .resize(size, size, { fit: 'cover' })
     .flatten({ background: RELLENO })
-    .png()
-    .toBuffer();
+    .raw()
+    .toBuffer({ resolveWithObject: true });
 }
 
 /**
@@ -192,25 +209,39 @@ export async function renderImageSet(
   const largest = VARIANT_WIDTHS[0];
   const master = await renderMaster(original, largest, encuadre);
 
+  /*
+   * El maestro viaja en píxeles crudos, no en PNG.
+   *
+   * Cada medida lo volvía a abrir, así que un PNG en el medio son una
+   * codificación y cuatro decodificaciones de una imagen de 1200×1200 que no
+   * sale de la memoria. Crudo pesa más, pero no se guarda ni se manda: se usa
+   * y se tira.
+   */
+  const desdeElMaestro = (datos: { data: Buffer; info: OutputInfo }): Sharp =>
+    sharp(datos.data, {
+      raw: { width: datos.info.width, height: datos.info.height, channels: datos.info.channels },
+    });
+
   const variants: RenderedVariant[] = [];
   for (const width of VARIANT_WIDTHS) {
-    const resized = await sharp(master).resize(width, width, { fit: 'cover' }).png().toBuffer();
+    const resized = await desdeElMaestro(master)
+      .resize(width, width, { fit: 'cover' })
+      .raw()
+      .toBuffer({ resolveWithObject: true });
 
     for (const format of VARIANT_FORMATS) {
-      const encoder = sharp(resized);
+      const encoder = desdeElMaestro(resized);
       const data =
-        format === 'avif'
-          ? await encoder.avif({ quality: 55, effort: AVIF_EFFORT }).toBuffer()
-          : format === 'webp'
-            ? await encoder.webp({ quality: 72 }).toBuffer()
-            : await encoder.jpeg({ quality: 80, mozjpeg: true }).toBuffer();
+        format === 'webp'
+          ? await encoder.webp({ quality: 72 }).toBuffer()
+          : await encoder.jpeg({ quality: 80, mozjpeg: true }).toBuffer();
 
       variants.push({ width, format, data });
     }
   }
 
   // 20px blurred placeholder, inlined so the card reserves space immediately.
-  const lqipBuffer = await sharp(master)
+  const lqipBuffer = await desdeElMaestro(master)
     .resize(20, 20, { fit: 'cover' })
     .blur(1.2)
     .webp({ quality: 40 })
@@ -241,5 +272,5 @@ export function toImageSet(
   };
 }
 
-export const mimeForFormat = (format: (typeof VARIANT_FORMATS)[number]): string =>
-  MIME_BY_FORMAT[format];
+export const mimeForFormat = (format: string): string =>
+  MIME_BY_FORMAT[format] ?? 'application/octet-stream';
