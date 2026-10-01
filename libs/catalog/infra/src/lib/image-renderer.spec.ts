@@ -1,4 +1,4 @@
-import { ENCUADRE_ENTERO, VARIANT_WIDTHS } from '@itadaki/catalog/domain';
+import { ENCUADRE_ENTERO, VARIANT_FORMATS, VARIANT_WIDTHS } from '@itadaki/catalog/domain';
 import sharp from 'sharp';
 import { detectImageType, validateUpload } from './image-intake';
 import {
@@ -81,15 +81,22 @@ describe('magic byte detection', () => {
 describe('renderImageSet', () => {
   it('emits every width in every format', async () => {
     const rendered = await renderImageSet(await makeSource());
-    expect(rendered.variants).toHaveLength(12);
+    expect(rendered.variants).toHaveLength(8);
 
     for (const width of [1200, 600, 300, 80]) {
-      for (const format of ['avif', 'webp', 'jpeg']) {
+      for (const format of ['webp', 'jpeg']) {
         expect(
           rendered.variants.some((v) => v.width === width && v.format === format),
         ).toBe(true);
       }
     }
+  });
+
+  it('ya no gasta en AVIF', () => {
+    // Era casi la mitad del trabajo de cada subida, y el dueño lo esperaba
+    // mirando la pantalla, plato por plato. Lo que ahorraba eran unos
+    // kilobytes en fotos que ya pesan poco.
+    expect(VARIANT_FORMATS).not.toContain('avif');
   });
 
   it('renders every variant as a square', async () => {

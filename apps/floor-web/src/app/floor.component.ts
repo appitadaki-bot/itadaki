@@ -526,26 +526,6 @@ type Vista = Carril | 'todo';
                         </span>
                       }
                     </span>
-                    <!-- Para la mesa que pagó en la caja y se fue: sin esto
-                         queda ocupada hasta el barrido, y el grupo siguiente
-                         escanea el QR y cae en el pedido de los anteriores. -->
-                    @if (confirming() === mesa.tableId) {
-                      <button
-                        type="button"
-                        class="boton peligro chico"
-                        (click)="liberarMesa(mesa.sessionIds)"
-                      >
-                        ¿Seguro?
-                      </button>
-                    } @else {
-                      <button
-                        type="button"
-                        class="boton tenue chico"
-                        (click)="confirming.set(mesa.tableId)"
-                      >
-                        Liberar
-                      </button>
-                    }
                   </div>
                 }
               </div>
@@ -564,7 +544,7 @@ type Vista = Carril | 'todo';
               [attr.aria-expanded]="showCodes()"
               (click)="showCodes.set(!showCodes())"
             >
-              <span class="plegable-titulo">Códigos de mesa</span>
+              <span class="plegable-titulo">Mesas</span>
               <span class="plegable-cuenta">{{ store.tableCodes().length }} mesas</span>
               <span class="chevron" [class.abierto]="showCodes()" aria-hidden="true"></span>
             </button>
@@ -572,7 +552,8 @@ type Vista = Carril | 'todo';
             @if (showCodes()) {
               <div class="plegable-cuerpo">
                 <p class="pista">
-                  Decíselo a la mesa al sentarla. Se renueva solo cuando la liberás.
+                  El código se lo decís a la mesa al sentarla. Liberarla la deja
+                  lista para el grupo siguiente, con un código nuevo.
                 </p>
                 @for (mesa of store.tableCodes(); track mesa.tableId) {
                   <div class="fila">
@@ -590,7 +571,53 @@ type Vista = Carril | 'todo';
                     >
                       Renovar
                     </button>
+
+                    <!--
+                      Liberar vive acá y no en el pase de cocina.
+
+                      Es algo de la mesa, no del pedido: una mesa que ya comió
+                      no tiene nada en cocina y antes no había dónde liberarla.
+                      Sólo para quien puede cobrar, que es quien el servidor
+                      deja: al mozo el botón le contestaba 403 sin decir nada.
+                    -->
+                    @if (mesa.sessionIds.length > 0 && auth.can('bills:close')) {
+                      <button
+                        type="button"
+                        class="boton tenue chico"
+                        (click)="confirming.set(mesa.tableId)"
+                      >
+                        Liberar
+                      </button>
+                    }
                   </div>
+
+                  @if (confirming() === mesa.tableId) {
+                    <!-- La pregunta abajo y en su propio renglón: en la fila no
+                         entra, y lo que hay que leer antes de decir que sí es
+                         cuánta plata se va sin cobrar. -->
+                    <div class="panel">
+                      <p class="panel-pregunta">
+                        @if (loQueDebe(mesa.tableId); as deuda) {
+                          ¿Liberar la mesa {{ tableNumber(mesa.tableId) }} sin cobrar
+                          {{ money(deuda) }}?
+                        } @else {
+                          ¿Liberar la mesa {{ tableNumber(mesa.tableId) }}?
+                        }
+                      </p>
+                      <div class="dos">
+                        <button
+                          type="button"
+                          class="boton peligro"
+                          (click)="liberarMesa(mesa.sessionIds)"
+                        >
+                          Sí, liberar
+                        </button>
+                        <button type="button" class="boton tenue" (click)="confirming.set(null)">
+                          No
+                        </button>
+                      </div>
+                    </div>
+                  }
                 }
               </div>
             }
@@ -876,6 +903,22 @@ export class FloorComponent implements OnDestroy {
   }
 
   /** El monto como lo lee un mozo cruzando el salón: sin centavos. */
+  /**
+   * Lo que la mesa debe, sumando sus sesiones; null si no debe nada.
+   *
+   * Liberar sin cobrar es la forma de perder plata más fácil que tiene esta
+   * pantalla, así que la pregunta lo dice con el número adelante.
+   */
+  protected loQueDebe(tableId: string): { amountInMinorUnits: number; currency: string } | null {
+    const deudas = this.store.unsettled().filter((mesa) => mesa.tableId === tableId);
+    if (deudas.length === 0) return null;
+
+    const total = deudas.reduce((suma, mesa) => suma + mesa.owed.amountInMinorUnits, 0);
+    if (total === 0) return null;
+
+    return { amountInMinorUnits: total, currency: deudas[0]?.owed.currency ?? 'ARS' };
+  }
+
   protected money(amount: { amountInMinorUnits: number; currency: string }): string {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',

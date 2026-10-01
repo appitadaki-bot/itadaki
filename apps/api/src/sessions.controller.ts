@@ -367,16 +367,34 @@ export class SessionsController {
       throw new HttpException(tables.error, HttpStatus.BAD_GATEWAY);
     }
 
-    const seated = new Map(
-      open.isOk() ? open.value.map((state) => [state.session.tableId, state.session.diners.length]) : [],
-    );
+    /*
+     * Quién está sentado en cada mesa, sumando sus sesiones.
+     *
+     * Son varias y no una: dos grupos que escanearon por separado comparten
+     * la mesa, y liberarla es liberar las dos. Antes se guardaba una sola
+     * —la última que pasara por el mapa— así que el salón mostraba menos
+     * gente de la que había.
+     */
+    const sentados = new Map<string, { diners: number; sessionIds: string[] }>();
+    for (const state of open.isOk() ? open.value : []) {
+      const actual = sentados.get(state.session.tableId) ?? { diners: 0, sessionIds: [] };
+      actual.diners += state.session.diners.length;
+      actual.sessionIds.push(state.session.id);
+      sentados.set(state.session.tableId, actual);
+    }
 
-    return tables.value.map((table) => ({
-      tableId: table.id,
-      label: table.label,
-      joinCode: table.joinCode,
-      diners: seated.get(table.id) ?? 0,
-    }));
+    return tables.value.map((table) => {
+      const ocupada = sentados.get(table.id);
+      return {
+        tableId: table.id,
+        label: table.label,
+        joinCode: table.joinCode,
+        diners: ocupada?.diners ?? 0,
+        // Para liberarla desde acá: sin esto, la única forma era el pase de
+        // cocina, y una mesa que ya comió no aparece ahí.
+        sessionIds: ocupada?.sessionIds ?? [],
+      };
+    });
   }
 
   /**
