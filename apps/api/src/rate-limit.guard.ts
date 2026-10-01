@@ -53,6 +53,15 @@ export const LIMITS = {
    * medio millón de minutos por delante para un código de seis dígitos.
    */
   join: { limit: 30, windowMs: 60_000 },
+  /**
+   * Armar restaurantes de prueba desde la landing.
+   *
+   * Tres por hora y por dirección alcanza de sobra para mirar la app, probar
+   * de nuevo con otro ojo, y mostrársela a un socio. Al que quiera hacer
+   * fábrica de restaurantes esto no lo frena —cambia de red y sigue— y no es
+   * su trabajo: eso lo acota el tope de cuántos pueden vivir a la vez.
+   */
+  demo: { limit: 3, windowMs: 60 * 60_000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type LimitName = keyof typeof LIMITS;

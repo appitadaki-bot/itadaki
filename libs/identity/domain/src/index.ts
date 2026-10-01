@@ -12,6 +12,16 @@ export {
   TENANT_DE_SOPORTE,
 } from './lib/role';
 export {
+  HORAS_DE_DEMO,
+  PREFIJO_DEMO,
+  TOPE_DE_DEMOS,
+  demoVencido,
+  esUnDemo,
+  minutosQueQuedan,
+  nuevoIdDeDemo,
+  venceEn,
+} from './lib/demo';
+export {
   necesitaMailConfirmado,
   puedeSinConfirmar,
 } from './lib/mail-verificado';

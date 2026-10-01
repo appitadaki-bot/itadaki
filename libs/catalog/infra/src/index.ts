@@ -17,3 +17,4 @@ export { PostgresImageStore } from './lib/postgres-images';
 export { type BlobStorage, DiskBlobStorage, S3BlobStorage, claveSeguraDeBlob } from './lib/blob-storage';
 export { PostgresModifierStore, type ModifierStoreError } from './lib/postgres-modifiers';
 export { PostgresBitacora, type Actor, type EntradaDeBitacora } from './lib/postgres-bitacora';
+export { sembrarCarta, type ClienteSql } from './lib/sembrar-carta';

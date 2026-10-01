@@ -36,3 +36,4 @@ export {
   nuevoTokenDeVerificacion,
 } from './lib/verificacion-mail';
 export { InMemoryTenantStore } from './lib/in-memory-tenants';
+export { PostgresDemos, type DemoVivo, type DemoError } from './lib/postgres-demos';
