@@ -36,6 +36,35 @@ function hayCredencialEnLaUrl(): boolean {
   return recuperar || verificar;
 }
 
+/** El token de sesión que trae el link, o `null`. */
+function tokenDelLink(): string | null {
+  const token = new URLSearchParams(globalThis.location?.search ?? '').get('s') ?? '';
+  return token === '' ? null : token;
+}
+
+/** Saca un parámetro del link: lo que viaja ahí es una credencial. */
+function sacarDeLaBarra(clave: string): void {
+  const limpio = new URL(globalThis.location.href);
+  limpio.searchParams.delete(clave);
+  globalThis.history.replaceState({}, '', limpio.toString());
+}
+
+/**
+ * Guarda la sesión, y sigue si el navegador no deja.
+ *
+ * Adentro de un iframe de otro dominio —el shell de la demo— Safari puede
+ * negar el acceso al almacenamiento y `setItem` tira. El token ya está en
+ * memoria para esta pestaña: lo único que se pierde es sobrevivir a un
+ * refresh, y romper toda la pantalla por eso sería peor.
+ */
+function guardar(donde: Storage, token: string): void {
+  try {
+    donde.setItem(STORAGE_KEY, token);
+  } catch {
+    // Sin almacenamiento: la sesión vive lo que viva la pestaña.
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
   private baseUrl = '';
@@ -73,8 +102,31 @@ export class AuthStore {
       return;
     }
 
-    // La de soporte primero: si está, es la de esta pestaña y manda.
-    const saved = sessionStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(STORAGE_KEY);
+    /*
+     * La sesión del restaurante de prueba, que viene puesta en el link.
+     *
+     * El que entra desde "Probar la app" no tiene usuario ni contraseña: el
+     * restaurante se inventó hace diez segundos y vence en dos horas. Pedirle
+     * que copie un PIN entre dos pantallas para mirar una demo pierde a la
+     * mitad en la puerta, y del otro lado no hay nada que proteger.
+     *
+     * Es un token común, firmado por el mismo servidor con los mismos
+     * permisos del rol: no abre ninguna puerta que el login no abra. Se saca
+     * de la barra apenas se lee, y en `sessionStorage` y no en `localStorage`
+     * porque son cuatro pestañas de cuatro roles distintos al mismo tiempo —
+     * en `localStorage` la última en abrirse le pisaría la sesión a las otras.
+     */
+    const delLink = tokenDelLink();
+    if (delLink !== null) {
+      guardar(sessionStorage, delLink);
+      sacarDeLaBarra('s');
+    }
+
+    // El del link manda sobre lo guardado, y después la de soporte, que es la
+    // de esta pestaña. Se usa el valor y no lo que quedó en el almacenamiento:
+    // si guardarlo falló, la sesión igual vale para esta pestaña.
+    const saved =
+      delLink ?? sessionStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(STORAGE_KEY);
     if (saved === null) {
       this.ready.set(true);
       return;

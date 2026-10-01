@@ -1,5 +1,8 @@
 import { ok } from '@itadaki/shared/domain';
 import { TOPE_DE_DEMOS } from '@itadaki/identity/domain';
+import { verifyToken } from '@itadaki/identity/infra';
+import { AUTH_SECRET } from './auth';
+import { type CatalogService } from './catalog.service';
 import { DemoService } from './demo.service';
 
 /**
@@ -30,7 +33,8 @@ class DemoDePrueba extends DemoService {
   }
 
   constructor() {
-    super();
+    // La carta no se toca acá: la siembra se reemplaza más abajo.
+    super(null as unknown as CatalogService);
 
     this.demos = {
       anotar: async () => {
@@ -54,7 +58,7 @@ class DemoDePrueba extends DemoService {
     this.tenants = {
       signUp: async () => {
         this.anotar('crear restaurante');
-        return ok({ tenant: {}, owner: {} });
+        return ok({ tenant: {}, owner: { id: 'el-dueño' } });
       },
     } as unknown as DemoService['tenants'];
 
@@ -149,5 +153,51 @@ describe('armar un restaurante de prueba', () => {
     // Dos barridos: el de entrada, y el que lo deshace.
     expect(servicio.barridos).toHaveLength(2);
     expect(servicio.barridos[1]?.getTime()).toBeGreaterThan(ahora.getTime());
+  });
+});
+
+/**
+ * Las llaves que el restaurante de prueba reparte.
+ *
+ * Es lo único del alta que deja entrar sin contraseña —el que llega desde
+ * "Probar la app" no eligió ningún usuario— así que lo que importa probar es
+ * que la llave abra lo que tiene que abrir y nada más.
+ */
+describe('las sesiones del restaurante de prueba', () => {
+  const ahora = new Date('2026-10-01T20:00:00Z');
+
+  it('el servidor reconoce la llave de cada pantalla', async () => {
+    const hecho = await new DemoDePrueba().crear(ahora);
+    if (!hecho.ok) throw new Error('no se creó el restaurante de prueba');
+
+    for (const acceso of hecho.demo.accesos) {
+      const abierto = verifyToken(acceso.token, AUTH_SECRET, ahora);
+      expect(abierto).not.toBeNull();
+      // El rol de esa pantalla y el restaurante recién creado: una llave que
+      // abriera otro local sería justo lo que el aislamiento evita.
+      expect(abierto?.role).toBe(acceso.rol);
+      expect(abierto?.tenantId).toBe(hecho.demo.tenantId);
+    }
+  });
+
+  it('la llave muere con el restaurante', async () => {
+    const hecho = await new DemoDePrueba().crear(ahora);
+    if (!hecho.ok) throw new Error('no se creó el restaurante de prueba');
+
+    // Las dos horas de la demo, no las doce de una sesión de trabajo: cuando
+    // ya no hay nada que mirar tampoco queda una llave dando vueltas.
+    const vencida = new Date(hecho.demo.expiraEn.getTime() + 1);
+    for (const acceso of hecho.demo.accesos) {
+      expect(verifyToken(acceso.token, AUTH_SECRET, vencida)).toBeNull();
+    }
+  });
+
+  it('firmada con otro secreto no vale', async () => {
+    const hecho = await new DemoDePrueba().crear(ahora);
+    if (!hecho.ok) throw new Error('no se creó el restaurante de prueba');
+
+    for (const acceso of hecho.demo.accesos) {
+      expect(verifyToken(acceso.token, 'otro-secreto-cualquiera', ahora)).toBeNull();
+    }
   });
 });
