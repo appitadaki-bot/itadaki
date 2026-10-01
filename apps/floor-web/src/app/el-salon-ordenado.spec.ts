@@ -42,12 +42,12 @@ describe('las dos zonas de la pantalla', () => {
     expect(zona.indexOf('carril-pase')).toBeLessThan(zona.indexOf('carril-cobro'));
   });
 
-  it('lo que se cocina y los códigos son consulta', () => {
+  it('lo que se cocina y las mesas son consulta', () => {
     // Se miran cuando hacen falta, no cada vez que se levanta la vista.
     const consulta = PLANTILLA.slice(PLANTILLA.indexOf('class="consulta"'));
 
     expect(consulta).toContain('En cocina');
-    expect(consulta).toContain('Códigos de mesa');
+    expect(consulta).toContain('plegable-titulo">Mesas<');
   });
 
   it('y arrancan plegados, porque son contexto y no trabajo', () => {
@@ -146,5 +146,47 @@ describe('lo que está en cocina se ve completo', () => {
     // "Sacar" solo al principio de una línea no dice de qué plato habla.
     const regla = ESTILOS.slice(ESTILOS.indexOf('.en-cocina {'));
     expect(regla.slice(0, regla.indexOf('}'))).toContain('white-space: nowrap');
+  });
+});
+
+/**
+ * Liberar la mesa vive con la mesa, no con el pedido.
+ *
+ * Estaba en el pase de cocina, que es la lista de lo que falta hacer: una
+ * mesa que ya comió no tiene nada ahí, así que no había dónde liberarla. Y el
+ * botón se lo mostraba también al mozo, a quien el servidor le contesta 403
+ * sin decirle nada —liberar pide el permiso de cobrar—.
+ */
+const COMILLA = String.fromCharCode(39);
+
+describe('liberar la mesa', () => {
+  it('ya no está en el pase de cocina', () => {
+    const cocina = PLANTILLA.slice(
+      PLANTILLA.indexOf('store.cocinandoPorMesa()'),
+      PLANTILLA.indexOf('store.tableCodes()'),
+    );
+
+    expect(cocina).not.toContain('Liberar');
+  });
+
+  it('está en la lista de mesas', () => {
+    const mesas = PLANTILLA.slice(PLANTILLA.indexOf('store.tableCodes(); track'));
+    expect(mesas).toContain('Liberar');
+  });
+
+  it('sólo en las mesas que tienen gente', () => {
+    // Una mesa libre no se libera: el botón no tendría qué hacer.
+    expect(PLANTILLA).toContain("mesa.sessionIds.length > 0 && auth.can(" + COMILLA + "bills:close" + COMILLA + ")");
+  });
+
+  it('pregunta antes, y dice cuánto se va sin cobrar', () => {
+    // Es la forma más fácil que tiene esta pantalla de perder plata.
+    expect(PLANTILLA).toContain('loQueDebe(mesa.tableId); as deuda');
+    expect(PLANTILLA).toContain('sin cobrar');
+  });
+
+  it('libera todas las sesiones de la mesa', () => {
+    // Dos grupos que escanearon por separado comparten la mesa.
+    expect(PLANTILLA).toContain('liberarMesa(mesa.sessionIds)');
   });
 });

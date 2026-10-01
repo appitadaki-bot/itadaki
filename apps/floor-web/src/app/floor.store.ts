@@ -75,6 +75,8 @@ export interface TableCodeDto {
   readonly label: string;
   readonly joinCode: string | null;
   readonly diners: number;
+  /** Las sesiones abiertas de esa mesa; vacío si está libre. */
+  readonly sessionIds: readonly string[];
 }
 
 /** A dish waiting on the pass, flattened out of its ticket. */
