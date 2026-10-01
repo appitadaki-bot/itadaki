@@ -45,6 +45,9 @@ export default tseslint.config(
         fetch: 'readonly',
         FormData: 'readonly',
         navigator: 'readonly',
+        // La página de la demo se acuerda del restaurante que ya armó: sin
+        // esto un F5 pedía otro y dejaba el anterior ocupando lugar del tope.
+        sessionStorage: 'readonly',
       },
     },
   },
