@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { CATEGORIES, MODIFIER_GROUPS, PRODUCTS, TENANT_ID } from '@itadaki/catalog/infra';
+import { TENANT_ID, sembrarCarta } from '@itadaki/catalog/infra';
 import { Client } from 'pg';
 import { applyMigrations } from './migrate';
 import { conexionPostgres } from './db-url';
@@ -39,82 +39,10 @@ async function main(): Promise<void> {
     [TENANT_ID, 'Restaurante demo'],
   );
 
-  // The fixture is the whole demo catalog, not an addition to it: upserting
-  // alone would leave dishes from an earlier fixture sitting in the menu.
-  // Scoped to the demo tenant, and to catalog tables only — orders and
-  // sessions are left alone.
-  await client.query('DELETE FROM modifier_groups WHERE tenant_id = $1', [TENANT_ID]);
-  await client.query('DELETE FROM products WHERE tenant_id = $1', [TENANT_ID]);
-  await client.query('DELETE FROM categories WHERE tenant_id = $1', [TENANT_ID]);
-
-  for (const category of CATEGORIES) {
-    await client.query(
-      `INSERT INTO categories (tenant_id, id, name, sort_order, window_start, window_end)
-       VALUES ($1,$2,$3,$4,$5,$6)
-       ON CONFLICT (tenant_id, id) DO UPDATE SET name = EXCLUDED.name, sort_order = EXCLUDED.sort_order`,
-      [
-        category.tenantId,
-        category.id,
-        category.name,
-        category.sortOrder,
-        category.availability?.startMinute ?? null,
-        category.availability?.endMinute ?? null,
-      ],
-    );
-  }
-
-  for (const product of PRODUCTS) {
-    await client.query(
-      `INSERT INTO products (tenant_id, id, category_id, name, description, price_minor,
-                             currency, allergens, diets, prep_minutes, available)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-       ON CONFLICT (tenant_id, id) DO UPDATE SET
-         name = EXCLUDED.name,
-         description = EXCLUDED.description,
-         price_minor = EXCLUDED.price_minor,
-         available = EXCLUDED.available`,
-      [
-        product.tenantId,
-        product.id,
-        product.categoryId,
-        product.name,
-        product.description,
-        product.price.amountInMinorUnits,
-        product.price.currency,
-        product.allergens,
-        product.diets,
-        product.estimatedPrepMinutes,
-        product.available,
-      ],
-    );
-  }
-
-  for (const group of MODIFIER_GROUPS) {
-    await client.query(
-      `INSERT INTO modifier_groups (tenant_id, id, product_id, name, min_selections, max_selections, modifiers)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
-       ON CONFLICT (tenant_id, id) DO UPDATE SET modifiers = EXCLUDED.modifiers`,
-      [
-        TENANT_ID,
-        group.id,
-        group.productId,
-        group.name,
-        group.minSelections,
-        group.maxSelections,
-        JSON.stringify(
-          group.modifiers.map((modifier) => ({
-            id: modifier.id,
-            name: modifier.name,
-            priceDelta: {
-              amountInMinorUnits: modifier.priceDelta.amountInMinorUnits,
-              currency: modifier.priceDelta.currency,
-            },
-            available: modifier.available,
-          })),
-        ),
-      ],
-    );
-  }
+  // La carta de ejemplo, la misma que recibe un restaurante de prueba de la
+  // landing. Vive en un solo lugar: si se escribiera dos veces, una de las
+  // dos iba a quedar vieja.
+  await sembrarCarta(client, TENANT_ID);
 
   const counts = await client.query<{ table_name: string; total: string }>(
     `SELECT 'categories' AS table_name, count(*)::text AS total FROM categories

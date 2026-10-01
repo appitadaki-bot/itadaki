@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Probá Itadaki ahora | Itadaki</title>
+<meta
+  name="description"
+  content="Entrá a un restaurante de prueba con la carta cargada y usá las cuatro pantallas: el teléfono del comensal, la cocina, el salón y el panel. Sin cuenta y sin tarjeta."
+/>
+<meta name="theme-color" content="#211a15" />
+<!--
+  Esta página no va a Google: lo que muestra es un restaurante que se borra en
+  dos horas, y cada visita desde un buscador sería uno nuevo creado por un
+  robot. A ella se llega desde la landing.
+-->
+<meta name="robots" content="noindex" />
+<link rel="icon" type="image/png" href="/itadaki-isotipo.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Onest:wght@400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+<link rel="stylesheet" href="./landing.css" />
+<style>
+  .probar {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 5rem;
+  }
+
+  .probar-volver {
+    display: inline-block;
+    margin-bottom: 2rem;
+    color: var(--tinta-suave);
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  .probar h1 {
+    font-family: var(--display);
+    font-size: clamp(1.9rem, 5vw, 2.9rem);
+    line-height: 1.1;
+    margin: 0 0 0.9rem;
+  }
+
+  .probar-bajada {
+    color: var(--tinta-media);
+    max-width: 58ch;
+    margin: 0 0 2rem;
+    line-height: 1.6;
+  }
+
+  .probar-estado {
+    border: 1px solid var(--borde);
+    border-radius: var(--r-carta);
+    background: var(--carta);
+    padding: 1.4rem 1.5rem;
+    color: var(--tinta-media);
+  }
+
+  .probar-estado[hidden] {
+    display: none;
+  }
+
+  /* Las cuatro pantallas, en tarjetas del mismo alto. */
+  .pantallas {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  .pantalla {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border: 1px solid var(--borde);
+    border-radius: var(--r-carta);
+    background: var(--carta);
+    padding: 1.25rem;
+  }
+
+  .pantalla h2 {
+    font-family: var(--display);
+    font-size: 1.05rem;
+    margin: 0;
+  }
+
+  .pantalla p {
+    margin: 0;
+    color: var(--tinta-suave);
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  /* Usuario y clave, para copiar de un vistazo. */
+  .credencial {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 0.7rem;
+    align-items: baseline;
+    margin: 0;
+    padding: 0.7rem 0.85rem;
+    border-radius: var(--r-chip);
+    background: var(--fondo-alt);
+    font-size: 0.85rem;
+  }
+
+  .credencial dt {
+    color: var(--tinta-suave);
+  }
+
+  .credencial dd {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--tinta);
+    overflow-wrap: anywhere;
+  }
+
+  .pantalla .btn {
+    margin-top: auto;
+  }
+
+  .reloj {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1.5rem;
+    padding: 0.8rem 1rem;
+    border-radius: var(--r-chip);
+    background: var(--acento-hondo);
+    color: var(--tinta);
+    font-size: 0.9rem;
+  }
+
+  .probar-pie {
+    margin-top: 2.5rem;
+    color: var(--tinta-suave);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+  <main class="probar">
+    <a class="probar-volver" href="/">← Volver a Itadaki</a>
+
+    <h1>Probá Itadaki ahora</h1>
+    <p class="probar-bajada">
+      Te armamos un restaurante de prueba con la carta cargada, sólo para vos.
+      Abrí las cuatro pantallas en ventanas distintas: pedí desde el teléfono y
+      mirá el plato aparecer en la cocina mientras lo hacés.
+    </p>
+
+    <!-- Mientras tanto, y si algo sale mal. La página arranca pidiendo el
+         restaurante sola: hacer tocar otro botón después de haber tocado
+         "Probar la app" es pedir dos veces lo mismo. -->
+    <div class="probar-estado" id="estado" role="status">
+      Armando tu restaurante de prueba…
+    </div>
+
+    <div id="listo" hidden>
+      <p class="reloj">
+        <strong id="queda"></strong>
+        <span>Después se borra solo, con todo lo que hayas cargado.</span>
+      </p>
+
+      <div class="pantallas">
+        <article class="pantalla">
+          <h2>El comensal</h2>
+          <p>
+            Lo que ve quien se sienta y escanea el QR: la carta, el pedido y la
+            cuenta. No pide ninguna contraseña.
+          </p>
+          <a class="btn btn-acento" id="link-mesa" target="_blank" rel="noopener">
+            Abrir el teléfono de la mesa →
+          </a>
+        </article>
+
+        <article class="pantalla">
+          <h2>La cocina</h2>
+          <p>El tablero del que cocina: entra el pedido y se marca a medida que sale.</p>
+          <dl class="credencial">
+            <dt>Usuario</dt>
+            <dd id="cocina-usuario"></dd>
+            <dt>PIN</dt>
+            <dd id="cocina-clave"></dd>
+          </dl>
+          <a class="btn" id="link-cocina" target="_blank" rel="noopener">Abrir la cocina →</a>
+        </article>
+
+        <article class="pantalla">
+          <h2>El salón</h2>
+          <p>
+            Lo que mira el mozo: quién llama, qué está listo para llevar y qué mesa
+            falta cobrar.
+          </p>
+          <dl class="credencial">
+            <dt>Usuario</dt>
+            <dd id="salon-usuario"></dd>
+            <dt>PIN</dt>
+            <dd id="salon-clave"></dd>
+          </dl>
+          <a class="btn" id="link-salon" target="_blank" rel="noopener">Abrir el salón →</a>
+        </article>
+
+        <article class="pantalla">
+          <h2>El panel del dueño</h2>
+          <p>La carta, los precios, las mesas, el equipo y cómo viene el negocio.</p>
+          <dl class="credencial">
+            <dt>Mail</dt>
+            <dd id="panel-usuario"></dd>
+            <dt>Contraseña</dt>
+            <dd id="panel-clave"></dd>
+          </dl>
+          <a class="btn" id="link-panel" target="_blank" rel="noopener">Abrir el panel →</a>
+        </article>
+      </div>
+
+      <p class="probar-pie">
+        Es una copia entera y tuya: la carta, los precios y los pedidos que cargues
+        no los ve nadie más, y lo que toques acá no afecta a ningún restaurante. Si
+        te gusta,
+        <a href="https://wa.me/5492645135540" target="_blank" rel="noopener">escribinos</a>
+        y lo armamos con tu carta de verdad.
+      </p>
+    </div>
+  </main>
+
+  <script src="./probar.js"></script>
+</body>
+</html>

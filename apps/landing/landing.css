@@ -1501,3 +1501,28 @@ strong { color: var(--tinta); font-weight: 700; }
 @media (max-width: 480px) {
   .modal-registro { padding: 1.4rem; }
 }
+
+/* Los dos botones de la barra, juntos y sin pisarse en el teléfono. */
+.marca-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* La puerta de atrás del hero: la que no interrumpe a nadie. */
+.hero-probar {
+  margin: 0.9rem 0 0;
+  font-size: 0.95rem;
+}
+
+.hero-probar a {
+  color: var(--tinta-media);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hero-probar a:hover {
+  color: var(--tinta);
+}

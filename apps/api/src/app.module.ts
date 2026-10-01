@@ -6,6 +6,9 @@ import { AjustesController } from './ajustes.controller';
 import { BillingController } from './billing.controller';
 import { AuthGuard, ServicioActivoGuard, TableScopeGuard, TrialGuard } from './auth';
 import { RateLimitGuard } from './rate-limit.guard';
+import { DemoController } from './demo.controller';
+import { DemoService } from './demo.service';
+import { DemoVigenteGuard } from './demo-vigente.guard';
 import { AuthController } from './auth.controller';
 import { HealthController } from './health.controller';
 import { CallsController } from './calls.controller';
@@ -31,14 +34,18 @@ import { GoogleService } from './google.service';
 import { RealtimeGateway } from './realtime.gateway';
 
 @Module({
-  controllers: [MenuController, OrdersController, ImagesController, SessionsController, BillsController, MetricsController, AuthController, TablesController, StaffController, HealthController, CallsController, BillingController, AjustesController, InteresadosController],
-  providers: [InteresadosService, CatalogService, OrdersService, ArchiveService, ImagesService, SessionsService, BillsService, StaffService, TenantsService, ResetsService, GoogleService, CallsService, RealtimeGateway,
+  controllers: [MenuController, OrdersController, ImagesController, SessionsController, BillsController, MetricsController, AuthController, TablesController, StaffController, HealthController, CallsController, BillingController, AjustesController, InteresadosController, DemoController],
+  providers: [DemoService, InteresadosService, CatalogService, OrdersService, ArchiveService, ImagesService, SessionsService, BillsService, StaffService, TenantsService, ResetsService, GoogleService, CallsService, RealtimeGateway,
     // First: cheap, and a flood should be turned away before any lookup.
     { provide: APP_GUARD, useClass: RateLimitGuard },
     // Applied globally: an endpoint is protected unless it opts out with @Public.
     { provide: APP_GUARD, useClass: AuthGuard },
     // Runs second, so a staff session is already resolved when it checks scope.
     { provide: APP_GUARD, useClass: TableScopeGuard },
+    // Y acá el vencimiento de las pruebas: ya se sabe de qué restaurante es
+    // el pedido, y lo que sigue —el trial, el servicio— no tiene sentido
+    // preguntarlo para uno que caducó.
+    { provide: APP_GUARD, useClass: DemoVigenteGuard },
     // Last: the session is resolved by now, and only config changes are gated.
     { provide: APP_GUARD, useClass: TrialGuard },
     // Y al final el servicio: corta los pedidos de un local suspendido, que es
