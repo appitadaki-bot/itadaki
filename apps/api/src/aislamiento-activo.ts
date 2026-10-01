@@ -25,7 +25,7 @@ export interface TablaSinAislar {
  * y la API se conecta con un rol que en Neon y en Render es el dueño.
  */
 /**
- * Dos tablas con `tenant_id` que a propósito no llevan el candado.
+ * Las tablas con `tenant_id` que a propósito no llevan el candado.
  *
  * `password_resets` y `billing_events` se leen y escriben antes de saber a
  * qué tenant pertenecen —un link de reset se busca por su digest, un webhook
@@ -33,12 +33,20 @@ export interface TablaSinAislar {
  * puesto. Su seguridad es que ese digest o esa referencia son imposibles de
  * adivinar, no row level security. Ver la migración 044.
  *
- * Sin esta exclusión, el chequeo las marca como "sin aislar" apenas se les
- * saca el candado, y en producción eso rompe el arranque por un motivo que no
- * es tal: ese arreglo es justamente el que hace que ninguna de las dos vuelva
- * a fallar en silencio.
+ * `demos` guarda cuándo vence cada restaurante de prueba, y las dos preguntas
+ * que se le hacen son sobre todos a la vez: cuántos viven, y cuáles hay que
+ * borrar. Con el candado puesto, una consulta sin restaurante en el alcance
+ * no devuelve ninguna fila: el barrido no encontraría nunca un vencido y el
+ * tope contaría siempre cero. No guarda nada que proteger —un id y dos
+ * fechas— y el id ya está a la vista en la dirección del panel. Ver la
+ * migración 045.
+ *
+ * Sin esta lista, el chequeo las marca como "sin aislar" apenas se les saca
+ * el candado, y en producción eso rompe el arranque por un motivo que no es
+ * tal: este chequeo es justamente el que hace que un descuido de verdad no
+ * pase en silencio.
  */
-const SIN_TENANT_A_PROPOSITO = ['password_resets', 'billing_events'];
+const SIN_TENANT_A_PROPOSITO = ['password_resets', 'billing_events', 'demos'];
 
 const CONSULTA = `
   SELECT c.relname AS tabla,
