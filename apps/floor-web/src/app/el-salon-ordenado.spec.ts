@@ -174,9 +174,11 @@ describe('liberar la mesa', () => {
     expect(mesas).toContain('Liberar');
   });
 
-  it('sólo en las mesas que tienen gente', () => {
-    // Una mesa libre no se libera: el botón no tendría qué hacer.
-    expect(PLANTILLA).toContain("mesa.sessionIds.length > 0 && auth.can(" + COMILLA + "bills:close" + COMILLA + ")");
+  it('sólo se puede tocar en las mesas que tienen gente', () => {
+    // Una mesa libre no se libera, pero el botón se ve apagado en vez de
+    // desaparecer: si no, las filas quedaban de distinto ancho.
+    expect(PLANTILLA).toContain("@if (auth.can(" + COMILLA + "bills:close" + COMILLA + "))");
+    expect(PLANTILLA).toContain('[disabled]="mesa.sessionIds.length === 0"');
   });
 
   it('pregunta antes, y dice cuánto se va sin cobrar', () => {

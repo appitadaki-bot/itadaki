@@ -556,7 +556,7 @@ type Vista = Carril | 'todo';
                   lista para el grupo siguiente, con un código nuevo.
                 </p>
                 @for (mesa of store.tableCodes(); track mesa.tableId) {
-                  <div class="fila">
+                  <div class="fila fila-centrada">
                     <span class="fila-mesa">{{ tableNumber(mesa.tableId) }}</span>
                     <span class="fila-texto">
                       {{ mesa.diners > 0 ? mesa.diners + ' sentados' : 'libre' }}
@@ -579,11 +579,16 @@ type Vista = Carril | 'todo';
                       no tiene nada en cocina y antes no había dónde liberarla.
                       Sólo para quien puede cobrar, que es quien el servidor
                       deja: al mozo el botón le contestaba 403 sin decir nada.
+
+                      En una mesa libre se ve apagado en vez de no estar: sin el
+                      botón las filas quedaban de distinto ancho y la columna
+                      de códigos se corría.
                     -->
-                    @if (mesa.sessionIds.length > 0 && auth.can('bills:close')) {
+                    @if (auth.can('bills:close')) {
                       <button
                         type="button"
                         class="boton tenue chico"
+                        [disabled]="mesa.sessionIds.length === 0"
                         (click)="confirming.set(mesa.tableId)"
                       >
                         Liberar

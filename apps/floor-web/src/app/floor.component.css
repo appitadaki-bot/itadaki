@@ -987,6 +987,15 @@
   background: oklch(48% 0.19 25);
 }
 
+/* Visible pero sin acción: el lugar queda ocupado y se entiende que no aplica. */
+.boton:disabled,
+.boton:disabled:hover {
+  background: var(--panel-hundido);
+  border-color: var(--linea-suave);
+  color: var(--texto-tenue);
+  cursor: not-allowed;
+}
+
 .boton.chico {
   min-height: 34px;
   font-size: 0.78rem;
@@ -1241,6 +1250,11 @@
   gap: 0.6rem;
   padding: 0.5rem 0.9rem;
   border-bottom: 1px solid var(--linea-suave);
+}
+
+/* La lista de mesas es de un renglón: ahí todo va al medio de la fila. */
+.fila-centrada {
+  align-items: center;
 }
 
 .fila:last-child {
