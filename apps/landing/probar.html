@@ -25,209 +25,370 @@
 />
 <link rel="stylesheet" href="./landing.css" />
 <style>
-  .probar {
-    max-width: 980px;
-    margin: 0 auto;
-    padding: 3rem 1.25rem 5rem;
+  /*
+   * Las cuatro apps adentro de una sola pantalla.
+   *
+   * Cada una vive en su dominio y se usa en un aparato distinto: el teléfono
+   * del comensal, la tablet de la cocina, la del salón, la computadora del
+   * dueño. Quien viene a probar tiene uno solo, así que el costado hace de
+   * los cuatro aparatos y el centro muestra el que esté mirando. No es un
+   * modo demo: adentro del marco corre la app de verdad, con su sesión ya
+   * iniciada.
+   */
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
   }
 
-  .probar-volver {
-    display: inline-block;
-    margin-bottom: 2rem;
-    color: var(--tinta-suave);
-    text-decoration: none;
-    font-size: 0.9rem;
-  }
-
-  .probar h1 {
-    font-family: var(--display);
-    font-size: clamp(1.9rem, 5vw, 2.9rem);
-    line-height: 1.1;
-    margin: 0 0 0.9rem;
-  }
-
-  .probar-bajada {
-    color: var(--tinta-media);
-    max-width: 58ch;
-    margin: 0 0 2rem;
-    line-height: 1.6;
-  }
-
-  .probar-estado {
-    border: 1px solid var(--borde);
-    border-radius: var(--r-carta);
-    background: var(--carta);
-    padding: 1.4rem 1.5rem;
-    color: var(--tinta-media);
-  }
-
-  .probar-estado[hidden] {
-    display: none;
-  }
-
-  /* Las cuatro pantallas, en tarjetas del mismo alto. */
-  .pantallas {
+  .probador {
     display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: 240px 1fr;
+    /* La fila va explícita: sin esto mide lo que mida el contenido, y un
+       iframe contra un alto indefinido cae a su alto de fábrica —150px— en
+       vez de llenar la pantalla. */
+    grid-template-rows: 1fr;
+    grid-template-areas: 'lado marco';
+    height: 100dvh;
   }
 
-  .pantalla {
+  /* ── La barra de arriba: sólo en teléfono, donde el costado se esconde ── */
+  .barra-demo {
+    display: none;
+    grid-area: barra;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.8rem;
+    background: var(--fondo-alt);
+    border-bottom: 1px solid var(--borde);
+  }
+
+  .hamburguesa {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    flex: none;
+    padding: 0;
+    border: 1px solid var(--borde);
+    border-radius: var(--r-chip);
+    background: transparent;
+    color: var(--tinta);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .barra-marca {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 0.95rem;
+  }
+
+  .barra-reloj {
+    margin-left: auto;
+    color: var(--tinta-suave);
+    font-size: 0.72rem;
+    text-align: right;
+    line-height: 1.3;
+  }
+
+  /* ── El costado ── */
+  .lado {
+    grid-area: lado;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    border: 1px solid var(--borde);
-    border-radius: var(--r-carta);
-    background: var(--carta);
-    padding: 1.25rem;
+    gap: 0.3rem;
+    padding: 1.1rem 0.9rem;
+    background: var(--fondo-alt);
+    border-right: 1px solid var(--borde);
+    overflow-y: auto;
   }
 
-  .pantalla h2 {
+  .lado-arriba {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0 0.6rem;
+  }
+
+  .lado-marca {
     font-family: var(--display);
-    font-size: 1.05rem;
-    margin: 0;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--tinta);
+    text-decoration: none;
   }
 
-  .pantalla p {
-    margin: 0;
+  /* La cruz que cierra el cajón. No existe en escritorio: ahí el costado es
+     parte de la pantalla y no hay nada que cerrar. */
+  .cerrar {
+    display: none;
+    margin-left: auto;
+    padding: 0.2rem 0.45rem;
+    border: 0;
+    border-radius: var(--r-chip);
+    background: transparent;
     color: var(--tinta-suave);
-    font-size: 0.88rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .lado-chapa {
+    align-self: flex-start;
+    margin: 0.7rem 0 0.2rem 0.6rem;
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--r-pill);
+    background: var(--acento-hondo);
+    color: var(--acento);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Cuánto le queda. Lo primero que se mira cuando algo se va a borrar. */
+  .lado-reloj {
+    margin: 0 0 0.9rem;
+    padding: 0 0.6rem;
+    color: var(--tinta-suave);
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+
+  .lado-titulo {
+    margin: 0.5rem 0 0.35rem;
+    padding: 0 0.6rem;
+    color: var(--tinta-suave);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Las cuatro, iguales entre sí: la que se está mirando se pinta, el resto
+     no. Antes eran un botón naranja enorme y tres links violetas que sobre
+     este marrón no se leían. */
+  .pantalla {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.62rem 0.7rem;
+    border: 1px solid transparent;
+    border-radius: var(--r-chip);
+    background: transparent;
+    color: var(--tinta-media);
+    font-family: var(--texto);
+    font-size: 0.92rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .pantalla:hover {
+    background: var(--carta);
+    color: var(--tinta);
+  }
+
+  .pantalla[aria-current='page'] {
+    background: var(--acento);
+    border-color: var(--acento);
+    color: oklch(20% 0.03 45);
+  }
+
+  .pantalla-icono {
+    flex: none;
+    width: 1.1rem;
+    text-align: center;
+    font-size: 0.95rem;
+  }
+
+  .lado-pie {
+    margin-top: auto;
+    padding: 0.9rem 0.6rem 0;
+    border-top: 1px solid var(--borde);
+    color: var(--tinta-suave);
+    font-size: 0.78rem;
     line-height: 1.5;
   }
 
-  /* Usuario y clave, para copiar de un vistazo. */
-  .credencial {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.25rem 0.7rem;
-    align-items: baseline;
-    margin: 0;
-    padding: 0.7rem 0.85rem;
-    border-radius: var(--r-chip);
-    background: var(--fondo-alt);
-    font-size: 0.85rem;
+  .lado-pie a {
+    color: var(--acento);
   }
 
-  .credencial dt {
-    color: var(--tinta-suave);
+  /* ── El centro ── */
+  .marco {
+    grid-area: marco;
+    position: relative;
+    background: var(--fondo);
   }
 
-  .credencial dd {
-    margin: 0;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    color: var(--tinta);
-    overflow-wrap: anywhere;
+  .marco iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
   }
 
-  .pantalla .btn {
-    margin-top: auto;
+  /* La de al lado gana por especificidad, así que esconder un marco no lo
+     escondía: el del comensal se quedaba puesto y el recién elegido se
+     insertaba abajo, fuera de la pantalla. Se veía como un botón que no hace
+     nada. */
+  .marco iframe[hidden] {
+    display: none;
   }
 
-  .reloj {
+  /* Mientras se arma, y si algo sale mal. Encima del marco y no en su lugar:
+     así el costado no salta cuando aparece la app. */
+  .aviso {
+    position: absolute;
+    inset: 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
-    margin: 0 0 1.5rem;
-    padding: 0.8rem 1rem;
-    border-radius: var(--r-chip);
-    background: var(--acento-hondo);
-    color: var(--tinta);
-    font-size: 0.9rem;
+    justify-content: center;
+    gap: 0.8rem;
+    padding: 2rem;
+    text-align: center;
+    background: var(--fondo);
+    color: var(--tinta-media);
+    line-height: 1.6;
   }
 
-  .probar-pie {
-    margin-top: 2.5rem;
-    color: var(--tinta-suave);
-    font-size: 0.9rem;
-    line-height: 1.6;
+  .aviso[hidden],
+  .telon[hidden] {
+    display: none;
+  }
+
+  .aviso p {
+    max-width: 44ch;
+    margin: 0;
+  }
+
+  .telon {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: oklch(0% 0 0 / 0.55);
+  }
+
+  /*
+   * En teléfono el costado se guarda en un cajón.
+   *
+   * Una app adentro de otra en una pantalla de seis pulgadas ya es poco lugar
+   * como para gastar un tercio del ancho en un menú fijo. Sale del flujo y se
+   * corre por encima cuando se lo llama, igual que el menú de cualquiera de
+   * nuestras apps.
+   */
+  @media (max-width: 760px) {
+    .probador {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+      grid-template-areas: 'barra' 'marco';
+    }
+
+    .barra-demo {
+      display: flex;
+    }
+
+    .cerrar {
+      display: block;
+    }
+
+    .lado {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 50;
+      width: min(82vw, 290px);
+      transform: translateX(-100%);
+      transition: transform 0.2s ease;
+    }
+
+    .probador[data-menu='abierto'] .lado {
+      transform: translateX(0);
+    }
+  }
+
+  /* Quien pidió menos movimiento no quiere que el menú entre deslizándose. */
+  @media (prefers-reduced-motion: reduce) {
+    .lado {
+      transition: none;
+    }
   }
 </style>
 </head>
 <body>
-  <main class="probar">
-    <a class="probar-volver" href="/">← Volver a Itadaki</a>
+  <div class="probador" id="probador">
+    <header class="barra-demo">
+      <button
+        type="button"
+        class="hamburguesa"
+        id="hamburguesa"
+        aria-label="Abrir las pantallas"
+        aria-expanded="false"
+        aria-controls="lado"
+      >
+        <span aria-hidden="true">☰</span>
+      </button>
+      <span class="barra-marca">ITADAKI</span>
+      <span class="barra-reloj reloj-texto"></span>
+    </header>
 
-    <h1>Probá Itadaki ahora</h1>
-    <p class="probar-bajada">
-      Te armamos un restaurante de prueba con la carta cargada, sólo para vos.
-      Abrí las cuatro pantallas en ventanas distintas: pedí desde el teléfono y
-      mirá el plato aparecer en la cocina mientras lo hacés.
-    </p>
-
-    <!-- Mientras tanto, y si algo sale mal. La página arranca pidiendo el
-         restaurante sola: hacer tocar otro botón después de haber tocado
-         "Probar la app" es pedir dos veces lo mismo. -->
-    <div class="probar-estado" id="estado" role="status">
-      Armando tu restaurante de prueba…
-    </div>
-
-    <div id="listo" hidden>
-      <p class="reloj">
-        <strong id="queda"></strong>
-        <span>Después se borra solo, con todo lo que hayas cargado.</span>
-      </p>
-
-      <div class="pantallas">
-        <article class="pantalla">
-          <h2>El comensal</h2>
-          <p>
-            Lo que ve quien se sienta y escanea el QR: la carta, el pedido y la
-            cuenta. No pide ninguna contraseña.
-          </p>
-          <a class="btn btn-acento" id="link-mesa" target="_blank" rel="noopener">
-            Abrir el teléfono de la mesa →
-          </a>
-        </article>
-
-        <article class="pantalla">
-          <h2>La cocina</h2>
-          <p>El tablero del que cocina: entra el pedido y se marca a medida que sale.</p>
-          <dl class="credencial">
-            <dt>Usuario</dt>
-            <dd id="cocina-usuario"></dd>
-            <dt>PIN</dt>
-            <dd id="cocina-clave"></dd>
-          </dl>
-          <a class="btn" id="link-cocina" target="_blank" rel="noopener">Abrir la cocina →</a>
-        </article>
-
-        <article class="pantalla">
-          <h2>El salón</h2>
-          <p>
-            Lo que mira el mozo: quién llama, qué está listo para llevar y qué mesa
-            falta cobrar.
-          </p>
-          <dl class="credencial">
-            <dt>Usuario</dt>
-            <dd id="salon-usuario"></dd>
-            <dt>PIN</dt>
-            <dd id="salon-clave"></dd>
-          </dl>
-          <a class="btn" id="link-salon" target="_blank" rel="noopener">Abrir el salón →</a>
-        </article>
-
-        <article class="pantalla">
-          <h2>El panel del dueño</h2>
-          <p>La carta, los precios, las mesas, el equipo y cómo viene el negocio.</p>
-          <dl class="credencial">
-            <dt>Mail</dt>
-            <dd id="panel-usuario"></dd>
-            <dt>Contraseña</dt>
-            <dd id="panel-clave"></dd>
-          </dl>
-          <a class="btn" id="link-panel" target="_blank" rel="noopener">Abrir el panel →</a>
-        </article>
+    <nav class="lado" id="lado" aria-label="Las pantallas de Itadaki">
+      <div class="lado-arriba">
+        <a class="lado-marca" href="/">ITADAKI</a>
+        <button type="button" class="cerrar" id="cerrar" aria-label="Cerrar las pantallas">
+          <span aria-hidden="true">✕</span>
+        </button>
       </div>
 
-      <p class="probar-pie">
-        Es una copia entera y tuya: la carta, los precios y los pedidos que cargues
-        no los ve nadie más, y lo que toques acá no afecta a ningún restaurante. Si
-        te gusta,
+      <span class="lado-chapa">Demo</span>
+      <p class="lado-reloj reloj-texto">Armando tu restaurante de prueba…</p>
+
+      <p class="lado-titulo">Pantallas</p>
+
+      <!-- El orden es el del servicio: el comensal pide, la cocina lo hace, el
+           salón lo lleva y lo cobra, el dueño mira cómo fue. -->
+      <button type="button" class="pantalla" data-app="mesa" aria-current="page">
+        <span class="pantalla-icono" aria-hidden="true">🍽</span> Comensal
+      </button>
+      <button type="button" class="pantalla" data-app="cocina">
+        <span class="pantalla-icono" aria-hidden="true">🔥</span> Cocina
+      </button>
+      <button type="button" class="pantalla" data-app="salon">
+        <span class="pantalla-icono" aria-hidden="true">🛎</span> Salón
+      </button>
+      <button type="button" class="pantalla" data-app="admin">
+        <span class="pantalla-icono" aria-hidden="true">📊</span> Panel del dueño
+      </button>
+
+      <p class="lado-pie">
+        Es tuyo y se borra solo. Si te gusta,
         <a href="https://wa.me/5492645135540" target="_blank" rel="noopener">escribinos</a>
         y lo armamos con tu carta de verdad.
       </p>
-    </div>
-  </main>
+    </nav>
+
+    <div class="telon" id="telon" hidden></div>
+
+    <main class="marco">
+      <!-- Vacío hasta que el restaurante exista: cargarlo antes mostraría la
+           pantalla de login de un restaurante que todavía no está. -->
+      <iframe id="marco" title="La app de Itadaki" hidden allow="clipboard-write"></iframe>
+
+      <div class="aviso" id="aviso" role="status">
+        <p id="aviso-texto">
+          Armando tu restaurante de prueba con la carta cargada. Tarda unos
+          segundos la primera vez del día.
+        </p>
+      </div>
+    </main>
+  </div>
 
   <script src="./probar.js"></script>
 </body>

@@ -1,8 +1,12 @@
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { TOPE_DE_DEMOS, esUnDemo, nuevoIdDeDemo, nuevoPin, venceEn } from '@itadaki/identity/domain';
-import { sembrarCarta } from '@itadaki/catalog/infra';
+import { CATEGORIES, PRODUCTS, sembrarCarta } from '@itadaki/catalog/infra';
 import {
+  InMemoryDemos,
+  InMemoryStaffStore,
+  InMemoryTableStore,
+  InMemoryTenantStore,
   PostgresDemos,
   PostgresStaffStore,
   PostgresTableStore,
@@ -10,7 +14,10 @@ import {
   TABLE_TOKEN_HOURS,
   hashPassword,
   signTableToken,
+  signToken,
 } from '@itadaki/identity/infra';
+import { AUTH_SECRET } from './auth';
+import { CatalogService } from './catalog.service';
 import { database } from './database';
 import { log } from './logger';
 
@@ -21,6 +28,19 @@ export interface AccesoDemo {
   readonly rol: 'OWNER' | 'KITCHEN' | 'CAJA';
   readonly usuario: string;
   readonly clave: string;
+  /**
+   * La sesión ya iniciada, para entrar sin pasar por el login.
+   *
+   * El que toca "Probar la app" no eligió este usuario ni este PIN: se los
+   * acabamos de inventar nosotros. Hacerle copiar seis dígitos entre dos
+   * pestañas para ver una demo es perder a la mitad en la puerta, y lo que
+   * hay del otro lado es un restaurante inventado que se borra en dos horas.
+   *
+   * Es el mismo token que devuelve el login de verdad, firmado igual y con
+   * los mismos permisos del rol. Vence cuando vence el restaurante: cuando
+   * ya no hay nada que mirar, tampoco queda una llave dando vueltas.
+   */
+  readonly token: string;
 }
 
 export interface DemoCreado {
@@ -51,16 +71,49 @@ export class DemoService implements OnModuleInit, OnModuleDestroy {
    * dobles y prueba el orden de las cosas —barrer, contar, crear— sin una
    * base de datos al lado. Es el mismo arreglo que usa `ServicioActivoGuard`.
    */
-  protected demos = new PostgresDemos(database);
-  protected tenants = new PostgresTenantStore(database);
-  protected staff = new PostgresStaffStore(database);
-  protected tables = new PostgresTableStore(database);
+  /*
+   * Contra Postgres, o en memoria.
+   *
+   * El mismo interruptor que usan la carta, los pedidos y las mesas. Sin esto
+   * el alta de un restaurante de prueba era lo único de la API que exigía una
+   * base de verdad, y en una máquina sin Docker la pantalla de la demo no
+   * había forma de probarla.
+   */
+  private readonly conPostgres = process.env['USE_POSTGRES'] !== 'false';
+
+  protected demos = this.conPostgres ? new PostgresDemos(database) : new InMemoryDemos();
+  protected tenants = this.conPostgres
+    ? new PostgresTenantStore(database)
+    : new InMemoryTenantStore();
+  protected staff = this.conPostgres ? new PostgresStaffStore(database) : new InMemoryStaffStore();
+  protected tables = this.conPostgres ? new PostgresTableStore(database) : new InMemoryTableStore();
 
   /** La siembra de la carta, también reemplazable: toca la base directo. */
   protected sembrar: (tenantId: string) => Promise<void> = (tenantId) =>
-    database.withTenant(tenantId, (client) => sembrarCarta(client, tenantId));
+    this.conPostgres
+      ? database.withTenant(tenantId, (client) => sembrarCarta(client, tenantId))
+      : this.sembrarEnMemoria(tenantId);
 
   private reloj: ReturnType<typeof setInterval> | null = null;
+
+  constructor(private readonly catalogo: CatalogService) {}
+
+  /**
+   * La carta de ejemplo, copiada al restaurante de prueba.
+   *
+   * `sembrarCarta` escribe SQL, así que en memoria no sirve: se guarda por el
+   * mismo store que lee la app, que es uno solo para todo el proceso. Es el
+   * fixture con otro dueño, igual que contra Postgres — cada copia es
+   * independiente y tocar un precio acá no toca el de nadie.
+   */
+  private async sembrarEnMemoria(tenantId: string): Promise<void> {
+    for (const categoria of CATEGORIES) {
+      await this.catalogo.categoryWriter.save({ ...categoria, tenantId });
+    }
+    for (const plato of PRODUCTS) {
+      await this.catalogo.products.save({ ...plato, tenantId });
+    }
+  }
 
   onModuleInit(): void {
     if (process.env['USE_POSTGRES'] === 'false') return;
@@ -127,7 +180,7 @@ export class DemoService implements OnModuleInit, OnModuleDestroy {
     const expiraEn = venceEn(ahora);
 
     try {
-      const accesos = await this.armar(tenantId);
+      const accesos = await this.armar(tenantId, expiraEn);
       const anotado = await this.demos.anotar(tenantId, expiraEn);
       if (anotado.isErr()) {
         // Sin fila en `demos` nadie lo barre nunca: antes de dejar basura
@@ -146,6 +199,7 @@ export class DemoService implements OnModuleInit, OnModuleDestroy {
   /** El restaurante en sí: dueño, carta, mesa y el resto del equipo. */
   private async armar(
     tenantId: string,
+    expiraEn: Date,
   ): Promise<{ tableToken: string; accesos: readonly AccesoDemo[] }> {
     const sufijo = tenantId.slice('demo-'.length);
     const claveDelDueno = `Prueba${randomBytes(4).toString('hex')}`;
@@ -187,12 +241,38 @@ export class DemoService implements OnModuleInit, OnModuleDestroy {
     );
 
     const accesos: AccesoDemo[] = [
-      { rol: 'OWNER', usuario: mailDelDueno, clave: claveDelDueno },
-      await this.conPin(tenantId, 'KITCHEN', `cocina${sufijo}`, 'Cocina de prueba'),
-      await this.conPin(tenantId, 'CAJA', `salon${sufijo}`, 'Salón de prueba'),
+      {
+        rol: 'OWNER',
+        usuario: mailDelDueno,
+        clave: claveDelDueno,
+        token: this.sesionDe(alta.value.owner.id, tenantId, 'OWNER', 'Dueño de prueba', expiraEn),
+      },
+      await this.conPin(tenantId, 'KITCHEN', `cocina${sufijo}`, 'Cocina de prueba', expiraEn),
+      await this.conPin(tenantId, 'CAJA', `salon${sufijo}`, 'Salón de prueba', expiraEn),
     ];
 
     return { tableToken, accesos };
+  }
+
+  /**
+   * Un token de sesión igual al que da el login, sin pasar por el login.
+   *
+   * Se firma acá y no se pide al endpoint de login porque son tres cuentas y
+   * serían tres viajes más contra una instancia que recién se despierta. El
+   * secreto y el formato son los mismos: lo que se emite no es una llave
+   * especial, es la de siempre con menos vida.
+   */
+  private sesionDe(
+    userId: string,
+    tenantId: string,
+    role: 'OWNER' | 'KITCHEN' | 'CAJA',
+    displayName: string,
+    expiraEn: Date,
+  ): string {
+    return signToken(
+      { userId, tenantId, role, displayName, expiresAt: expiraEn.getTime() },
+      AUTH_SECRET,
+    );
   }
 
   /**
@@ -206,6 +286,7 @@ export class DemoService implements OnModuleInit, OnModuleDestroy {
     rol: 'KITCHEN' | 'CAJA',
     usuario: string,
     nombre: string,
+    expiraEn: Date,
   ): Promise<AccesoDemo> {
     const userId = randomUUID();
     const pin = nuevoPin();
@@ -229,6 +310,6 @@ export class DemoService implements OnModuleInit, OnModuleDestroy {
       throw new Error(`no se pudo guardar el PIN de ${rol}: ${JSON.stringify(guardado.error)}`);
     }
 
-    return { rol, usuario, clave: pin };
+    return { rol, usuario, clave: pin, token: this.sesionDe(userId, tenantId, rol, nombre, expiraEn) };
   }
 }

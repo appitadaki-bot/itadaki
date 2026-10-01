@@ -35,6 +35,10 @@ const DEV_ORIGINS = [
   // que se levanta a mano y el que estaba libre quedaba fuera de esta lista —
   // la app cargaba pero el navegador le bloqueaba cada llamada a la API.
   'http://localhost:4600',
+  // La landing, que también llama a la API: deja los datos del interesado y
+  // arma el restaurante de prueba. Se sirve a mano con un estático, así que
+  // el puerto es una convención nuestra y no el de ningún `ng serve`.
+  'http://localhost:4700',
 ];
 
 function allowedOrigins(): string[] {
