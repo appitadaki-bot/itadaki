@@ -147,6 +147,13 @@ describe('lo que está en cocina se ve completo', () => {
     const regla = ESTILOS.slice(ESTILOS.indexOf('.en-cocina {'));
     expect(regla.slice(0, regla.indexOf('}'))).toContain('white-space: nowrap');
   });
+
+  it('los platos van en orden alfabético', () => {
+    // En el orden de los envíos, las dos ensaladas de una mesa que pidió en
+    // tandas quedaban lejos, y para sacar una había que leer toda la fila.
+    const metodo = PLANTILLA.slice(PLANTILLA.indexOf('protected enCocina('));
+    expect(metodo.slice(0, metodo.indexOf('\n  }\n'))).toContain('localeCompare');
+  });
 });
 
 /**

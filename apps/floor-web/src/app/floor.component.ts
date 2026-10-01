@@ -821,14 +821,20 @@ export class FloorComponent implements OnDestroy {
    *
    * Y uno ya anulado tampoco: sin excluirlo, el botón "Sacar" seguía ahí
    * después de sacarlo, ofreciendo hacer de nuevo algo que ya estaba hecho.
+   *
+   * En orden alfabético y no en el de los envíos: una mesa que pidió en tandas
+   * tenía las dos ensaladas separadas por media fila, y para sacar una había
+   * que leer todos los platos buscándola.
    */
   protected enCocina(
     items: readonly { id: string; orderId: string; name: string; quantity: number; status: string }[],
   ): readonly { id: string; orderId: string; name: string; quantity: number }[] {
-    return items.filter(
-      (item) =>
-        item.status !== 'READY' && item.status !== 'DELIVERED' && item.status !== 'CANCELLED',
-    );
+    return items
+      .filter(
+        (item) =>
+          item.status !== 'READY' && item.status !== 'DELIVERED' && item.status !== 'CANCELLED',
+      )
+      .sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
   }
 
   protected async sacarPlato(orderId: string, itemId: string): Promise<void> {
