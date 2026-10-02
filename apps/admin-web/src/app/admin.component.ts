@@ -92,7 +92,6 @@ interface MenuCategory {
 interface RestaurantTable {
   id: string;
   label: string;
-  seats: number;
   url: string;
 }
 
@@ -669,16 +668,6 @@ const ROLE_NAMES: Record<string, string> = {
                       required
                       aria-label="Nombre de la mesa"
                     />
-                    <input
-                      class="table-edit-seats"
-                      name="seats"
-                      type="number"
-                      [value]="table.seats"
-                      min="1"
-                      max="30"
-                      required
-                      aria-label="Lugares"
-                    />
                     <button type="submit" class="table-save">Guardar</button>
                     <button type="button" class="table-cancel" (click)="editingTable.set(null)">
                       Cancelar
@@ -687,7 +676,6 @@ const ROLE_NAMES: Record<string, string> = {
                 } @else {
                 <div class="table-info">
                   <span class="table-label">{{ table.label }}</span>
-                  <span class="table-seats">{{ table.seats }} lugares</span>
                 </div>
 
                 <div class="table-actions">
@@ -1687,7 +1675,7 @@ export class AdminComponent {
   protected readonly tableError = signal<string | null>(null);
 
   /**
-   * Guarda el nombre y los lugares.
+   * Guarda el nombre.
    *
    * El id no cambia aunque cambie el nombre: de él cuelga el QR pegado en la
    * mesa, y renombrarla no puede obligar a reimprimirlo.
@@ -1698,13 +1686,12 @@ export class AdminComponent {
 
     const data = new FormData(event.target as HTMLFormElement);
     const label = String(data.get('label') ?? '').trim();
-    const seats = Number(data.get('seats') ?? 0);
-    if (label === '' || !Number.isFinite(seats)) return;
+    if (label === '') return;
 
     const response = await this.auth.apiFetch(`${API}/tables/${table.id}`, {
       method: 'PATCH',
       headers: { ...this.auth.headers(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label, seats }),
+      body: JSON.stringify({ label }),
     });
 
     if (!response.ok) {

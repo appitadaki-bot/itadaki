@@ -9,6 +9,17 @@ export interface Mail {
   readonly to: string;
   readonly subject: string;
   readonly body: string;
+
+  /**
+   * La misma carta, con formato, cuando el mensaje gana algo con tenerlo.
+   *
+   * Opcional porque la mayoría no gana nada: un link para recuperar la
+   * contraseña se lee igual sin maquetar, y el texto plano llega a todos
+   * lados. Donde va, va además de `body` y nunca en su lugar — muchos
+   * clientes no bajan imágenes hasta que alguien se lo pide, así que el
+   * texto tiene que decir todo lo que hay que decir por su cuenta.
+   */
+  readonly html?: string;
 }
 
 export interface Mailer {

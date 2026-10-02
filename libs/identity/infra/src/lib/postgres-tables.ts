@@ -7,7 +7,6 @@ export interface RestaurantTable {
   readonly tenantId: string;
   readonly id: string;
   readonly label: string;
-  readonly seats: number;
   readonly secret: string;
 
   /**
@@ -34,7 +33,6 @@ interface TableRow {
   tenant_id: string;
   id: string;
   label: string;
-  seats: number;
   qr_secret: string;
   /** Null en una mesa a la que todavía no se le asignó código. */
   join_code: string | null;
@@ -83,7 +81,6 @@ export class PostgresTableStore {
             tenantId: row.tenant_id,
             id: row.id,
             label: row.label,
-            seats: row.seats,
             secret: row.qr_secret,
             joinCode: row.join_code ?? null,
           });
@@ -106,7 +103,6 @@ export class PostgresTableStore {
           tenantId: row.tenant_id,
           id: row.id,
           label: row.label,
-          seats: row.seats,
           secret: row.qr_secret,
           joinCode: row.join_code ?? null,
         })),
@@ -123,11 +119,11 @@ export class PostgresTableStore {
       const secret = newTableSecret();
       await this.db.withTenant(table.tenantId, async (client) => {
         await client.query(
-          `INSERT INTO restaurant_tables (tenant_id, id, label, seats, qr_secret, join_code)
+          `INSERT INTO restaurant_tables (tenant_id, id, label, qr_secret, join_code)
            VALUES ($1,$2,$3,$4,$5,$6)
            ON CONFLICT (tenant_id, id) DO UPDATE SET
-             label = EXCLUDED.label, seats = EXCLUDED.seats`,
-          [table.tenantId, table.id, table.label, table.seats, secret, newJoinCode()],
+             label = EXCLUDED.label`,
+          [table.tenantId, table.id, table.label, secret, newJoinCode()],
         );
       });
       const saved = await this.find(table.tenantId, table.id);

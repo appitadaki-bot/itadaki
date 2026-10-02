@@ -45,6 +45,11 @@
                 "glob": "icon-*.png",
                 "input": "apps/diner-pwa/src",
                 "output": "/"
+              },
+              {
+                "glob": "itadaki-logo.png",
+                "input": "apps/diner-pwa/src",
+                "output": "/"
               }
             ],
             "polyfills": [

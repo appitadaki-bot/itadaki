@@ -22,10 +22,14 @@
     "db:seed": "npm run build:api && node dist/api/apps/api/src/seed.js",
     "db:migrate": "npm run build:api && node dist/api/apps/api/src/migrate-cli.js",
     "db:down": "docker compose down",
-    "db:staff": "npm run build:api && node dist/api/apps/api/src/create-staff.js",
-    "alta:restaurante": "npm run build:api && node dist/api/apps/api/src/alta-restaurante.js",
-    "db:trial": "npm run build:api && node dist/api/apps/api/src/manage-trial.js",
-    "avisos:vencimiento": "npm run build:api && node dist/api/apps/api/src/avisar-vencimientos.js",
+    "predb:staff": "npm run build:api",
+    "db:staff": "node dist/api/apps/api/src/create-staff.js",
+    "prealta:restaurante": "npm run build:api",
+    "alta:restaurante": "node dist/api/apps/api/src/alta-restaurante.js",
+    "predb:trial": "npm run build:api",
+    "db:trial": "node dist/api/apps/api/src/manage-trial.js",
+    "preavisos:vencimiento": "npm run build:api",
+    "avisos:vencimiento": "node dist/api/apps/api/src/avisar-vencimientos.js",
     "db:reset": "docker compose down -v && npm run db:up && npm run db:seed",
     "db:backup": "bash scripts/backup.sh",
     "db:restore": "bash scripts/restore.sh",
@@ -41,7 +45,8 @@
     "build:landing": "npm run legal && node scripts/build-landing.mjs",
     "video": "node scripts/grabar-flujo.mjs",
     "salon-lleno": "node scripts/salon-lleno.mjs",
-    "db:soporte": "npm run build:api && node dist/api/apps/api/src/crear-soporte.js"
+    "predb:soporte": "npm run build:api",
+    "db:soporte": "node dist/api/apps/api/src/crear-soporte.js"
   },
   "devDependencies": {
     "@angular/build": "^21.2.24",

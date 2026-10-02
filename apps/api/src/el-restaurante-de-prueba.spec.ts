@@ -70,7 +70,7 @@ class DemoDePrueba extends DemoService {
     this.tables = {
       save: async () => {
         this.anotar('crear mesa');
-        return ok({ tenantId: 'x', id: 'mesa-1', label: 'Mesa 1', seats: 4, secret: 'abcdef' });
+        return ok({ tenantId: 'x', id: 'mesa-1', label: 'Mesa 1', secret: 'abcdef' });
       },
     } as unknown as DemoService['tables'];
 

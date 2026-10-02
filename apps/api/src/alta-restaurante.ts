@@ -45,6 +45,19 @@ const PANEL = process.env['ADMIN_APP_URL'] ?? 'https://admin.itadaki.app';
  */
 const DIAS_DEL_LINK = 7;
 
+/** Por dónde se nos contesta de verdad. El remitente del mail no recibe. */
+const WHATSAPP = 'https://wa.me/5492645135540';
+
+/**
+ * El logo, servido por la landing.
+ *
+ * Una dirección pública y no un adjunto: adjuntarlo obliga a armar el correo
+ * en varias partes y queda colgando como archivo descargable en la mitad de
+ * los clientes. Es el archivo de la landing, crema sobre oscuro, y por eso la
+ * franja del pie va oscura — sobre blanco la palabra no se vería.
+ */
+const LOGO = 'https://www.itadaki.app/itadaki-logo.png';
+
 async function main(): Promise<void> {
   const [restaurante, email, nombreDelDueno] = process.argv.slice(2);
 
@@ -138,6 +151,54 @@ async function main(): Promise<void> {
 }
 
 /**
+ * La misma carta, maquetada.
+ *
+ * Tablas y estilos pegados a cada etiqueta porque es lo único que entienden
+ * todos los clientes de correo: Outlook ignora una hoja de estilos y Gmail
+ * recorta lo que va en el `<head>`.
+ *
+ * Nada de lo que importa vive en una imagen. Buena parte de la gente lee el
+ * correo con las imágenes apagadas, y si el logo no carga el mensaje tiene
+ * que seguir diciéndolo todo.
+ */
+function maquetado(nombre: string, link: string): string {
+  return `<!doctype html>
+<html lang="es">
+<body style="margin:0;padding:0;background:#F1E7DA;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1E7DA">
+    <tr><td align="center" style="padding:32px 16px">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border-radius:18px;overflow:hidden">
+
+        <tr><td style="padding:36px 36px 28px;color:#2A231F">
+          <p style="margin:0 0 20px;font-size:16px;line-height:1.6">Hola ${nombre},</p>
+          <p style="margin:0 0 26px;font-size:16px;line-height:1.6">
+            Te dejamos armado tu restaurante en Itadaki. Entrá acá para elegir tu
+            contraseña y empezar a usarlo:
+          </p>
+          <p style="margin:0 0 26px">
+            <a href="${link}" style="display:inline-block;padding:15px 34px;border-radius:100px;background:#2E2722;color:#FAF4EA;font-size:15px;font-weight:bold;text-decoration:none">Elegir mi contraseña</a>
+          </p>
+          <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:#4E423A">
+            El link vale ${DIAS_DEL_LINK} días y se puede usar una sola vez. Después entrás
+            siempre desde <a href="${PANEL}" style="color:#B43A21">${PANEL}</a> con este mismo mail.
+          </p>
+          <p style="margin:0;font-size:14px;line-height:1.6;color:#4E423A">
+            Cualquier cosa, <a href="${WHATSAPP}" style="color:#B43A21">escribinos por WhatsApp</a>.
+          </p>
+        </td></tr>
+
+        <tr><td align="center" style="padding:22px 36px 26px;background:#2E2722">
+          <img src="${LOGO}" alt="Itadaki" height="22" style="display:block;height:22px;width:auto;border:0" />
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+/**
  * Le manda al dueño el link para elegir su contraseña.
  *
  * Es el mismo token de un solo uso que usa "Olvidé mi contraseña" y se guarda
@@ -189,8 +250,12 @@ async function invitar(
       `El link vale ${DIAS_DEL_LINK} días y se puede usar una sola vez. Después entrás`,
       `siempre desde ${PANEL} con este mismo mail.`,
       '',
-      'Cualquier cosa, respondenos acá o escribinos por WhatsApp.',
+      // No "respondenos acá": el remitente no recibe. Ofrecer una puerta que
+      // no existe es peor que no ofrecer ninguna — quien conteste se queda
+      // esperando una respuesta que nadie va a leer.
+      `Cualquier cosa, escribinos por WhatsApp: ${WHATSAPP}`,
     ].join('\n'),
+    html: maquetado(nombre, link),
   });
 
   return null;

@@ -4,6 +4,7 @@ import { type Category, type DietTag, type Product } from '@itadaki/catalog/doma
 import { DINER_PALETTE } from '@itadaki/shared/ui-tokens';
 import { MODIFIER_GROUPS_TOKEN, CATEGORY_READER, PRODUCT_READER, TENANT } from './catalog.tokens';
 import { CartStore } from './cart.store';
+import { LocalStore } from './local.store';
 import { SessionStore } from './session.store';
 import { MoneyPipe } from './money.pipe';
 import { ToastStore } from './toast.store';
@@ -28,7 +29,21 @@ const DIET_LABELS: ReadonlyArray<{ tag: DietTag; label: string }> = [
            quedaba quieta mientras la carta se movía debajo y tapaba una franja
            de platos en cada scroll. Acá se lee una vez, al llegar. -->
       <div class="head-top">
-        <h1 class="title">Nuestra carta</h1>
+        <!-- El nombre del local es el título y "Nuestra carta" el renglón de
+             apoyo, igual que en la bienvenida: el comensal está en un
+             restaurante, y lo que ve es la carta de ese lugar.
+
+             Sin token de mesa —alguien que abre la app sin escanear— no hay
+             local que nombrar, y una pantalla sin título se ve rota, no vacía:
+             ahí "Nuestra carta" vuelve a ser el título. -->
+        <div class="head-title">
+          @if (local.nombre(); as nombre) {
+            <p class="head-eyebrow">Nuestra carta</p>
+            <h1 class="title">{{ nombre }}</h1>
+          } @else {
+            <h1 class="title">Nuestra carta</h1>
+          }
+        </div>
 
         @if (session.isJoined()) {
           <aside class="table-tag" aria-label="Mesa y comensales">
@@ -276,6 +291,7 @@ export class MenuPage {
 
   protected readonly cart = inject(CartStore);
   protected readonly session = inject(SessionStore);
+  protected readonly local = inject(LocalStore);
   protected readonly adding = signal<string | null>(null);
 
   /** Qué plato tiene la indicación abierta: uno a la vez. */
@@ -402,6 +418,9 @@ export class MenuPage {
 
   constructor() {
     void this.load();
+    // Si la bienvenida ya lo pidió, esto no vuelve a salir a la red: quien
+    // escanea el QR entra por ahí, así que lo normal es que ya esté.
+    this.local.cargar();
   }
 
   private async load(): Promise<void> {

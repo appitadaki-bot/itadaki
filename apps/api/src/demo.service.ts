@@ -224,7 +224,7 @@ export class DemoService implements OnModuleInit, OnModuleDestroy {
 
     await this.sembrar(tenantId);
 
-    const mesa = await this.tables.save({ tenantId, id: 'mesa-1', label: 'Mesa 1', seats: 4 });
+    const mesa = await this.tables.save({ tenantId, id: 'mesa-1', label: 'Mesa 1' });
     if (mesa.isErr()) {
       throw new Error(`no se pudo crear la mesa: ${JSON.stringify(mesa.error)}`);
     }

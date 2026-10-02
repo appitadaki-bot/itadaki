@@ -10,7 +10,6 @@ import {
 export interface QrTable {
   readonly id: string;
   readonly label: string;
-  readonly seats: number;
   readonly url: string;
 }
 

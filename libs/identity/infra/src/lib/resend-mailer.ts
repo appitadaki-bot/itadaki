@@ -42,6 +42,9 @@ export class ResendMailer implements Mailer {
         to: [mail.to],
         subject: mail.subject,
         text: mail.body,
+        // Las dos versiones cuando hay una maquetada: el cliente de correo
+        // elige, y el que no muestra imágenes se queda con el texto entero.
+        ...(mail.html === undefined ? {} : { html: mail.html }),
       }),
     });
 
