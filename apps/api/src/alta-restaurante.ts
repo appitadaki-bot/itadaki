@@ -1,7 +1,13 @@
 import 'reflect-metadata';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { prepareTenant, uniqueSlug, validateCredentials } from '@itadaki/identity/domain';
-import { PostgresTenantStore, hashPassword } from '@itadaki/identity/infra';
+import {
+  PostgresResetStore,
+  PostgresTenantStore,
+  ResendMailer,
+  hashPassword,
+  newResetToken,
+} from '@itadaki/identity/infra';
 import { Database } from '@itadaki/shared/persistence';
 import { conexionPostgres } from './db-url';
 
@@ -17,13 +23,27 @@ import { conexionPostgres } from './db-url';
  *   npm run alta:restaurante -- "Nombre del restaurante" dueno@mail.com "Nombre del dueño"
  *
  * El dueño no recibe contraseña de nosotros. Se crea con una al azar que nadie
- * conoce, y la define él entrando al panel y tocando "Olvidé mi contraseña":
- * así nunca pasa por un WhatsApp ni queda en el historial de nadie, y de paso
- * el link del mail prueba que la casilla es suya.
+ * conoce —ni nosotros— y la define él desde el link que le llega por mail al
+ * terminar esto: así nunca pasa por un WhatsApp ni queda en el historial de
+ * nadie, y lo que no sabemos no lo podemos filtrar.
+ *
+ * Hace falta `RESEND_API_KEY` y `MAIL_FROM` para que el mail salga. Sin eso
+ * el link se imprime acá y hay que mandarlo a mano: el alta sirve igual, pero
+ * lo dice en vez de dejar a alguien esperando un correo que nunca se envió.
  */
 const ADMIN_URL =
   process.env['DATABASE_ADMIN_URL'] ?? 'postgres://itadaki:itadaki@localhost:5433/itadaki';
 const PANEL = process.env['ADMIN_APP_URL'] ?? 'https://admin.itadaki.app';
+
+/**
+ * Cuánto vale el link de bienvenida.
+ *
+ * Mucho más que la hora del de recuperar la contraseña, y por un caso
+ * distinto: ese lo pidió alguien que está mirando la pantalla, éste le llega
+ * sin aviso a quien habló con nosotros por WhatsApp y abre el mail cuando
+ * cierra el local. Una hora lo dejaba afuera casi siempre.
+ */
+const DIAS_DEL_LINK = 7;
 
 async function main(): Promise<void> {
   const [restaurante, email, nombreDelDueno] = process.argv.slice(2);
@@ -94,19 +114,86 @@ async function main(): Promise<void> {
       ]);
     });
 
+    const link = await invitar(database, tenant.id, owner.id, owner.displayName, owner.email);
+
     console.log();
     console.log(`  Restaurante  ${tenant.name}`);
     console.log(`  Slug         ${tenant.slug}`);
     console.log(`  Dueño        ${owner.displayName} <${owner.email}>`);
     console.log();
-    console.log('  Lo que tiene que hacer el dueño:');
-    console.log(`    1. Entrar a ${PANEL}`);
-    console.log(`    2. Poner ${owner.email} y tocar "Olvidé mi contraseña"`);
-    console.log('    3. Abrir el link del mail y elegir su contraseña');
+
+    if (link === null) {
+      console.log(`  Listo. Le mandamos el mail a ${owner.email} con el link para`);
+      console.log(`  elegir su contraseña. Vale ${DIAS_DEL_LINK} días.`);
+    } else {
+      console.log('  OJO: no hay proveedor de correo configurado, así que el mail');
+      console.log('  NO se envió. Pasale este link vos:');
+      console.log();
+      console.log(`    ${link}`);
+    }
     console.log();
   } finally {
     await database.close();
   }
+}
+
+/**
+ * Le manda al dueño el link para elegir su contraseña.
+ *
+ * Es el mismo token de un solo uso que usa "Olvidé mi contraseña" y se guarda
+ * igual, hasheado: una base filtrada no tiene que entregar un link que
+ * funcione. Lo único distinto es cuánto vive y qué dice el texto — "pediste
+ * cambiar tu contraseña" se lee raro cuando no pediste nada.
+ *
+ * Devuelve `null` si el mail salió, o el link si no hay proveedor de correo,
+ * para que quien corre el alta lo mande a mano. Lo que no hace es fallar en
+ * silencio: un alta que parece completa y deja al dueño esperando un correo
+ * que nunca se envió es peor que una que avisa.
+ */
+async function invitar(
+  database: Database,
+  tenantId: string,
+  userId: string,
+  nombre: string,
+  email: string,
+): Promise<string | null> {
+  const { token, digest } = newResetToken();
+  const expiresAt = new Date(Date.now() + DIAS_DEL_LINK * 24 * 3_600_000);
+
+  const guardado = await new PostgresResetStore(database).create(
+    digest,
+    { tenantId, userId },
+    expiresAt,
+  );
+  if (guardado.isErr()) {
+    throw new Error(`no se pudo preparar el link de bienvenida: ${guardado.error.kind}`);
+  }
+
+  const link = `${PANEL}/?reset=${encodeURIComponent(token)}`;
+
+  // El de verdad o nada: el de consola imprimiría el mail acá y diría que lo
+  // envió, que es justo el final confuso que este script tiene que evitar.
+  const correo = ResendMailer.fromEnvironment();
+  if (correo === null) return link;
+
+  await correo.send({
+    to: email,
+    subject: 'Tu restaurante en ITADAKI ya está listo',
+    body: [
+      `Hola ${nombre},`,
+      '',
+      'Te dejamos armado tu restaurante en Itadaki. Entrá acá para elegir tu',
+      'contraseña y empezar a usarlo:',
+      link,
+      '',
+      `El link vale ${DIAS_DEL_LINK} días y se puede usar una sola vez. Después entrás`,
+      `siempre desde ${PANEL} con este mismo mail.`,
+      '',
+      'Cualquier cosa, respondenos acá o escribinos por WhatsApp.',
+    ].join('\n'),
+  });
+
+  return null;
 }
 
 void main().catch((error: unknown) => {
