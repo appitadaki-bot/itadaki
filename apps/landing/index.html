@@ -84,7 +84,7 @@
   "areaServed": { "@type": "Country", "name": "Argentina" },
   "offers": {
     "@type": "Offer",
-    "price": "40000",
+    "price": "12999",
     "priceCurrency": "ARS",
     "description": "Plan Pro mensual, con 30 días de prueba gratis sin tarjeta"
   }
@@ -119,7 +119,7 @@
       "name": "¿Cobran comisión por cada pedido?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. Se paga un abono mensual fijo de $40.000 y nada más, vendas diez pedidos o mil. Lo que cobrás es tuyo: no pasamos por el medio del cobro ni tocamos tu plata. Es la diferencia con las apps de delivery, que se quedan con un porcentaje de cada venta."
+        "text": "No. Se paga un abono mensual fijo de $12.999 y nada más, vendas diez pedidos o mil. Lo que cobrás es tuyo: no pasamos por el medio del cobro ni tocamos tu plata. Es la diferencia con las apps de delivery, que se quedan con un porcentaje de cada venta."
       }
     },
     {
@@ -761,30 +761,33 @@
         <p class="chapa">El plan</p>
         <p class="plan-nombre">Pro</p>
         <p class="plan-precio">
-          <span class="plan-signo">$</span><span class="plan-cifra">40.000</span>
+          <span class="plan-signo">$</span><span class="plan-cifra">12.999</span>
           <span class="plan-mes">por mes</span>
         </p>
         <!--
-          El precio de lista tachado, debajo del que se paga.
+          Que es una promoción, sin un número tachado al lado.
 
-          No es un adorno: dice que 40.000 es una promoción y no el precio de
-          siempre, así que el día que suba no se lee como un aumento sorpresa
-          sino como el fin de algo que estaba anunciado desde el principio.
-
-          Tachado y no "antes 80.000" porque es lo que se entiende sin leer, y
-          con `<s>` para que quien usa un lector de pantalla también sepa que
-          ese número está cruzado.
+          Estuvo con el precio de lista cruzado, para que el día que suba no se
+          leyera como un aumento sorpresa. Pero dos cifras juntas obligan a
+          averiguar cuál se paga, y eso es trabajo en la pantalla donde menos
+          conviene: la que decide. Queda sólo el aviso de que el precio es de
+          lanzamiento, que dice lo mismo sin hacer dudar.
         -->
         <p class="plan-antes">
-          <s>$80.000</s>
           <span class="plan-promo">Precio de lanzamiento</span>
         </p>
         <p class="plan-plazo">Sin contrato ni permanencia</p>
         <ul class="plan-items">
           <li>Mesas, cocina, salón y panel, sin límite de pedidos</li>
           <li>Todos los QR que necesites</li>
+          <li>Rol de caja: quien cobra no toca la carta ni el equipo</li>
           <li>Métricas de venta al día</li>
-          <li>Soporte por WhatsApp</li>
+          <li>Capacitamos a tu equipo, en el local o por videollamada</li>
+          <li>Soporte por WhatsApp: te contesta una persona</li>
+          <li>Mejoras continuas: nos juntamos a ver qué te falta</li>
+          <!-- Era la nota de abajo, y dejaba los dos botones a distinta
+               altura. Como tilde cuenta lo mismo y la fila queda pareja. -->
+          <li>Los 30 días de prueba arrancan con tu primer pedido</li>
           <li>Te damos de baja cuando quieras, desde tu panel</li>
         </ul>
         <!-- Uno solo. Dos botones que llevaban al mismo lugar obligaban a
@@ -797,10 +800,6 @@
           target="_blank"
           rel="noopener"
         >Contratar ahora</a>
-        <p class="plan-nota">
-          Con la prueba no se cobra nada hasta tu día 31, y los 30 días
-          arrancan con tu primer pedido.
-        </p>
       </div>
     </div>
 
@@ -937,7 +936,7 @@
     <details class="pregunta">
       <summary>¿Cobran comisión por cada pedido?</summary>
       <p>
-        No. Se paga un abono mensual fijo de $40.000 y nada más, vendas diez
+        No. Se paga un abono mensual fijo de $12.999 y nada más, vendas diez
         pedidos o mil. Lo que cobrás es tuyo: no pasamos por el medio del
         cobro ni tocamos tu plata. Es la diferencia con las apps de delivery,
         que se quedan con un porcentaje de cada venta.

@@ -15,10 +15,24 @@
   flex-wrap: wrap;
 }
 
+/*
+ * Quién está trabajando y cómo salir, contra el borde derecho.
+ *
+ * El `space-between` del encabezado alcanza mientras el título y esto entran
+ * en la misma fila. Con `flex-wrap`, en pantalla angosta la sesión baja de
+ * renglón — y sola en su renglón, `space-between` ya no la empuja a ningún
+ * lado: quedaba pegada a la izquierda, debajo del título, como si fuera parte
+ * de él.
+ *
+ * `margin-left: auto` la manda a la derecha en los dos casos.
+ */
 .session {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .who {
