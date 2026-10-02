@@ -29,13 +29,19 @@ const DIET_LABELS: ReadonlyArray<{ tag: DietTag; label: string }> = [
            quedaba quieta mientras la carta se movía debajo y tapaba una franja
            de platos en cada scroll. Acá se lee una vez, al llegar. -->
       <div class="head-top">
+        <!-- El nombre del local es el título y "Nuestra carta" el renglón de
+             apoyo, igual que en la bienvenida: el comensal está en un
+             restaurante, y lo que ve es la carta de ese lugar.
+
+             Sin token de mesa —alguien que abre la app sin escanear— no hay
+             local que nombrar, y una pantalla sin título se ve rota, no vacía:
+             ahí "Nuestra carta" vuelve a ser el título. -->
         <div class="head-title">
-          <h1 class="title">Nuestra carta</h1>
-          <!-- De quién es la carta, debajo del título. Sin token de mesa
-               —alguien que abre la app sin escanear— no hay local que nombrar
-               y el renglón no aparece, en vez de dejar un hueco. -->
           @if (local.nombre(); as nombre) {
-            <p class="head-local">{{ nombre }}</p>
+            <p class="head-eyebrow">Nuestra carta</p>
+            <h1 class="title">{{ nombre }}</h1>
+          } @else {
+            <h1 class="title">Nuestra carta</h1>
           }
         </div>
 

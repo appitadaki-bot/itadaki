@@ -60,14 +60,25 @@ describe('el saludo', () => {
 });
 
 describe('la carta', () => {
-  it('dice de quién es', () => {
-    expect(CARTA).toContain('<p class="head-local">{{ nombre }}</p>');
+  it('el nombre del restaurante es el título', () => {
+    // Igual que en la bienvenida: el comensal está en un restaurante, y lo
+    // que ve es la carta de ese lugar.
+    expect(CARTA).toContain('<h1 class="title">{{ nombre }}</h1>');
   });
 
-  it('sin nombre no deja un hueco', () => {
-    // El renglón entero cuelga del `@if`: alguien que abre la app sin escanear
-    // ve la carta sin un espacio vacío donde iría un nombre que no existe.
-    expect(CARTA).toContain('@if (local.nombre(); as nombre) {');
+  it('"Nuestra carta" baja a renglón de apoyo', () => {
+    const conNombre = CARTA.slice(
+      CARTA.indexOf('@if (local.nombre(); as nombre)'),
+      CARTA.indexOf('} @else {', CARTA.indexOf('@if (local.nombre(); as nombre)')),
+    );
+    expect(conNombre).toContain('<p class="head-eyebrow">Nuestra carta</p>');
+  });
+
+  it('sin nombre, "Nuestra carta" vuelve a ser el título', () => {
+    // Quien abre la app sin escanear no tiene local que nombrar. Una pantalla
+    // sin título se ve rota, no vacía.
+    const sinNombre = CARTA.slice(CARTA.indexOf('@if (local.nombre(); as nombre)'));
+    expect(sinNombre).toContain('<h1 class="title">Nuestra carta</h1>');
   });
 });
 

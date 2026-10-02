@@ -27,28 +27,32 @@
   min-width: 0;
 }
 
-/* Debajo del título y más chico: la pantalla es la carta, y el nombre del
-   local dice de quién es sin pelearle el renglón. */
-.head-local {
-  margin: 0.15rem 0 0;
+/* Encima del nombre y en chico, igual que el renglón rojo de la bienvenida:
+   dice qué es esta pantalla sin pelearle el tamaño al restaurante. */
+.head-eyebrow {
+  margin: 0 0 0.15rem;
   font-family: var(--itadaki-font-display);
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   color: var(--itadaki-accent);
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-  overflow-wrap: anywhere;
 }
 
+/* El tamaño con `clamp` porque acá va el nombre del local, que lo elige el
+   restaurante y no nosotros: uno corto y uno de cinco palabras entran los dos
+   sin que haya que medir ninguno. */
 .title {
   font-family: var(--itadaki-font-display);
   font-weight: 700;
-  font-size: 1.65rem;
+  font-size: clamp(1.35rem, 6vw, 1.65rem);
+  line-height: 1.12;
   color: var(--itadaki-ink-strong);
   margin: 0;
   letter-spacing: var(--itadaki-tracking-title);
   text-wrap: balance;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Parte del fondo, no una capa encima: sin `position`, sin sombra y sin blur.
