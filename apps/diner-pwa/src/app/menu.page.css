@@ -21,6 +21,25 @@
   margin-bottom: 1rem;
 }
 
+/* El título y de quién es la carta, como un bloque: así el `space-between`
+   del encabezado sigue repartiendo dos cosas y no tres. */
+.head-title {
+  min-width: 0;
+}
+
+/* Debajo del título y más chico: la pantalla es la carta, y el nombre del
+   local dice de quién es sin pelearle el renglón. */
+.head-local {
+  margin: 0.15rem 0 0;
+  font-family: var(--itadaki-font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--itadaki-accent);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+
 .title {
   font-family: var(--itadaki-font-display);
   font-weight: 700;

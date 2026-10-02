@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ApiClient } from './api-client';
+import { LocalStore } from './local.store';
 import { SessionStore } from './session.store';
 
 @Component({
@@ -65,32 +65,13 @@ import { SessionStore } from './session.store';
 })
 export class WelcomePage {
   protected readonly session = inject(SessionStore);
-  private readonly api = inject(ApiClient);
+  private readonly local = inject(LocalStore);
 
   /** Cómo se llama el restaurante, cuando el token de la mesa deja saberlo. */
-  protected readonly nombre = signal<string | null>(null);
+  protected readonly nombre = this.local.nombre;
 
   constructor() {
-    void this.cargarNombre();
+    this.local.cargar();
   }
 
-  /**
-   * Pide el nombre del local.
-   *
-   * Un fallo lo deja en nulo y el saludo va sin nombre: es exactamente lo que
-   * pasa cuando alguien abre la app sin haber escaneado, así que no hace falta
-   * un caso aparte. Nunca un error en pantalla — la bienvenida es lo primero
-   * que se ve, y no es lugar para contarle un problema a nadie.
-   */
-  private async cargarNombre(): Promise<void> {
-    try {
-      const respuesta = await this.api.fetch('/ajustes/publicos');
-      if (!respuesta.ok) return;
-
-      const ajustes = (await respuesta.json()) as { nombre: string | null };
-      this.nombre.set(ajustes.nombre);
-    } catch {
-      // Queda sin nombre.
-    }
-  }
 }

@@ -2,21 +2,26 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
- * A quién saluda la pantalla de bienvenida.
+ * Dónde aparece el nombre del restaurante, y de dónde sale.
  *
- * Decía "Bienvenido a ITADAKI". El comensal escaneó el QR de una mesa en un
- * restaurante: entró a ese lugar, no a un sistema, y saludarlo con nuestra
- * marca le habla de algo que no eligió ver ni le importa.
+ * La bienvenida decía "Bienvenido a ITADAKI". El comensal escaneó el QR de una
+ * mesa en un restaurante: entró a ese lugar, no a un sistema, y saludarlo con
+ * nuestra marca le habla de algo que no eligió ver ni le importa.
  *
  * Después el nombre del local estaba, pero adentro de una frase —"Bienvenido
  * a X. Tu mesa ya está lista"— mientras el título grande lo seguía ocupando
  * "Itadakimasu!", que es nuestro y no suyo. Ahora el nombre es el título.
  *
- * Es lo primero que ve de la app, y la única pantalla donde el restaurante
- * puede parecer suyo.
+ * Son las dos pantallas donde el restaurante puede parecer suyo: la primera
+ * que ve, y la carta.
  */
 
-const PANTALLA = readFileSync(join(__dirname, 'welcome.page.ts'), 'utf-8').replace(/\r\n/g, "\n");
+const leer = (archivo: string): string =>
+  readFileSync(join(__dirname, archivo), 'utf-8').replace(/\r\n/g, '\n');
+
+const PANTALLA = leer('welcome.page.ts');
+const CARTA = leer('menu.page.ts');
+const STORE = leer('local.store.ts');
 
 describe('el saludo', () => {
   it('el nombre del restaurante es el título', () => {
@@ -52,11 +57,32 @@ describe('el saludo', () => {
     expect(PANTALLA).toContain('Ingresar');
     expect(PANTALLA).not.toContain('Ver la carta');
   });
+});
 
-  it('un fallo al pedirlo no muestra ningún error', () => {
-    // Es lo primero que se ve: no es lugar para contarle un problema a nadie,
-    // y sin nombre la pantalla funciona igual.
-    const carga = PANTALLA.slice(PANTALLA.indexOf('private async cargarNombre'));
+describe('la carta', () => {
+  it('dice de quién es', () => {
+    expect(CARTA).toContain('<p class="head-local">{{ nombre }}</p>');
+  });
+
+  it('sin nombre no deja un hueco', () => {
+    // El renglón entero cuelga del `@if`: alguien que abre la app sin escanear
+    // ve la carta sin un espacio vacío donde iría un nombre que no existe.
+    expect(CARTA).toContain('@if (local.nombre(); as nombre) {');
+  });
+});
+
+describe('de dónde sale el nombre', () => {
+  it('se pide una sola vez por visita', () => {
+    // Lo quieren dos pantallas. Pidiéndolo cada una por su cuenta son dos
+    // viajes contra una API que en el plan gratis puede estar despertándose.
+    expect(STORE).toContain('this.pedido ??= this.pedir()');
+  });
+
+  it('un fallo no muestra ningún error', () => {
+    // La bienvenida es lo primero que se ve y la carta es lo que se vino a
+    // mirar: ninguna de las dos es lugar para contarle un problema a nadie, y
+    // sin nombre las dos funcionan igual.
+    const carga = STORE.slice(STORE.indexOf('private async pedir'));
     const cuerpo = carga.slice(0, carga.indexOf('\n  }'));
 
     expect(cuerpo).toContain('catch');
