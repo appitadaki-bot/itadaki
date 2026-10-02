@@ -30,7 +30,7 @@
 /* Encima del nombre y en chico, igual que el renglón rojo de la bienvenida:
    dice qué es esta pantalla sin pelearle el tamaño al restaurante. */
 .head-eyebrow {
-  margin: 0 0 0.15rem;
+  margin: 0 0 0.45rem;
   font-family: var(--itadaki-font-display);
   font-weight: 700;
   font-size: 0.75rem;
