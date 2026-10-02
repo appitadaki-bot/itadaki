@@ -58,7 +58,10 @@ import { SessionStore } from './session.store';
            lo saca de la zona del restaurante: arriba el local, acá nosotros. -->
       <footer class="marca">
         <img src="itadaki-logo.png" alt="Itadaki" width="440" height="93" />
-        <span>pedí y pagá desde tu teléfono</span>
+        <!-- Lo que el comensal hace de verdad con esto. "Pagá desde tu
+             teléfono" prometía un cobro que no existe: la app muestra la
+             cuenta y la divide, pero la plata se la da al mozo. -->
+        <span>pedí y seguí tu pedido desde la mesa</span>
       </footer>
     </main>
   `,
