@@ -1096,13 +1096,6 @@ strong { color: var(--tinta); font-weight: 700; }
   margin-top: auto;
 }
 
-.plan-nota {
-  margin: 0.75rem 0 0;
-  font-size: 0.8rem;
-  text-align: center;
-  color: var(--tinta-suave);
-}
-
 /* En el teléfono la destacada va primero: es la que la página recomienda, y
    nadie hace scroll para comparar dos tarjetas apiladas. */
 @media (max-width: 699px) {

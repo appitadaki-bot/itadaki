@@ -22,7 +22,6 @@ const LANDING = readFileSync(
 /** El precio que se cobra hoy, y el de lista. */
 const PRECIO = '12.999';
 const PRECIO_SIN_PUNTO = '12999';
-const PRECIO_DE_LISTA = '40.000';
 
 describe('el precio del plan', () => {
   it('es el mismo en la tarjeta', () => {
@@ -42,41 +41,38 @@ describe('el precio del plan', () => {
     expect(menciones).toBe(2);
   });
 
-  it('no quedó ninguna mención del anterior', () => {
-    // El que se cobraba antes pasó a ser el de lista, así que sólo puede
-    // aparecer tachado: si quedó suelto en algún lado, la página ofrece dos
-    // precios distintos y el cliente elige el que leyó primero.
+  it('es el único número de precio en la tarjeta', () => {
+    // Dos cifras juntas obligan a averiguar cuál se paga, y eso es trabajo en
+    // la pantalla que decide. El precio de lista se sacó por eso.
+    expect(LANDING).not.toContain('40.000');
     expect(LANDING).not.toContain('"40000"');
-    expect(LANDING).not.toContain('abono mensual fijo de $40.000');
-    expect(LANDING).not.toContain('plan-cifra">40.000');
     expect(LANDING).not.toContain('80.000');
   });
 });
 
 describe('el precio de lanzamiento', () => {
-  it('muestra el de lista tachado', () => {
-    // Con `<s>` y no sólo con CSS: quien usa un lector de pantalla también
-    // tiene que saber que ese número está cruzado.
-    expect(LANDING).toContain(`<s>$${PRECIO_DE_LISTA}</s>`);
-  });
-
-  it('dice que es una promoción', () => {
-    // Un número tachado solo se lee como un descuento cualquiera; esto dice
-    // por qué está rebajado.
+  it('dice que es una promoción, sin otro número al lado', () => {
+    // Para que el día que suba no se lea como un aumento sorpresa sino como
+    // el fin de algo anunciado. Sin el tachado: dos cifras juntas obligan a
+    // averiguar cuál se paga.
     expect(LANDING).toContain('Precio de lanzamiento');
+    expect(LANDING).not.toContain('<s>$');
+  });
+});
+
+describe('lo que incluye el plan', () => {
+  it('nombra lo que hacemos nosotros, no sólo lo que hace el sistema', () => {
+    // Es la diferencia con las plataformas que dan un panel vacío, y estaba
+    // sólo más abajo en la página — donde no se lee al comparar precios.
+    for (const item of ['Capacitamos a tu equipo', 'Mejoras continuas', 'Rol de caja']) {
+      expect(LANDING).toContain(item);
+    }
   });
 
-  it('el de lista es más alto que el que se cobra', () => {
-    const lista = Number(PRECIO_DE_LISTA.replace('.', ''));
-    const hoy = Number(PRECIO_SIN_PUNTO);
-
-    expect(lista).toBeGreaterThan(hoy);
-  });
-
-  it('el precio que se paga va primero', () => {
-    // Lo primero que se lee tiene que ser lo que cuesta hoy, no el tachado.
-    expect(LANDING.indexOf(`plan-cifra">${PRECIO}`)).toBeLessThan(
-      LANDING.indexOf('plan-antes'),
-    );
+  it('y cuándo arrancan los 30 días, como un ítem más', () => {
+    // Era una nota al pie de una sola tarjeta, y dejaba los dos botones a
+    // distinta altura.
+    expect(LANDING).toContain('Los 30 días de prueba arrancan con tu primer pedido');
+    expect(LANDING).not.toContain('class="plan-nota"');
   });
 });
