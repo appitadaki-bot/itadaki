@@ -8,11 +8,24 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  text-align: center;
+}
+
+/*
+ * Lo del restaurante, centrado en lo que sobra.
+ *
+ * El relleno vive acá y no en `.welcome` porque la barra de marca va de borde
+ * a borde: con el relleno afuera quedaba flotando con dos franjas de crema a
+ * los costados.
+ */
+.centro {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 1rem;
   padding: 2rem;
-  text-align: center;
 }
 
 .bowl {
@@ -57,6 +70,42 @@
   letter-spacing: var(--itadaki-tracking-title);
 }
 
+/*
+ * El saludo cuando hay nombre: segundo renglón del mismo bloque que la mesa.
+ *
+ * Mismo tamaño y mismo color que "MESA 1" para que se lean como una sola
+ * cosa —dónde estás sentado— y no le compitan el tamaño al nombre del local.
+ */
+.saludo {
+  margin: -0.4rem 0 0;
+  font-family: var(--itadaki-font-display);
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 2px;
+  color: var(--itadaki-accent);
+  text-transform: uppercase;
+}
+
+/*
+ * El nombre del local: lo más grande de la pantalla.
+ *
+ * Con `clamp` porque el nombre lo elige el restaurante y no nosotros: "Pepe"
+ * y "Parrilla y Cervecería Don Pepe" entran los dos, uno en un renglón y el
+ * otro en tres, sin que haya que medir ninguno.
+ */
+.local {
+  margin: 0.2rem 0 0;
+  font-family: var(--itadaki-font-display);
+  font-weight: 800;
+  font-size: clamp(1.9rem, 9vw, 2.6rem);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  color: var(--itadaki-ink-strong);
+  text-wrap: balance;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .lede {
   margin: 0;
   color: var(--itadaki-ink-muted);
@@ -95,3 +144,31 @@
 .d1 { background: var(--itadaki-accent-bright); }
 .d2 { background: var(--itadaki-status-ready); animation-delay: 0.3s; }
 .d3 { background: var(--itadaki-status-cooking); animation-delay: 0.6s; }
+
+/*
+ * La marca, al pie y sobre oscuro.
+ *
+ * El logo es crema sobre oscuro —viene de la landing, que tiene fondo
+ * marrón— y sobre el crema de esta pantalla la palabra no se vería. La
+ * franja es lo que lo hace legible sin pedir otra versión del archivo.
+ */
+.marca {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 1.25rem 2rem calc(1.6rem + env(safe-area-inset-bottom));
+  background: var(--itadaki-ink);
+}
+
+.marca img {
+  display: block;
+  width: auto;
+  height: 22px;
+}
+
+.marca span {
+  font-size: 0.72rem;
+  letter-spacing: 0.3px;
+  color: color-mix(in oklab, var(--itadaki-surface) 72%, transparent);
+}
