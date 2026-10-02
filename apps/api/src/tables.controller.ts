@@ -49,7 +49,6 @@ export class TablesController {
     return found.value.map((table) => ({
       id: table.id,
       label: table.label,
-      seats: table.seats,
       // The link is regenerated on every read, so an old printout expires on
       // its own schedule while the panel always shows a working one.
       url: this.linkFor(table.tenantId, table.id, table.secret, now),
@@ -62,7 +61,6 @@ export class TablesController {
     const parsed = z
       .object({
         label: z.string().min(1).max(40),
-        seats: z.number().int().min(1).max(30).default(4),
       })
       .safeParse(body);
     if (!parsed.success) {
@@ -80,7 +78,6 @@ export class TablesController {
       tenantId,
       id: id === '' ? `mesa-${Date.now().toString(36)}` : id,
       label: parsed.data.label,
-      seats: parsed.data.seats,
     });
 
     if (saved.isErr()) {
@@ -89,7 +86,6 @@ export class TablesController {
     return {
       id: saved.value.id,
       label: saved.value.label,
-      seats: saved.value.seats,
       url: this.linkFor(tenantId, saved.value.id, saved.value.secret, Date.now()),
     };
   }
@@ -194,7 +190,6 @@ export class TablesController {
     const parsed = z
       .object({
         label: z.string().min(1).max(40),
-        seats: z.number().int().min(1).max(30),
       })
       .safeParse(body);
     if (!parsed.success) {
@@ -210,7 +205,6 @@ export class TablesController {
       tenantId,
       id: tableId,
       label: parsed.data.label,
-      seats: parsed.data.seats,
     });
     if (saved.isErr()) {
       throw new HttpException(saved.error, HttpStatus.BAD_GATEWAY);
@@ -219,7 +213,6 @@ export class TablesController {
     return {
       id: saved.value.id,
       label: saved.value.label,
-      seats: saved.value.seats,
       url: this.linkFor(tenantId, saved.value.id, saved.value.secret, Date.now()),
     };
   }

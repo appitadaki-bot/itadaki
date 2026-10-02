@@ -679,11 +679,6 @@
   color: var(--itadaki-ink-strong);
 }
 
-.table-seats {
-  font-size: 0.75rem;
-  color: var(--itadaki-ink-subtle);
-}
-
 /* Neutro como los otros dos: copiar un link no rompe nada, y en la fila el
    único que merece color es el que borra. */
 .table-copy {
@@ -1856,8 +1851,7 @@
   flex-wrap: wrap;
 }
 
-.table-edit-label,
-.table-edit-seats {
+.table-edit-label {
   border: 1px solid var(--itadaki-border);
   border-radius: var(--itadaki-radius-chip);
   background: var(--itadaki-surface-raised);
@@ -1871,11 +1865,6 @@
 .table-edit-label {
   flex: 1;
   min-width: 8rem;
-}
-
-.table-edit-seats {
-  width: 5rem;
-  font-variant-numeric: tabular-nums;
 }
 
 .table-save {
