@@ -120,7 +120,7 @@ export class PostgresTableStore {
       await this.db.withTenant(table.tenantId, async (client) => {
         await client.query(
           `INSERT INTO restaurant_tables (tenant_id, id, label, qr_secret, join_code)
-           VALUES ($1,$2,$3,$4,$5,$6)
+           VALUES ($1,$2,$3,$4,$5)
            ON CONFLICT (tenant_id, id) DO UPDATE SET
              label = EXCLUDED.label`,
           [table.tenantId, table.id, table.label, secret, newJoinCode()],
