@@ -1,4 +1,4 @@
-import { CATEGORIES, MODIFIER_GROUPS, PRODUCTS } from './menu-fixture';
+import { CATEGORIES, PRODUCTS } from './menu-fixture';
 
 /** Lo poco que hace falta de un cliente de Postgres, para no atarse a uno. */
 export interface ClienteSql {
@@ -22,6 +22,10 @@ export interface ClienteSql {
  * Sólo toca las tablas de catálogo; pedidos y mesas quedan como están.
  */
 export async function sembrarCarta(client: ClienteSql, tenantId: string): Promise<void> {
+  // Los grupos de opciones se borran pero no se vuelven a sembrar. El panel no
+  // tiene pantalla para cargarlos, así que un "Punto de cocción" de ejemplo
+  // le aparecía al comensal como una elección obligatoria que el dueño no
+  // podía ni cambiar ni sacar. Sembrarlos de nuevo acá los devuelve.
   await client.query('DELETE FROM modifier_groups WHERE tenant_id = $1', [tenantId]);
   await client.query('DELETE FROM products WHERE tenant_id = $1', [tenantId]);
   await client.query('DELETE FROM categories WHERE tenant_id = $1', [tenantId]);
@@ -66,33 +70,6 @@ export async function sembrarCarta(client: ClienteSql, tenantId: string): Promis
         product.diets,
         product.estimatedPrepMinutes,
         product.available,
-      ],
-    );
-  }
-
-  for (const group of MODIFIER_GROUPS) {
-    await client.query(
-      `INSERT INTO modifier_groups (tenant_id, id, product_id, name, min_selections, max_selections, modifiers)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
-       ON CONFLICT (tenant_id, id) DO UPDATE SET modifiers = EXCLUDED.modifiers`,
-      [
-        tenantId,
-        group.id,
-        group.productId,
-        group.name,
-        group.minSelections,
-        group.maxSelections,
-        JSON.stringify(
-          group.modifiers.map((modifier) => ({
-            id: modifier.id,
-            name: modifier.name,
-            priceDelta: {
-              amountInMinorUnits: modifier.priceDelta.amountInMinorUnits,
-              currency: modifier.priceDelta.currency,
-            },
-            available: modifier.available,
-          })),
-        ),
       ],
     );
   }

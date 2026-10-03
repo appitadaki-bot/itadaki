@@ -8,7 +8,6 @@ import {
 import {
   InMemoryCategoryStore,
   InMemoryProductStore,
-  MODIFIER_GROUPS,
   PostgresCategoryStore,
   PostgresModifierStore,
   PostgresProductStore,
@@ -49,14 +48,15 @@ export class CatalogService {
   /**
    * Los grupos de opciones del restaurante.
    *
-   * En memoria caen al fixture porque no hay dónde leerlos; contra Postgres
-   * salen de la tabla, que es lo que permite que cada restaurante defina sus
-   * propios puntos de cocción y guarniciones.
+   * La tabla existe y el comensal sabe mostrarlos, pero el panel todavía no
+   * tiene pantalla para cargarlos: hoy nadie escribe ahí. En memoria devuelve
+   * vacío en vez del fixture, porque un "Punto de cocción" de ejemplo le pedía
+   * al comensal una elección obligatoria que el dueño no podía cambiar.
    */
   readonly modifiers = this.usePostgres ? new PostgresModifierStore(database) : null;
 
   async modifierGroups(tenantId: string): Promise<readonly ModifierGroup[]> {
-    if (this.modifiers === null) return MODIFIER_GROUPS;
+    if (this.modifiers === null) return [];
     const found = await this.modifiers.listForTenant(tenantId);
     return found.isOk() ? found.value : [];
   }
