@@ -1190,6 +1190,22 @@ const ROLE_NAMES: Record<string, string> = {
               </div>
             </fieldset>
 
+            <!-- Igual que las dietas: se carga al crear porque después nadie
+                 vuelve. Y acá el costo de que falte es peor, porque la cocina
+                 lee esto para decidir si el plato sale de la freidora
+                 compartida. -->
+            <fieldset class="field diets">
+              <legend>Contiene</legend>
+              <div class="checks">
+                @for (alergeno of allergenOptions; track alergeno.id) {
+                  <label class="check">
+                    <input type="checkbox" [name]="'alergeno-' + alergeno.id" />
+                    <span>{{ alergeno.label }}</span>
+                  </label>
+                }
+              </div>
+            </fieldset>
+
             <!-- Gris cuando no se puede guardar: dejarlo activo era ofrecer algo
                  que siempre terminaba en un error. -->
             <button type="submit" class="create" [disabled]="!hayCategorias()">
@@ -3047,6 +3063,9 @@ export class AdminComponent {
         diets: this.dietOptions
           .filter((diet) => data.get(`diet-${diet.id}`) !== null)
           .map((diet) => diet.id),
+        allergens: this.allergenOptions
+          .filter((alergeno) => data.get(`alergeno-${alergeno.id}`) !== null)
+          .map((alergeno) => alergeno.id),
       }),
     });
 
