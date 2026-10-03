@@ -57,6 +57,33 @@ export class PostgresResetStore {
    * update: two clicks racing each other cannot both win, so a link is usable
    * exactly once.
    */
+  /**
+   * De quién es el token, sin gastarlo.
+   *
+   * Hace falta para revisar la contraseña contra el contexto —el mail y el
+   * nombre del local— antes de escribirla. Revisarla después de consumir
+   * llegaría tarde: el token es de un solo uso, así que rechazarla ahí dejaría
+   * a alguien con el link gastado y la contraseña vieja.
+   *
+   * No delata nada que `consume` no diga igual, y no toca `used_at`.
+   */
+  async deQuienEs(digest: string, now: Date): Promise<Result<ResetRequest | null, ResetError>> {
+    try {
+      const fila = await this.db.unscoped(async (client) => {
+        const filas = await client.query<ResetRow>(
+          `SELECT tenant_id, user_id FROM password_resets
+            WHERE token_digest = $1 AND used_at IS NULL AND expires_at > $2`,
+          [digest, now],
+        );
+        return filas.rows[0] ?? null;
+      });
+
+      return ok(fila === null ? null : { tenantId: fila.tenant_id, userId: fila.user_id });
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   async consume(
     digest: string,
     passwordHash: string,
@@ -85,8 +112,12 @@ export class PostgresResetStore {
 
           // staff_users is row-level secured, so the tenant has to be in scope.
           await client.query('SELECT set_config($1, $2, true)', ['app.tenant_id', row.tenant_id]);
+          // Y destrabada: quien se quedó afuera probando y vino a recuperarla
+          // seguiría trabado con la contraseña nueva, sin entender por qué.
           const updated = await client.query(
-            'UPDATE staff_users SET password_hash = $3 WHERE tenant_id = $1 AND id = $2',
+            `UPDATE staff_users
+                SET password_hash = $3, clave_intentos = 0, clave_trabada_hasta = NULL
+              WHERE tenant_id = $1 AND id = $2`,
             [row.tenant_id, row.user_id, passwordHash],
           );
 

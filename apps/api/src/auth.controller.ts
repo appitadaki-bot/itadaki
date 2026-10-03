@@ -5,8 +5,9 @@ import {
   normaliseEmail,
   entraConMail,
   permissionsOf,
-  validateCredentials,
-  validatePassword,
+  type ContextoDeLaClave,
+  credencialesDeLogin,
+  validarContrasenaNueva,
   estaTrabada,
   nombreDeUsuario,
   pareceUnPin,
@@ -54,6 +55,30 @@ export class AuthController {
     private readonly google: GoogleService,
   ) {}
 
+  /**
+   * Las palabras que esta persona tiene más a mano, para no dejarla usarlas.
+   *
+   * Su mail y el nombre de su restaurante son las dos primeras cosas que
+   * prueba quien sabe a quién le apunta, y las dos primeras que uno elige
+   * cuando tiene que inventar algo en el momento.
+   *
+   * Si algo falla devuelve el contexto vacío: es una revisión de más, y no
+   * puede ser el motivo por el que alguien no logre elegir su contraseña.
+   */
+  private async contextoDe(tenantId: string, userId: string): Promise<ContextoDeLaClave> {
+    const [gente, nombres] = await Promise.all([
+      this.staff.store.listForTenant(tenantId),
+      this.tenants.store.nombresDe([tenantId]),
+    ]);
+
+    return {
+      email: gente.isOk()
+        ? gente.value.find((persona) => persona.id === userId)?.email
+        : undefined,
+      nombreDelLocal: nombres.isOk() ? (nombres.value.get(tenantId) ?? undefined) : undefined,
+    };
+  }
+
   @Public()
   @RateLimit('login')
   @Post('login')
@@ -65,7 +90,10 @@ export class AuthController {
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
     }
 
-    const checked = validateCredentials(parsed.data.email, parsed.data.password);
+    // Sólo la forma: las reglas de elegir no se le aplican a quien ya tiene su
+    // contraseña. Exigirlas acá dejaría afuera a todo el que la eligió con las
+    // de antes, con un "credenciales inválidas" que no explica nada.
+    const checked = credencialesDeLogin(parsed.data.email, parsed.data.password);
     // A malformed address and a wrong password answer identically: telling
     // them apart would let someone enumerate registered emails.
     if (checked.isErr()) {
@@ -77,7 +105,30 @@ export class AuthController {
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
     }
 
+    /*
+     * La cuenta trabada no se prueba.
+     *
+     * El tope de la ruta cuenta por dirección de red, y quien prueba
+     * contraseñas a ciegas cambia de IP cuando quiere; de cuenta no cambia,
+     * porque es la que vino a abrir. Es lo mismo que ya hacía el PIN del
+     * personal desde que existe, con la misma regla y los mismos minutos.
+     *
+     * Contesta igual que una contraseña equivocada: decir "está trabada" le
+     * confirmaría a cualquiera que ese mail tiene cuenta, que es justo lo que
+     * el resto del endpoint cuida. El dueño de verdad lo nota porque en
+     * quince minutos vuelve a entrar con la suya.
+     */
+    const ahora = new Date();
+    if (estaTrabada(found.value.trabadoHasta, ahora)) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
     const matches = await verifyPassword(checked.value.password, found.value.passwordHash);
+
+    // Acertar borra el contador: quien se equivocó dos veces no arrastra eso.
+    const tras = trasElIntento(found.value.intentos, matches, ahora);
+    await this.staff.store.registrarIntentoDeClave(found.value.id, matches, tras.trabadoHasta);
+
     if (!matches) {
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
     }
@@ -825,15 +876,51 @@ export class AuthController {
       throw new HttpException(parsed.error.issues, HttpStatus.BAD_REQUEST);
     }
 
-    // Checked before the token is spent, so a weak password does not burn a
-    // valid link and force the person to request another one.
-    const checked = validatePassword(parsed.data.password);
+    /*
+     * Todo antes de gastar el token.
+     *
+     * El link vale una sola vez: rechazar la contraseña después de consumirlo
+     * dejaría a alguien con el link muerto y la contraseña vieja, teniendo que
+     * pedir otro por un camino que recién está conociendo.
+     *
+     * Es el mismo endpoint para las dos cosas: el dueño que elige su primera
+     * contraseña desde el mail de bienvenida, y cualquiera que la recupera.
+     */
+    const digest = digestOf(parsed.data.token);
+    const dueno = await this.resets.store.deQuienEs(digest, new Date());
+    const contexto = dueno.isOk() && dueno.value !== null
+      ? await this.contextoDe(dueno.value.tenantId, dueno.value.userId)
+      : {};
+
+    const checked = validarContrasenaNueva(parsed.data.password, contexto);
     if (checked.isErr()) {
       throw new HttpException(checked.error, HttpStatus.BAD_REQUEST);
     }
 
+    /*
+     * Ni la que ya tiene.
+     *
+     * Quien llegó acá porque sospecha que alguien le vio la contraseña y pone
+     * la misma de vuelta no cambió nada, pero sale creyendo que sí. Es el
+     * único caso en el que repetir hace daño, y por eso se mira la actual y no
+     * un historial: guardar las contraseñas viejas es guardar más secretos
+     * para siempre, y lo que se gana con las anteriores a la actual es nada.
+     */
+    if (contexto.email !== undefined) {
+      const persona = await this.staff.store.findByEmail(contexto.email);
+      if (persona.isOk() && (await verifyPassword(parsed.data.password, persona.value.passwordHash))) {
+        throw new HttpException({ kind: 'PASSWORD_REPETIDA' }, HttpStatus.BAD_REQUEST);
+      }
+    }
+
+    // Lo último porque sale a la red: no tiene sentido preguntarle a nadie por
+    // una contraseña que ya rechazamos por corta, obvia o repetida.
+    if (await this.resets.filtradas.esta(parsed.data.password)) {
+      throw new HttpException({ kind: 'PASSWORD_FILTRADA' }, HttpStatus.BAD_REQUEST);
+    }
+
     const consumed = await this.resets.store.consume(
-      digestOf(parsed.data.token),
+      digest,
       await hashPassword(parsed.data.password),
       new Date(),
     );

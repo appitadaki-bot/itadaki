@@ -332,6 +332,8 @@ export class InMemoryTenantStore {
     InMemoryStaffStore.compartidas.set(email, {
       ...owner,
       passwordHash: input.staff.passwordHash,
+      intentos: 0,
+      trabadoHasta: null,
     });
 
     return ok({ tenant, owner });

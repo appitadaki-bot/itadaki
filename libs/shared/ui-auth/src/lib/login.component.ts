@@ -36,7 +36,7 @@ import { AuthStore } from './auth.store';
               [value]="password()"
               (input)="onPassword($event)"
             />
-            <small class="hint">Mínimo 8 caracteres</small>
+            <small class="hint">Mínimo 12 caracteres. No uses una que tengas en otro sitio.</small>
           </label>
 
           <!-- Repetirla, que el alta tampoco pide pero acá importa más: el

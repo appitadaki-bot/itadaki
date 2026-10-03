@@ -65,6 +65,20 @@ function guardar(donde: Storage, token: string): void {
   }
 }
 
+/** Por qué no se aceptó la contraseña, en algo que se pueda leer. */
+const PORQUE: Record<string, string> = {
+  PASSWORD_TOO_SHORT: 'La contraseña necesita al menos 12 caracteres',
+  PASSWORD_TOO_COMMON: 'Esa contraseña es de las primeras que prueban; elegí otra',
+  PASSWORD_TOO_OBVIOUS:
+    'No uses el nombre de tu restaurante ni tu mail: es lo primero que prueba quien te apunta a vos',
+  // Decirle que ya se filtró —y no que es "débil"— es lo único que explica por
+  // qué una contraseña larga y rara igual se rechaza.
+  PASSWORD_REPETIDA:
+    'Es la contraseña que tenés ahora. Si pedíste cambiarla porque alguien pudo haberla visto, poner la misma no cambia nada.',
+  PASSWORD_FILTRADA:
+    'Esa contraseña apareció en filtraciones de otros sitios, así que ya está en las listas que se prueban. Elegí una que no uses en ningún otro lado.',
+};
+
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
   private baseUrl = '';
@@ -220,14 +234,14 @@ export class AuthStore {
         body: JSON.stringify({ token, password }),
       });
       if (!response.ok) {
-        const detail = (await response.json().catch(() => null)) as { kind?: string } | null;
-        this.error.set(
-          detail?.kind === 'PASSWORD_TOO_SHORT'
-            ? 'La contraseña necesita al menos 8 caracteres'
-            : detail?.kind === 'PASSWORD_TOO_COMMON'
-              ? 'Esa contraseña es de las primeras que prueban; elegí otra'
-              : 'El link venció o ya se usó. Pedí uno nuevo.',
-        );
+        const detail = (await response.json().catch(() => null)) as {
+          kind?: string;
+          palabra?: string;
+        } | null;
+
+        // Cada motivo con el suyo: "elegí otra" sin decir por qué manda a
+        // probar variantes de la misma, que fallan por lo mismo.
+        this.error.set(PORQUE[detail?.kind ?? ''] ?? 'El link venció o ya se usó. Pedí uno nuevo.');
         return false;
       }
 

@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { type Mailer } from '@itadaki/identity/application';
-import { InMemoryResetStore, PostgresResetStore } from '@itadaki/identity/infra';
+import {
+  FiltradasDeHibp,
+  InMemoryResetStore,
+  PostgresResetStore,
+  type Filtradas,
+} from '@itadaki/identity/infra';
 import { elCorreo } from './correo';
 import { database } from './database';
 
@@ -26,4 +31,14 @@ export class ResetsService {
       ? new PostgresResetStore(database)
       : new InMemoryResetStore();
   readonly mailer: Mailer = elCorreo();
+
+  /**
+   * La lista de contraseñas ya filtradas.
+   *
+   * La misma en todos lados, sin apagarla en local: ya contesta que no sabe
+   * cuando no hay red o el servicio tarda, así que una instalación sin
+   * internet funciona igual. Apagarla en desarrollo sólo lograba que el
+   * único lugar donde se prueba el flujo fuera producción.
+   */
+  readonly filtradas: Filtradas = new FiltradasDeHibp();
 }

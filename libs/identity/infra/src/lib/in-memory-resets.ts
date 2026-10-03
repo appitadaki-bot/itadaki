@@ -47,6 +47,13 @@ export class InMemoryResetStore {
     return ok(undefined);
   }
 
+  /** De quién es el token, sin gastarlo. Ver el de Postgres. */
+  async deQuienEs(digest: string, now: Date): Promise<Result<ResetRequest | null, ResetError>> {
+    const pedido = InMemoryResetStore.pedidos.get(digest);
+    if (pedido === undefined || pedido.usado || pedido.expiresAt <= now) return ok(null);
+    return ok(pedido.request);
+  }
+
   async consume(
     digest: string,
     passwordHash: string,
@@ -71,9 +78,13 @@ export class InMemoryResetStore {
       return err({ kind: 'INVALID_TOKEN' });
     }
 
+    // Y destrabada, como en Postgres: quien se quedó afuera probando y vino a
+    // recuperarla seguiría trabado con la contraseña nueva.
     InMemoryStaffStore.compartidas.set(persona.email.toLowerCase(), {
       ...persona,
       passwordHash,
+      intentos: 0,
+      trabadoHasta: null,
     });
 
     return ok(pedido.request);

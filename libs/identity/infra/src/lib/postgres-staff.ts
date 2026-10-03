@@ -18,10 +18,19 @@ interface StaffRow {
   pin_hash: string | null;
   pin_intentos: number | null;
   pin_trabado_hasta: string | null;
+  clave_intentos: number | null;
+  clave_trabada_hasta: string | null;
 }
+
+/** Lo que hace falta para crear a alguien: sin los contadores, que nacen en cero. */
+export type StaffNuevo = StaffUser & { readonly passwordHash: string };
 
 export interface StaffWithHash extends StaffUser {
   readonly passwordHash: string;
+  /** Cuántos intentos fallidos seguidos lleva la contraseña. */
+  readonly intentos: number;
+  /** Hasta cuándo está trabada por contraseña, o null si no lo está. */
+  readonly trabadoHasta: Date | null;
 }
 
 /** Alguien del personal que entra con usuario y PIN. */
@@ -70,13 +79,18 @@ export class PostgresStaffStore {
         role: row.role as Role,
         active: row.active,
         passwordHash: row.password_hash,
+        intentos: row.clave_intentos ?? 0,
+        trabadoHasta:
+          row.clave_trabada_hasta === null || row.clave_trabada_hasta === undefined
+            ? null
+            : new Date(row.clave_trabada_hasta),
       });
     } catch (error) {
       return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
     }
   }
 
-  async create(user: StaffWithHash): Promise<Result<StaffUser, StaffError>> {
+  async create(user: StaffNuevo): Promise<Result<StaffUser, StaffError>> {
     try {
       await this.db.withTenant(user.tenantId, async (client) => {
         await client.query(
@@ -226,6 +240,45 @@ export class PostgresStaffStore {
    * borra al acertar, así que el mozo que se equivocó dos veces no arrastra
    * eso todo el turno.
    */
+  /**
+   * Deja anotado cómo salió un intento con la contraseña.
+   *
+   * Aparte del contador del PIN: son dos credenciales distintas de la misma
+   * persona, y el mozo que se equivoca el PIN en el salón no tiene por qué
+   * trabarle al dueño la entrada al panel.
+   *
+   * Sin tenant en contexto: el login pasa antes de saber de qué local es, así
+   * que escribe sin alcance y filtra por el id, que es único en toda la base.
+   */
+  async registrarIntentoDeClave(
+    userId: string,
+    acerto: boolean,
+    trabarHasta: Date | null,
+  ): Promise<Result<void, StaffError>> {
+    try {
+      await this.db.unscoped(async (client) => {
+        if (acerto) {
+          await client.query(
+            'UPDATE staff_users SET clave_intentos = 0, clave_trabada_hasta = NULL WHERE id = $1',
+            [userId],
+          );
+          return;
+        }
+
+        await client.query(
+          `UPDATE staff_users
+              SET clave_intentos = clave_intentos + 1,
+                  clave_trabada_hasta = $2
+            WHERE id = $1`,
+          [userId, trabarHasta],
+        );
+      });
+      return ok(undefined);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   async registrarIntento(
     tenantId: string,
     userId: string,
