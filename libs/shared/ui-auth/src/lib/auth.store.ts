@@ -67,16 +67,18 @@ function guardar(donde: Storage, token: string): void {
 
 /** Por qué no se aceptó la contraseña, en algo que se pueda leer. */
 const PORQUE: Record<string, string> = {
-  PASSWORD_TOO_SHORT: 'La contraseña necesita al menos 12 caracteres',
-  PASSWORD_TOO_COMMON: 'Esa contraseña es de las primeras que prueban; elegí otra',
-  PASSWORD_TOO_OBVIOUS:
-    'No uses el nombre de tu restaurante ni tu mail: es lo primero que prueba quien te apunta a vos',
-  // Decirle que ya se filtró —y no que es "débil"— es lo único que explica por
-  // qué una contraseña larga y rara igual se rechaza.
-  PASSWORD_REPETIDA:
-    'Es la contraseña que tenés ahora. Si pedíste cambiarla porque alguien pudo haberla visto, poner la misma no cambia nada.',
-  PASSWORD_FILTRADA:
-    'Esa contraseña apareció en filtraciones de otros sitios, así que ya está en las listas que se prueban. Elegí una que no uses en ningún otro lado.',
+  PASSWORD_TOO_SHORT: 'La contraseña necesita al menos 12 caracteres.',
+  PASSWORD_TOO_COMMON: 'Esa contraseña es de las primeras que prueban. Elegí otra.',
+  PASSWORD_TOO_OBVIOUS: 'No uses el nombre de tu restaurante ni tu mail.',
+  PASSWORD_REPETIDA: 'Es la contraseña que ya tenés. Elegí una distinta.',
+  /*
+   * "Circula" y no "se filtró": lo segundo se lee como que algo le pasó a él,
+   * y lo único que sabemos es que esa contraseña anda dando vueltas en listas
+   * públicas. Tampoco "débil", que sería falso para una de dieciséis
+   * caracteres sin ningún patrón — y es justo la que más desconcierta cuando
+   * se la rechaza sin decir por qué.
+   */
+  PASSWORD_FILTRADA: 'Esa contraseña ya circula en internet. Elegí una más segura.',
 };
 
 @Injectable({ providedIn: 'root' })
