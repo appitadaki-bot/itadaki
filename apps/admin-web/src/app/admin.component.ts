@@ -1370,6 +1370,29 @@ const ROLE_NAMES: Record<string, string> = {
           </div>
           </fieldset>
 
+          <!--
+          Sin stock.
+
+          Aparte de los otros campos a propósito: esto se toca en el medio del
+          servicio, cuando se acabó el pescado, y no al corregir un precio.
+          Guarda solo al tocarlo, sin esperar a "Guardar cambios": lo otro es
+          que el plato se siga pidiendo mientras alguien termina de completar
+          un formulario.
+
+          Va por el endpoint de disponibilidad y no por el PATCH de los demás
+          campos, que es el que anota en la bitácora que el plato quedó sin
+          stock en vez de una edición cualquiera.
+          -->
+          <label class="check sin-stock">
+          <input
+          type="checkbox"
+          [checked]="!dish.available"
+          [disabled]="cambiandoStock() === dish.id"
+          (change)="marcarSinStock(dish, $event)"
+          />
+          <span>Sin stock: no se puede pedir</span>
+          </label>
+
           @if (editError(); as error) {
           <p class="status error">{{ error }}</p>
           }
@@ -1916,6 +1939,9 @@ export class AdminComponent {
   protected readonly editError = signal<string | null>(null);
   protected readonly editSaved = signal(false);
 
+  /** Qué plato está cambiando de stock ahora mismo, para no tocarlo dos veces. */
+  protected readonly cambiandoStock = signal<string | null>(null);
+
   /**
    * Qué modal está abierto, si alguno.
    *
@@ -2324,6 +2350,54 @@ export class AdminComponent {
     this.editSaved.set(true);
     await this.load();
   }
+
+  /**
+   * Marca un plato sin stock, o lo devuelve a la carta.
+   *
+   * Guarda al tocarlo y no con el resto del formulario: es lo que se toca en
+   * el medio del servicio, cuando se acabó el pescado, y esperar a un botón de
+   * guardar significa platos que se siguen pidiendo mientras tanto.
+   *
+   * Va por su propio endpoint y no por el PATCH de los demás campos: ese es el
+   * que anota en la bitácora que el plato quedó sin stock, en vez de registrar
+   * una edición cualquiera.
+   *
+   * El comensal que ya tiene la carta abierta lo ve recién al recargar. La API
+   * emite `product.availability` al tocar esto, pero hoy no lo escucha nadie:
+   * si alguna vez molesta, el arreglo es del lado del comensal y no de acá.
+   *
+   * Si falla, el tilde vuelve a donde estaba: dejarlo tildado diciendo que no
+   * hay stock cuando el servidor no se enteró es peor que no haberlo tocado.
+   */
+  protected async marcarSinStock(dish: MenuProduct, event: Event): Promise<void> {
+    const casilla = event.target as HTMLInputElement;
+    const disponible = !casilla.checked;
+
+    this.cambiandoStock.set(dish.id);
+    this.editError.set(null);
+    this.editSaved.set(false);
+
+    const response = await this.auth.apiFetch(
+      `${API}/menu/products/${dish.id}/availability`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
+        body: JSON.stringify({ available: disponible }),
+      },
+    );
+
+    this.cambiandoStock.set(null);
+
+    if (!response.ok) {
+      casilla.checked = !casilla.checked;
+      this.editError.set('no pudimos cambiar el stock');
+      return;
+    }
+
+    this.editSaved.set(true);
+    await this.load();
+  }
+
   /** Si hay una foto procesándose ahora mismo. */
   protected readonly subiendo = signal(false);
 
