@@ -57,6 +57,33 @@ export class PostgresResetStore {
    * update: two clicks racing each other cannot both win, so a link is usable
    * exactly once.
    */
+  /**
+   * De quién es el token, sin gastarlo.
+   *
+   * Hace falta para revisar la contraseña contra el contexto —el mail y el
+   * nombre del local— antes de escribirla. Revisarla después de consumir
+   * llegaría tarde: el token es de un solo uso, así que rechazarla ahí dejaría
+   * a alguien con el link gastado y la contraseña vieja.
+   *
+   * No delata nada que `consume` no diga igual, y no toca `used_at`.
+   */
+  async deQuienEs(digest: string, now: Date): Promise<Result<ResetRequest | null, ResetError>> {
+    try {
+      const fila = await this.db.unscoped(async (client) => {
+        const filas = await client.query<ResetRow>(
+          `SELECT tenant_id, user_id FROM password_resets
+            WHERE token_digest = $1 AND used_at IS NULL AND expires_at > $2`,
+          [digest, now],
+        );
+        return filas.rows[0] ?? null;
+      });
+
+      return ok(fila === null ? null : { tenantId: fila.tenant_id, userId: fila.user_id });
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
   async consume(
     digest: string,
     passwordHash: string,

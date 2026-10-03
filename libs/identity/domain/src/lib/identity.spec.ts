@@ -104,11 +104,14 @@ describe('session expiry', () => {
 });
 
 describe('the passwords an attacker tries first', () => {
-  it('turns away the obvious ones even at the right length', () => {
-    // Eight characters of "password" is still the first guess anyone makes.
-    const result = validatePassword('password');
-    expect(result.isErr()).toBe(true);
-    expect(result.isErr() && result.error.kind).toBe('PASSWORD_TOO_COMMON');
+  it('turns away the obvious ones', () => {
+    // "password" is still the first guess anyone makes. Since the minimum went
+    // to twelve it is turned away for being short, which is just as true and
+    // more useful to read; the list now catches the ones long enough to pass.
+    expect(validatePassword('password').isErr()).toBe(true);
+
+    const largaYcomun = validatePassword('administrador');
+    expect(largaYcomun.isErr() && largaYcomun.error.kind).toBe('PASSWORD_TOO_COMMON');
   });
 
   it('is not fooled by capitals or padding', () => {
@@ -126,8 +129,10 @@ describe('the passwords an attacker tries first', () => {
   });
 
   it('applies on signup too, not only on reset', () => {
-    const result = validateCredentials('dueño@resto.test', '12345678');
-    expect(result.isErr() && result.error.kind).toBe('PASSWORD_TOO_COMMON');
+    expect(validateCredentials('dueño@resto.test', '12345678').isErr()).toBe(true);
+
+    const comun = validateCredentials('dueño@resto.test', 'administrador');
+    expect(comun.isErr() && comun.error.kind).toBe('PASSWORD_TOO_COMMON');
   });
 
   it('still reports a short password as short', () => {

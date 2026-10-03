@@ -47,6 +47,13 @@ export class InMemoryResetStore {
     return ok(undefined);
   }
 
+  /** De quién es el token, sin gastarlo. Ver el de Postgres. */
+  async deQuienEs(digest: string, now: Date): Promise<Result<ResetRequest | null, ResetError>> {
+    const pedido = InMemoryResetStore.pedidos.get(digest);
+    if (pedido === undefined || pedido.usado || pedido.expiresAt <= now) return ok(null);
+    return ok(pedido.request);
+  }
+
   async consume(
     digest: string,
     passwordHash: string,

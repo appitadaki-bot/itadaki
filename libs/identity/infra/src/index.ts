@@ -38,3 +38,8 @@ export {
 export { InMemoryTenantStore } from './lib/in-memory-tenants';
 export { PostgresDemos, type DemoVivo, type DemoError } from './lib/postgres-demos';
 export { InMemoryDemos } from './lib/in-memory-demos';
+export {
+  FiltradasDeHibp,
+  FiltradasQueNoSabe,
+  type Filtradas,
+} from './lib/contrasena-filtrada';

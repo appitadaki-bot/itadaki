@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { validatePassword } from '@itadaki/identity/domain';
+import { validarContrasenaNueva } from '@itadaki/identity/domain';
 import { hashPassword } from '@itadaki/identity/infra';
 import { Client } from 'pg';
 import { conexionPostgres } from './db-url';
@@ -50,7 +50,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const revisada = validatePassword(password);
+  const revisada = validarContrasenaNueva(password, { email });
   if (revisada.isErr()) {
     console.error('contraseña inválida:', revisada.error.kind);
     process.exit(1);

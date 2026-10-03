@@ -34,6 +34,9 @@ export {
   validateCredentials,
   isTooCommon,
   validatePassword,
+  validarContrasenaNueva,
+  credencialesDeLogin,
+  type ContextoDeLaClave,
   isSessionValid,
 } from './lib/staff';
 export {
