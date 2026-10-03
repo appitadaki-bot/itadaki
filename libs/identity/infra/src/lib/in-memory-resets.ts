@@ -78,9 +78,13 @@ export class InMemoryResetStore {
       return err({ kind: 'INVALID_TOKEN' });
     }
 
+    // Y destrabada, como en Postgres: quien se quedó afuera probando y vino a
+    // recuperarla seguiría trabado con la contraseña nueva.
     InMemoryStaffStore.compartidas.set(persona.email.toLowerCase(), {
       ...persona,
       passwordHash,
+      intentos: 0,
+      trabadoHasta: null,
     });
 
     return ok(pedido.request);

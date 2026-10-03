@@ -105,7 +105,30 @@ export class AuthController {
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
     }
 
+    /*
+     * La cuenta trabada no se prueba.
+     *
+     * El tope de la ruta cuenta por dirección de red, y quien prueba
+     * contraseñas a ciegas cambia de IP cuando quiere; de cuenta no cambia,
+     * porque es la que vino a abrir. Es lo mismo que ya hacía el PIN del
+     * personal desde que existe, con la misma regla y los mismos minutos.
+     *
+     * Contesta igual que una contraseña equivocada: decir "está trabada" le
+     * confirmaría a cualquiera que ese mail tiene cuenta, que es justo lo que
+     * el resto del endpoint cuida. El dueño de verdad lo nota porque en
+     * quince minutos vuelve a entrar con la suya.
+     */
+    const ahora = new Date();
+    if (estaTrabada(found.value.trabadoHasta, ahora)) {
+      throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
+    }
+
     const matches = await verifyPassword(checked.value.password, found.value.passwordHash);
+
+    // Acertar borra el contador: quien se equivocó dos veces no arrastra eso.
+    const tras = trasElIntento(found.value.intentos, matches, ahora);
+    await this.staff.store.registrarIntentoDeClave(found.value.id, matches, tras.trabadoHasta);
+
     if (!matches) {
       throw new HttpException({ kind: 'INVALID_CREDENTIALS' }, HttpStatus.UNAUTHORIZED);
     }
@@ -874,8 +897,24 @@ export class AuthController {
       throw new HttpException(checked.error, HttpStatus.BAD_REQUEST);
     }
 
+    /*
+     * Ni la que ya tiene.
+     *
+     * Quien llegó acá porque sospecha que alguien le vio la contraseña y pone
+     * la misma de vuelta no cambió nada, pero sale creyendo que sí. Es el
+     * único caso en el que repetir hace daño, y por eso se mira la actual y no
+     * un historial: guardar las contraseñas viejas es guardar más secretos
+     * para siempre, y lo que se gana con las anteriores a la actual es nada.
+     */
+    if (contexto.email !== undefined) {
+      const persona = await this.staff.store.findByEmail(contexto.email);
+      if (persona.isOk() && (await verifyPassword(parsed.data.password, persona.value.passwordHash))) {
+        throw new HttpException({ kind: 'PASSWORD_REPETIDA' }, HttpStatus.BAD_REQUEST);
+      }
+    }
+
     // Lo último porque sale a la red: no tiene sentido preguntarle a nadie por
-    // una contraseña que ya rechazamos por corta.
+    // una contraseña que ya rechazamos por corta, obvia o repetida.
     if (await this.resets.filtradas.esta(parsed.data.password)) {
       throw new HttpException({ kind: 'PASSWORD_FILTRADA' }, HttpStatus.BAD_REQUEST);
     }

@@ -1,7 +1,12 @@
 import { type StaffUser } from '@itadaki/identity/domain';
 import { type Result, err, ok } from '@itadaki/shared/domain';
 import { hashPassword } from './password';
-import { type StaffConPin, type StaffError, type StaffWithHash } from './postgres-staff';
+import {
+  type StaffConPin,
+  type StaffError,
+  type StaffNuevo,
+  type StaffWithHash,
+} from './postgres-staff';
 
 /**
  * La misma que crea el seed, para que las instrucciones sirvan en los dos modos.
@@ -11,7 +16,7 @@ import { type StaffConPin, type StaffError, type StaffWithHash } from './postgre
  */
 const DEMO_PASSWORD = 'Itadaki2026Demo';
 
-const DEMO_STAFF: ReadonlyArray<Omit<StaffWithHash, 'passwordHash'>> = [
+const DEMO_STAFF: ReadonlyArray<Omit<StaffNuevo, 'passwordHash'>> = [
   {
     tenantId: 'itadaki',
     id: 'dueno',
@@ -91,7 +96,12 @@ export class InMemoryStaffStore {
     this.listo = (async () => {
       for (const user of DEMO_STAFF) {
         const hash = await hashPassword(DEMO_PASSWORD);
-        this.rows.set(user.email.toLowerCase(), { ...user, passwordHash: hash });
+        this.rows.set(user.email.toLowerCase(), {
+          ...user,
+          passwordHash: hash,
+          intentos: 0,
+          trabadoHasta: null,
+        });
       }
     })();
 
@@ -104,9 +114,9 @@ export class InMemoryStaffStore {
     return found === undefined ? err({ kind: 'NOT_FOUND', email }) : ok(found);
   }
 
-  async create(user: StaffWithHash): Promise<Result<StaffUser, StaffError>> {
+  async create(user: StaffNuevo): Promise<Result<StaffUser, StaffError>> {
     await this.sembrar();
-    this.rows.set(user.email.toLowerCase(), user);
+    this.rows.set(user.email.toLowerCase(), { ...user, intentos: 0, trabadoHasta: null });
     const { passwordHash: _, ...sinHash } = user;
     return ok(sinHash);
   }
@@ -166,6 +176,24 @@ export class InMemoryStaffStore {
     }
 
     return err({ kind: 'NOT_FOUND', email: username });
+  }
+
+  /** Lo mismo que el de Postgres, para levantar sin base. */
+  async registrarIntentoDeClave(
+    userId: string,
+    acerto: boolean,
+    trabarHasta: Date | null,
+  ): Promise<Result<void, StaffError>> {
+    for (const [clave, fila] of this.rows) {
+      if (fila.id !== userId) continue;
+      this.rows.set(clave, {
+        ...fila,
+        intentos: acerto ? 0 : fila.intentos + 1,
+        trabadoHasta: acerto ? null : trabarHasta,
+      });
+      break;
+    }
+    return ok(undefined);
   }
 
   async registrarIntento(

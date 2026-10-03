@@ -73,6 +73,8 @@ const PORQUE: Record<string, string> = {
     'No uses el nombre de tu restaurante ni tu mail: es lo primero que prueba quien te apunta a vos',
   // Decirle que ya se filtró —y no que es "débil"— es lo único que explica por
   // qué una contraseña larga y rara igual se rechaza.
+  PASSWORD_REPETIDA:
+    'Es la contraseña que tenés ahora. Si pedíste cambiarla porque alguien pudo haberla visto, poner la misma no cambia nada.',
   PASSWORD_FILTRADA:
     'Esa contraseña apareció en filtraciones de otros sitios, así que ya está en las listas que se prueban. Elegí una que no uses en ningún otro lado.',
 };
