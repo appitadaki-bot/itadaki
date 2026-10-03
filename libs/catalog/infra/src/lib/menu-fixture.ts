@@ -118,6 +118,15 @@ export const PRODUCTS: readonly Product[] = [
   },
 ];
 
+/**
+ * Grupos de opciones de ejemplo. **Nadie los siembra.**
+ *
+ * `sembrarCarta` los dejó de escribir cuando se vio que el panel no tiene
+ * pantalla para cargarlos: el comensal le pedía un punto de cocción que el
+ * dueño del local no podía ni cambiar ni sacar. Quedan acá porque son la forma
+ * que espera la tabla —uno obligatorio de elegir uno, otro opcional con
+ * precio— y son el punto de partida para la pantalla que falta.
+ */
 export const MODIFIER_GROUPS: readonly ModifierGroup[] = [
   {
     id: 'g-parrilla-punto',

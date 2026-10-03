@@ -26,6 +26,15 @@
 
   --ok: oklch(70% 0.13 150);
 
+  /* El verde de WhatsApp, para el único botón que abre otra app. Más oscuro
+     que el de su logo: con el claro, el texto blanco encima daba 3.3:1 y hace
+     falta 4.5. Así queda en 4.6.
+
+     El hover oscurece en vez de aclarar, al revés que el naranja: aclarando se
+     vuelve a perder el contraste con el texto blanco. */
+  --wa: oklch(54% 0.15 150);
+  --wa-fuerte: oklch(48% 0.14 150);
+
   --r-pill: 100px;
   --r-carta: 16px;
   --r-chip: 10px;
@@ -601,13 +610,32 @@ strong { color: var(--tinta); font-weight: 700; }
  * encabezado fijo. */
 #alta { scroll-margin-top: 4.5rem; }
 
-/* El botón al chat, más alto que los demás: es la única acción de la sección
-   y el final de la página. */
+/* El botón al chat: verde de WhatsApp y no naranja como el resto.
+   Es el único de la página que abre otra aplicación, y el verde lo dice antes
+   de leerlo. A ancho completo se veía como una barra —el texto perdido en el
+   medio de 1400px—, así que va al ancho de su contenido y centrado. */
 .wa-grande {
+  /* `flex` y no `inline-flex`: con `width: fit-content` se encoge al texto
+     igual, y al ser de bloque el `margin: auto` lo centra. Un `inline-flex`
+     queda a la izquierda, porque el padre no es flex ni centra su texto. */
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
   gap: 0.6rem;
-  margin: 1.5rem 0 1.25rem;
+  margin: 1.5rem auto 1.25rem;
+  padding: 0.95rem 2rem;
   min-height: 56px;
   font-size: 1rem;
+  background: var(--wa);
+  color: oklch(99% 0 0);
+}
+.wa-grande:hover { background: var(--wa-fuerte); }
+
+/* En el teléfono sí ocupa todo: ahí el ancho de la columna ya es el del
+   pulgar, y un botón corto centrado se vuelve chico de más para tocarlo. */
+@media (max-width: 480px) {
+  .wa-grande { width: 100%; }
 }
 
 /* ── Preguntas ── */
@@ -932,9 +960,11 @@ strong { color: var(--tinta); font-weight: 700; }
 }
 
 /* Dicho antes del botón y no en letra chica al pie: quien toca "pedir
-   cotización" tiene que saber que eso no está en los $40.000. */
+   cotización" tiene que saber que eso no está en el plan. */
 .servicio-nota {
-  margin: 0 0 1rem;
+  /* El margen va en el botón y no acá: `.tarjeta p` es más específico que
+     esta clase y le gana a cualquier margen que se le ponga a la nota. */
+  margin: 0;
   padding: 0.65rem 0.9rem;
   border-radius: var(--r-chip);
   background: oklch(70% 0.15 45 / 0.08);
@@ -945,8 +975,16 @@ strong { color: var(--tinta); font-weight: 700; }
 .servicio-btn {
   width: 100%;
   justify-content: center;
+  /* Al piso de la tarjeta si sobra alto, para que no quede flotando en el
+     medio cuando la de al lado es más larga. */
   margin-top: auto;
 }
+
+/* Pero cuando la tarjeta no sobra, ese `auto` se resuelve en cero y el botón
+   queda pegado a la nota, leyéndose como su etiqueta. El piso va acá y no en
+   la nota porque `.tarjeta p { margin: 0 }` es más específico que
+   `.servicio-nota`; y va después de la regla de arriba, que si no le gana. */
+.servicio-nota + .servicio-btn { margin-top: 1.25rem; }
 
 .plan.destacado {
   position: relative;

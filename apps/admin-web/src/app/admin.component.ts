@@ -9,7 +9,12 @@ import {
   signal,
 } from '@angular/core';
 import { ImageEditorComponent } from '@itadaki/shared/ui-image-editor';
-import { type Encuadre, esLaFotoEntera } from '@itadaki/catalog/domain';
+import {
+  ALLERGENS,
+  type Encuadre,
+  NOMBRE_DEL_ALERGENO,
+  esLaFotoEntera,
+} from '@itadaki/catalog/domain';
 import { moverEnLista } from './mover-en-lista';
 import { AuthStore, LoginComponent } from '@itadaki/shared/ui-auth';
 import { DecimalPipe } from '@angular/common';
@@ -68,6 +73,8 @@ interface MenuProduct {
   available: boolean;
   /** Lo que leen los filtros de la carta: vegano, sin gluten, etc. */
   diets: readonly string[];
+  /** Lo que contiene, para la carta y para la cocina. Distinto de las dietas. */
+  allergens: readonly string[];
   imageSet: { variants: Array<{ url: string; width: number; format: string }>; lqip: string } | null;
 }
 
@@ -1335,6 +1342,34 @@ const ROLE_NAMES: Record<string, string> = {
           </div>
           </fieldset>
 
+          <!--
+          Lo que contiene el plato.
+
+          La carta se lo avisa al comensal y la comanda a la cocina, que decide
+          si sale de la freidora compartida. Los dos lo mostraban desde que el
+          sistema existe, pero no había dónde cargarlo: lo único que aparecía
+          eran los datos de la carta de ejemplo, que el dueño no podía sacar.
+
+          Lista de lo que contiene y no de lo que no: "sin gluten" ya se dice
+          arriba, en las dietas, y son dos preguntas distintas — una es para
+          quien elige y la otra para quien cocina.
+          -->
+          <fieldset class="field diets">
+          <legend>Contiene</legend>
+          <div class="checks">
+          @for (alergeno of allergenOptions; track alergeno.id) {
+          <label class="check">
+          <input
+          type="checkbox"
+          [name]="'alergeno-' + alergeno.id"
+          [checked]="dish.allergens.includes(alergeno.id)"
+          />
+          <span>{{ alergeno.label }}</span>
+          </label>
+          }
+          </div>
+          </fieldset>
+
           @if (editError(); as error) {
           <p class="status error">{{ error }}</p>
           }
@@ -2136,6 +2171,19 @@ export class AdminComponent {
   }
 
   /** Las dietas que la carta ofrece como filtro, con su nombre en español. */
+  /**
+   * Los alérgenos que se pueden marcar, del vocabulario del dominio.
+   *
+   * De ahí y no de una lista escrita acá: la carta, la comanda y esto tienen
+   * que nombrar lo mismo, y que una diga "maní" y otra "PEANUTS" es lo que
+   * hace dudar de si hablan del mismo plato. Con mayúscula inicial porque acá
+   * son etiquetas de un casillero, no parte de una frase.
+   */
+  protected readonly allergenOptions = ALLERGENS.map((id) => ({
+    id,
+    label: NOMBRE_DEL_ALERGENO[id].charAt(0).toUpperCase() + NOMBRE_DEL_ALERGENO[id].slice(1),
+  }));
+
   protected readonly dietOptions = [
     { id: 'VEGAN', label: 'Vegano' },
     { id: 'VEGETARIAN', label: 'Vegetariano' },
@@ -2251,6 +2299,10 @@ export class AdminComponent {
       .filter((diet) => data.get(`diet-${diet.id}`) !== null)
       .map((diet) => diet.id);
 
+    const allergens = this.allergenOptions
+      .filter((alergeno) => data.get(`alergeno-${alergeno.id}`) !== null)
+      .map((alergeno) => alergeno.id);
+
     const response = await this.auth.apiFetch(`${API}/menu/products/${dish.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...this.auth.headers() },
@@ -2260,6 +2312,7 @@ export class AdminComponent {
         priceMinor: Math.round(pesos * 100),
         categoryId: String(data.get('categoryId') ?? ''),
         diets,
+        allergens,
       }),
     });
 
