@@ -82,17 +82,17 @@
     "undici": "^6.29.0"
   },
   "dependencies": {
-    "@nestjs/common": "^11.2.6",
-    "@nestjs/core": "^11.2.6",
-    "@nestjs/platform-express": "^11.2.6",
-    "@nestjs/platform-socket.io": "^11.2.6",
-    "@nestjs/websockets": "^11.2.6",
-    "@sentry/node": "^11.0.0",
-    "pg": "^8.23.0",
+    "@nestjs/common": "^11.2.7",
+    "@nestjs/core": "^11.2.7",
+    "@nestjs/platform-express": "^11.2.7",
+    "@nestjs/platform-socket.io": "^11.2.7",
+    "@nestjs/websockets": "^11.2.7",
+    "@sentry/node": "^11.2.0",
+    "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "sharp": "^0.35.4",
-    "socket.io": "^4.8.3",
+    "sharp": "^0.35.5",
+    "socket.io": "^4.8.4",
     "zod": "^4.6.5"
   }
 }
