@@ -179,6 +179,15 @@ export class InMemoryStaffStore {
   }
 
   /** Lo mismo que el de Postgres, para levantar sin base. */
+  /**
+   * Sin Postgres nadie pregunta por el mail confirmado —el guard contesta que
+   * sí y listo— así que acá no hay nada que marcar. Existe para que quien
+   * llama no tenga que saber contra qué almacén está hablando.
+   */
+  async marcarMailConfirmado(): Promise<Result<void, StaffError>> {
+    return ok(undefined);
+  }
+
   async registrarIntentoDeClave(
     userId: string,
     acerto: boolean,

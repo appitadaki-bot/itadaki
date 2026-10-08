@@ -363,6 +363,29 @@ export class PostgresStaffStore {
   }
 
   /**
+   * Da el mail por confirmado.
+   *
+   * Para las cuentas cuyo mail no hay cómo confirmar porque no existe: el
+   * dueño de un restaurante de prueba, que vive en un dominio que no recibe
+   * nada y se borra en dos horas. El guard existe para que un local pruebe
+   * que la casilla es suya antes de configurarlo; donde no hay casilla no hay
+   * nada que probar, y sin esto el visitante entra al panel y no puede tocar
+   * ni un plato.
+   */
+  async marcarMailConfirmado(tenantId: string, userId: string): Promise<Result<void, StaffError>> {
+    try {
+      await this.db.withTenant(tenantId, async (client) => {
+        await client.query('UPDATE staff_users SET email_verified_at = now() WHERE id = $1', [
+          userId,
+        ]);
+      });
+      return ok(undefined);
+    } catch (error) {
+      return err({ kind: 'STORAGE_FAILURE', detail: String(error) });
+    }
+  }
+
+  /**
    * Si esta persona confirmó su mail.
    *
    * Ante un fallo de lectura devuelve `true`, igual que `isActive`: no poder

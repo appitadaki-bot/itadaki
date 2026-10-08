@@ -65,6 +65,10 @@ class DemoDePrueba extends DemoService {
     this.staff = {
       create: async () => ok({}),
       guardarPin: async () => ok(undefined),
+      marcarMailConfirmado: async () => {
+        this.anotar('confirmar el mail');
+        return ok(undefined);
+      },
     } as unknown as DemoService['staff'];
 
     this.tables = {
@@ -128,6 +132,27 @@ describe('armar un restaurante de prueba', () => {
     expect(hecho.error.kind).toBe('SIN_LUGAR');
     // Y no llegó a tocar nada del restaurante.
     expect(servicio.pasoDe('crear restaurante')).toBe(-1);
+  });
+
+  it('el mail del dueño queda confirmado', async () => {
+    /*
+     * Vive en un dominio que no recibe nada: no hay casilla que pueda probar
+     * que es suya, y el guard que lo exige dejaba al visitante adentro del
+     * panel sin poder tocar un plato — justo lo que vino a probar.
+     *
+     * No se vio en local porque sin Postgres ese guard contesta que sí y ya.
+     */
+    const servicio = new DemoDePrueba();
+    await servicio.crear(ahora);
+
+    expect(servicio.pasoDe('confirmar el mail')).toBeGreaterThan(
+      servicio.pasoDe('crear restaurante'),
+    );
+    // Antes de sembrar la carta: el orden no importa para la base, pero sí
+    // que no quede colgando después de algo que puede fallar y cortar.
+    expect(servicio.pasoDe('confirmar el mail')).toBeLessThan(
+      servicio.pasoDe('sembrar la carta'),
+    );
   });
 
   it('la carta se siembra antes de la mesa', async () => {

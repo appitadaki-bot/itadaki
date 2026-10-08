@@ -222,6 +222,20 @@ export class DemoService implements OnModuleInit, OnModuleDestroy {
       throw new Error(`no se pudo crear el restaurante: ${JSON.stringify(alta.error)}`);
     }
 
+    /*
+     * El mail del dueño se da por confirmado.
+     *
+     * Vive en un dominio que no recibe nada y el restaurante se borra en dos
+     * horas: no hay casilla que pueda probar que es suya. El guard que lo
+     * exige está para que un local de verdad lo demuestre antes de
+     * configurarse; acá lo único que lograba era dejar al visitante adentro
+     * del panel sin poder tocar un plato, que es justo lo que vino a probar.
+     */
+    const confirmado = await this.staff.marcarMailConfirmado(tenantId, alta.value.owner.id);
+    if (confirmado.isErr()) {
+      throw new Error(`no se pudo confirmar el mail del dueño: ${JSON.stringify(confirmado.error)}`);
+    }
+
     await this.sembrar(tenantId);
 
     const mesa = await this.tables.save({ tenantId, id: 'mesa-1', label: 'Mesa 1' });
