@@ -1147,6 +1147,28 @@
   cursor: pointer;
 }
 
+/* Separado de los otros tildes del formulario, que son listas de dos o tres.
+   Este guarda solo al tocarlo mientras los demás esperan a "Guardar cambios",
+   y suelto entre ellos se leía como uno más de la lista de arriba. */
+.check.sin-stock {
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--itadaki-border);
+  border-radius: var(--itadaki-radius-action);
+}
+
+/* Tildado es un estado del plato, no una preferencia: que se note sin leerlo,
+   igual que la chapa "Sin stock" de la lista. */
+.check.sin-stock:has(input:checked) {
+  border-color: var(--itadaki-accent);
+  background: color-mix(in srgb, var(--itadaki-accent) 8%, transparent);
+}
+
+.check.sin-stock:has(input:disabled) {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .sheet-actions {
   display: flex;
   flex-wrap: wrap;
